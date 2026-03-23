@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Import Excel - Racketty Boom Enterprises</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; }
+    .step-active { color: #2563eb; border-color: #2563eb; }
+    .step-inactive { color: #94a3b8; border-color: #e2e8f0; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-20">
+
+  <header class="bg-white shadow-sm sticky top-0 z-50">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button onclick="window.history.back()" class="p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
+          <span class="material-icons-round">arrow_back</span>
+        </button>
+        <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Import Excel Data</h1>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto p-4 mt-4">
+    
+    <div class="flex items-center justify-between mb-8 text-sm font-medium relative">
+      <div class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-slate-200 -z-10"></div>
+      <div id="nav-step1" class="flex flex-col items-center gap-1 bg-slate-50 px-2 step-active">
+        <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center bg-white">1</div>
+        <span class="hidden sm:block">Upload</span>
+      </div>
+      <div id="nav-step2" class="flex flex-col items-center gap-1 bg-slate-50 px-2 step-inactive">
+        <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center bg-white">2</div>
+        <span class="hidden sm:block">Preview</span>
+      </div>
+      <div id="nav-step3" class="flex flex-col items-center gap-1 bg-slate-50 px-2 step-inactive">
+        <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center bg-white">3</div>
+        <span class="hidden sm:block">Review</span>
+      </div>
+    </div>
+
+    <!-- STEP 1: UPLOAD -->
+    <div id="step1-upload" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 transition-all">
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 text-blue-600 mb-4">
+          <span class="material-icons-round text-3xl">upload_file</span>
+        </div>
+        <h2 class="text-xl font-semibold mb-2">Select your Excel file</h2>
+        <p class="text-slate-500 text-sm">Upload your financial workbook (.xlsx) to import income and expenses automatically.</p>
+      </div>
+
+      <div class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-blue-500 hover:bg-blue-50 transition-colors cursor-pointer" id="drop-zone" onclick="document.getElementById('excelFile').click()">
+        <span class="material-icons-round text-4xl text-slate-400 mb-2">description</span>
+        <p class="font-medium text-slate-700">Tap to select or drop file here</p>
+        <p class="text-xs text-slate-400 mt-1">Supported: .xlsx, .xls</p>
+        <input type="file" id="excelFile" accept=".xlsx, .xls" class="hidden" />
+      </div>
+
+      <div id="file-info" class="hidden mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between">
+        <div class="flex items-center gap-3 overflow-hidden">
+          <span class="material-icons-round text-green-600">check_circle</span>
+          <div class="truncate">
+            <p id="filename-display" class="font-medium text-sm text-slate-800 truncate"></p>
+            <p id="filesize-display" class="text-xs text-slate-500"></p>
+          </div>
+        </div>
+        <button onclick="clearFile()" class="p-2 text-slate-400 hover:text-red-500 rounded-full">
+          <span class="material-icons-round text-sm">close</span>
+        </button>
+      </div>
+
+      <button id="btn-analyze" disabled class="w-full mt-8 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-medium py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm">
+        <span id="btn-analyze-text">Analyze Data</span>
+        <span class="material-icons-round text-sm" id="btn-analyze-icon">arrow_forward</span>
+      </button>
+    </div>
+
+    <!-- STEP 2: PREVIEW -->
+    <div id="step2-preview" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+       <div class="p-4 md:p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+         <div>
+           <h2 class="text-lg font-semibold">Data Preview</h2>
+           <p class="text-sm text-slate-500 mt-1">Found <span id="summary-total" class="font-medium text-slate-800">0</span> records. <span id="summary-review" class="text-amber-600 font-medium hidden">Needs review</span></p>
+         </div>
+       </div>
+
+       <div class="overflow-x-auto">
+         <table class="w-full text-left text-sm whitespace-nowrap">
+           <thead class="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+             <tr>
+               <th class="py-3 px-4">Row</th>
+               <th class="py-3 px-4">Status</th>
+               <th class="py-3 px-4">Date</th>
+               <th class="py-3 px-4">Vendor / Pay To</th>
+               <th class="py-3 px-4">Total</th>
+               <th class="py-3 px-4">Type</th>
+               <th class="py-3 px-4">Flags</th>
+             </tr>
+           </thead>
+           <tbody id="preview-table-body" class="divide-y divide-slate-100 text-slate-700">
+             <!-- Rows injected here -->
+           </tbody>
+         </table>
+       </div>
+       
+       <!-- Pagination for Preview -->
+       <div class="p-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
+         <button id="btn-prev-preview" class="text-slate-600 disabled:text-slate-300 font-medium py-1.5 px-3 rounded-lg hover:bg-slate-200 transition-colors text-sm" disabled>Previous</button>
+         <span class="text-xs font-medium text-slate-500">Page <span id="preview-page">1</span> of <span id="preview-total-pages">1</span></span>
+         <button id="btn-next-preview" class="text-slate-600 disabled:text-slate-300 font-medium py-1.5 px-3 rounded-lg hover:bg-slate-200 transition-colors text-sm" disabled>Next</button>
+       </div>
+       
+       <div class="p-4 md:p-6 border-t border-slate-100 flex gap-3">
+         <button onclick="location.reload()" class="flex-1 py-3 px-4 text-slate-600 font-medium bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Cancel</button>
+         <button id="btn-commit" class="flex-1 py-3 px-4 text-white font-medium bg-green-600 hover:bg-green-700 rounded-xl transition-colors flex justify-center items-center gap-2 shadow-sm">
+           <span>Confirm & Import</span>
+           <span class="material-icons-round text-sm">check</span>
+         </button>
+       </div>
+    </div>
+
+  </main>
+
+  <script>
+    const fileInput = document.getElementById('excelFile');
+    const fileInfo = document.getElementById('file-info');
+    const analyzeBtn = document.getElementById('btn-analyze');
+    let importedRowsData = [];
+    let previewPage = 1;
+    const previewLimit = 20;
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      document.getElementById('filename-display').textContent = file.name;
+      document.getElementById('filesize-display').textContent = (file.size / 1024).toFixed(1) + ' KB';
+      
+      fileInfo.classList.remove('hidden');
+      document.getElementById('drop-zone').classList.add('hidden');
+      analyzeBtn.disabled = false;
+    });
+
+    function clearFile() {
+      fileInput.value = '';
+      fileInfo.classList.add('hidden');
+      document.getElementById('drop-zone').classList.remove('hidden');
+      analyzeBtn.disabled = true;
+    }
+
+    analyzeBtn.addEventListener('click', async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('excel', file);
+
+      // Loading State
+      document.getElementById('btn-analyze-text').textContent = 'Analyzing...';
+      document.getElementById('btn-analyze-icon').textContent = 'autorenew';
+      document.getElementById('btn-analyze-icon').classList.add('animate-spin');
+      analyzeBtn.disabled = true;
+
+      try {
+        const response = await fetch('/api/import/preview', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+          alert('Error: ' + (data.error || 'Failed to analyze file'));
+          throw new Error(data.error);
+        }
+
+        importedRowsData = data.rows || [];
+        previewPage = 1;
+        
+        // Update UI Summary
+        document.getElementById('summary-total').textContent = data.summary.totalRows;
+        if (data.summary.needsReview > 0) {
+          const rBadge = document.getElementById('summary-review');
+          rBadge.textContent = `${data.summary.needsReview} require review`;
+          rBadge.classList.remove('hidden');
+        }
+
+        renderPreviewTable();
+
+        // Transition views
+        document.getElementById('step1-upload').classList.add('hidden');
+        document.getElementById('step2-preview').classList.remove('hidden');
+        document.getElementById('nav-step2').classList.replace('step-inactive', 'step-active');
+        
+      } catch (error) {
+        console.error(error);
+      } finally {
+        document.getElementById('btn-analyze-text').textContent = 'Analyze Data';
+        document.getElementById('btn-analyze-icon').textContent = 'arrow_forward';
+        document.getElementById('btn-analyze-icon').classList.remove('animate-spin');
+        analyzeBtn.disabled = false;
+      }
+    });
+
+    function renderPreviewTable() {
+      const tbody = document.getElementById('preview-table-body');
+      tbody.innerHTML = '';
+
+      if(importedRowsData.length === 0) {
+         tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500">No valid data rows found in this file.</td></tr>`;
+         document.getElementById('btn-commit').disabled = true;
+         document.getElementById('btn-commit').classList.add('opacity-50', 'cursor-not-allowed');
+         return;
+      }
+
+      const totalPages = Math.ceil(importedRowsData.length / previewLimit);
+      const start = (previewPage - 1) * previewLimit;
+      const end = start + previewLimit;
+      const paginatedRows = importedRowsData.slice(start, end);
+
+      paginatedRows.forEach(row => {
+        const statusColor = row.status === 'Ready' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700';
+        const typeColor = row.type === 'Income' ? 'text-green-600 bg-green-50' : 'text-rose-600 bg-rose-50';
+        
+        const flagsHtml = row.flags.length > 0 
+          ? `<div class="flex gap-1 flex-wrap">${row.flags.map(f => `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800" title="${f.msg}">${f.type}</span>`).join('')}</div>`
+          : '<span class="text-slate-400 text-xs">-</span>';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="py-3 px-4 text-xs text-slate-400">#${row.source_row_number}</td>
+          <td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-medium ${statusColor}">${row.status}</span></td>
+          <td class="py-3 px-4 text-slate-600">${row.date || '<span class="text-red-400 text-xs">Missing</span>'}</td>
+          <td class="py-3 px-4 font-medium text-slate-800 max-w-[200px] truncate" title="${row.vendor}">${row.vendor || '<span class="text-red-400 text-xs">Missing</span>'}</td>
+          <td class="py-3 px-4 font-medium tabular-nums">$${row.total.toFixed(2)}</td>
+          <td class="py-3 px-4"><span class="px-2 py-1 rounded text-xs font-medium border ${typeColor}">${row.type}</span></td>
+          <td class="py-3 px-4">${flagsHtml}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Update Pagination UI
+      document.getElementById('preview-page').textContent = previewPage;
+      document.getElementById('preview-total-pages').textContent = totalPages || 1;
+      document.getElementById('btn-prev-preview').disabled = previewPage <= 1;
+      document.getElementById('btn-next-preview').disabled = previewPage >= totalPages;
+    }
+
+    document.getElementById('btn-prev-preview').addEventListener('click', () => {
+      if (previewPage > 1) { previewPage--; renderPreviewTable(); }
+    });
+    
+    document.getElementById('btn-next-preview').addEventListener('click', () => {
+      const totalPages = Math.ceil(importedRowsData.length / previewLimit);
+      if (previewPage < totalPages) { previewPage++; renderPreviewTable(); }
+    });
+
+    document.getElementById('btn-commit').addEventListener('click', async () => {
+       const btn = document.getElementById('btn-commit');
+       const originalHtml = btn.innerHTML;
+       btn.innerHTML = '<span class="material-icons-round animate-spin">autorenew</span><span>Saving...</span>';
+       btn.disabled = true;
+
+       try {
+         const res = await fetch('/api/import/commit', {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({ filename: fileInput.files[0].name, rows: importedRowsData })
+         });
+         const data = await res.json();
+         if (!res.ok) throw new Error(data.error);
+
+         document.getElementById('step2-preview').innerHTML = `
+           <div class="p-12 text-center">
+             <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 text-green-600 mb-6">
+               <span class="material-icons-round text-5xl">check_circle</span>
+             </div>
+             <h2 class="text-2xl font-semibold mb-2 text-slate-800">Import Successful!</h2>
+             <p class="text-slate-500 mb-8">${data.inserted} records have been saved securely.</p>
+             <button onclick="window.location.href='/'" class="bg-slate-800 hover:bg-slate-900 text-white font-medium py-3 px-6 rounded-xl transition-colors shadow-sm">
+               Return to Dashboard
+             </button>
+           </div>
+         `;
+         document.getElementById('nav-step3').classList.replace('step-inactive', 'step-active');
+       } catch (e) {
+         alert('Database Error: ' + e.message + '\n\n(Did you run the SQL migration script?)');
+         btn.innerHTML = originalHtml;
+         btn.disabled = false;
+       }
+    });
+  </script>
+</body>
+</html>
