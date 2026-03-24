@@ -1310,9 +1310,11 @@ app.get('/api/transactions', async (req, res) => {
         t.notes,
         c.name AS category,
         t.created_at,
-        t.review_status
+        t.review_status,
+        ru.storage_url as receipt_url
       FROM transactions t
       LEFT JOIN categories c ON c.id = t.category_id
+      LEFT JOIN receipt_uploads ru ON ru.id = t.receipt_id
       ORDER BY t.transaction_date DESC, t.id DESC
       LIMIT :limit OFFSET :offset
       `,
@@ -1485,7 +1487,20 @@ app.get('/api/dashboard', async (_req, res) => {
 
 app.get('/api/stats', async (req, res) => {
   try {
-    const year = Number(req.query.year) || new Date().getFullYear();
+    const filterType = req.query.filter || 'year';
+    const filterValue = req.query.value || new Date().getFullYear();
+    
+    let dateFilterSql = 'YEAR(transaction_date) = ?';
+    let sqlParams = [filterValue];
+
+    if (filterType === 'month') {
+      const [y, m] = String(filterValue).split('-');
+      dateFilterSql = 'YEAR(transaction_date) = ? AND MONTH(transaction_date) = ?';
+      sqlParams = [y, m];
+    } else if (filterType === 'all') {
+      dateFilterSql = '1=1';
+      sqlParams = [];
+    }
 
     const [[totals]] = await pool.query(`
       SELECT 
@@ -1494,38 +1509,39 @@ app.get('/api/stats', async (req, res) => {
         COALESCE(SUM(sales_tax_owed), 0) AS tax_owed,
         COALESCE(SUM(sales_tax_paid), 0) AS tax_paid
       FROM transactions
-      WHERE YEAR(transaction_date) = ?
-    `, [year]);
+      WHERE ${dateFilterSql}
+    `, sqlParams);
 
     const [monthly] = await pool.query(`
       SELECT 
         MONTH(transaction_date) as month,
+        YEAR(transaction_date) as year,
         COALESCE(SUM(CASE WHEN type = 'Income' THEN amount ELSE 0 END), 0) AS income,
         COALESCE(SUM(CASE WHEN type = 'Expense' THEN amount ELSE 0 END), 0) AS expense
       FROM transactions
-      WHERE YEAR(transaction_date) = ?
-      GROUP BY MONTH(transaction_date)
-      ORDER BY month ASC
-    `, [year]);
+      WHERE ${dateFilterSql}
+      GROUP BY YEAR(transaction_date), MONTH(transaction_date)
+      ORDER BY year ASC, month ASC
+    `, sqlParams);
 
     const [categories] = await pool.query(`
       SELECT c.name, SUM(t.amount) as total
       FROM transactions t
       LEFT JOIN categories c ON t.category_id = c.id
-      WHERE YEAR(t.transaction_date) = ? AND t.type = 'Expense'
+      WHERE ${dateFilterSql} AND t.type = 'Expense'
       GROUP BY c.id, c.name
       ORDER BY total DESC
       LIMIT 5
-    `, [year]);
+    `, sqlParams);
 
     const [vendors] = await pool.query(`
       SELECT vendor, SUM(amount) as total
       FROM transactions
-      WHERE YEAR(transaction_date) = ? AND type = 'Expense'
+      WHERE ${dateFilterSql} AND type = 'Expense'
       GROUP BY vendor
       ORDER BY total DESC
       LIMIT 5
-    `, [year]);
+    `, sqlParams);
 
     const inc = Number(totals.income);
     const exp = Number(totals.expense);
@@ -1533,7 +1549,7 @@ app.get('/api/stats', async (req, res) => {
     const taxLiability = Number(totals.tax_owed) - Number(totals.tax_paid);
 
     res.json({
-      year,
+      filterType, filterValue,
       summary: {
         income: inc,
         expense: exp,
@@ -1541,13 +1557,147 @@ app.get('/api/stats', async (req, res) => {
         margin: margin,
         tax_liability: taxLiability
       },
-      monthly: monthly.map(m => ({ month: m.month, income: Number(m.income), expense: Number(m.expense) })),
+      monthly: monthly.map(m => ({ month: m.month, year: m.year, income: Number(m.income), expense: Number(m.expense) })),
       categories: categories.map(c => ({ name: c.name || 'General', total: Number(c.total) })),
       vendors: vendors.map(v => ({ name: v.vendor, total: Number(v.total) }))
     });
   } catch (error) {
     console.error('Stats error:', error);
     res.status(500).json({ error: 'Failed to fetch stats.' });
+  }
+});
+
+const ExcelJS = require('exceljs');
+
+app.get('/api/export', async (req, res) => {
+  try {
+    const filterType = req.query.filter || 'year';
+    const filterValue = req.query.value || new Date().getFullYear();
+    
+    let dateFilterSql = 'YEAR(t.transaction_date) = ?';
+    let sqlParams = [filterValue];
+    let sheetTitle = `Racketty Boom Enterprises ${filterValue}`;
+
+    if (filterType === 'month') {
+      const [y, m] = String(filterValue).split('-');
+      dateFilterSql = 'YEAR(t.transaction_date) = ? AND MONTH(t.transaction_date) = ?';
+      sqlParams = [y, m];
+      const monthName = new Date(y, m - 1).toLocaleString('en-US', { month: 'long' });
+      sheetTitle = `Racketty Boom Enterprises  ${y} ${monthName}`;
+    } else if (filterType === 'all') {
+      dateFilterSql = '1=1';
+      sqlParams = [];
+      sheetTitle = 'Racketty Boom Enterprises  All Time';
+    }
+
+    const [rows] = await pool.query(`
+      SELECT 
+        DATE_FORMAT(t.transaction_date, '%m/%d/%Y') AS date,
+        t.vendor,
+        t.amount,
+        t.type,
+        t.subtotal,
+        t.sales_tax_paid,
+        t.sales_tax_owed,
+        t.invoice_number,
+        t.location,
+        t.items,
+        t.notes
+      FROM transactions t
+      WHERE ${dateFilterSql}
+      ORDER BY t.transaction_date ASC, t.id ASC
+    `, sqlParams);
+
+    let totalCosts = 0;
+    let grossIncome = 0;
+    let totalTaxPaid = 0;
+    let subTotalOwed = 0;
+    let totalTaxOwed = 0;
+
+    rows.forEach(r => {
+      if (r.type === 'Expense') {
+        totalCosts += Number(r.amount || 0);
+        totalTaxPaid += Number(r.sales_tax_paid || 0);
+      } else {
+        grossIncome += Number(r.amount || 0);
+        subTotalOwed += Number(r.subtotal || 0);
+        totalTaxOwed += Number(r.sales_tax_owed || 0);
+      }
+    });
+
+    const incomeBeforeTaxes = grossIncome - totalCosts;
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('EXPENSES ' + filterValue);
+
+    // Header structure based on the accountant's template
+    sheet.getCell('A1').value = sheetTitle;
+    sheet.getCell('A1').font = { bold: true };
+    
+    sheet.getCell('G1').value = 'Income Before Personal Taxes';
+    sheet.getCell('G1').font = { bold: true };
+    sheet.getCell('I1').value = 'Total Costs =';
+    sheet.getCell('I1').font = { bold: true };
+    sheet.getCell('J1').value = totalCosts;
+    sheet.getCell('J1').numFmt = '0.00';
+
+    sheet.getCell('D2').value = 'Total Paid';
+    sheet.getCell('D2').font = { bold: true };
+    sheet.getCell('E2').value = 'Sub Total Owed';
+    sheet.getCell('E2').font = { bold: true };
+    sheet.getCell('F2').value = 'Sales Tax Owed';
+    sheet.getCell('F2').font = { bold: true };
+    sheet.getCell('G2').value = incomeBeforeTaxes;
+    sheet.getCell('G2').numFmt = '0.00';
+    sheet.getCell('I2').value = 'Gross Income=';
+    sheet.getCell('I2').font = { bold: true };
+    sheet.getCell('J2').value = grossIncome;
+    sheet.getCell('J2').numFmt = '0.00';
+
+    sheet.getCell('D3').value = totalTaxPaid;
+    sheet.getCell('D3').numFmt = '0.00';
+    sheet.getCell('E3').value = subTotalOwed;
+    sheet.getCell('E3').numFmt = '0.00';
+    sheet.getCell('F3').value = totalTaxOwed;
+    sheet.getCell('F3').numFmt = '0.00';
+
+    // Row 4 Headers
+    sheet.getRow(4).values = [
+      'DATE', 'COST', 'INCOME', 'SALES TAX PAID', 'SALES TAX OWED', 'Pay To:', 'Invoice #', 'Location', 'ITEM(S)', 'NOTES:'
+    ];
+    sheet.getRow(4).font = { bold: true };
+
+    // Fill data
+    rows.forEach((r, idx) => {
+      const isExpense = r.type === 'Expense';
+      sheet.addRow([
+        r.date,
+        isExpense ? r.amount : '',
+        !isExpense ? r.amount : '',
+        isExpense ? (r.sales_tax_paid || '') : '',
+        !isExpense ? (r.sales_tax_owed || '') : '',
+        r.vendor,
+        r.invoice_number || '',
+        r.location || '',
+        r.items || '',
+        r.notes || ''
+      ]);
+    });
+
+    // Formatting columns
+    sheet.columns.forEach(col => { col.width = 15; });
+    sheet.getColumn(6).width = 25; // Pay To
+    sheet.getColumn(9).width = 30; // Items
+    sheet.getColumn(10).width = 30; // Notes
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    
+    res.setHeader('Content-Disposition', `attachment; filename="RackettyBoom_Accountant_${filterValue}.xlsx"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({ error: 'Failed to generate export' });
   }
 });
 
