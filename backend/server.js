@@ -940,7 +940,7 @@ app.post('/api/transactions/review-confirm', async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Review confirm error:', error);
-    return res.status(500).json({ error: 'Failed to confirm transaction.' });
+    return res.status(500).json({ error: error.message || 'Failed to confirm transaction.' });
   } finally {
     connection.release();
   }
