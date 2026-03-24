@@ -55,7 +55,7 @@ async function reloadSettings() {
 
 app.post('/api/auth', (req, res) => {
   const { pin } = req.body;
-  if (pin === appSettings.app_pin || pin === '2468' || pin === '1234') {
+  if (pin === appSettings.app_pin) {
     res.cookie('auth_pin', pin, { httpOnly: true, path: '/' });
     return res.json({ success: true });
   }
@@ -68,7 +68,7 @@ app.post('/api/logout', (req, res) => {
 });
 
 app.use((req, res, next) => {
-  if (req.path === '/login.html' || req.path === '/api/auth' || req.path.startsWith('/icon.svg') || req.path.startsWith(`/${UPLOAD_DIR}/`) || req.path === '/api/settings/public') {
+  if (req.path === '/login.html' || req.path === '/help.html' || req.path.startsWith('/js/') || req.path === '/api/auth' || req.path.startsWith('/icon.svg') || req.path.startsWith(`/${UPLOAD_DIR}/`) || req.path === '/api/settings/public') {
     return next();
   }
   
@@ -76,7 +76,7 @@ app.use((req, res, next) => {
   const match = cookieHeader.match(/(?:^|; )auth_pin=([^;]*)/);
   const pin = match ? match[1] : null;
 
-  if (pin === appSettings.app_pin || pin === '2468' || pin === '1234') {
+  if (pin === appSettings.app_pin) {
     return next();
   }
 
@@ -656,10 +656,23 @@ async function ensureSchema() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS projects (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      name VARCHAR(255) NOT NULL,
+      status ENUM('Active','Completed') NOT NULL DEFAULT 'Active',
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_project_name (name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS transactions (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
       receipt_id BIGINT UNSIGNED NULL,
       category_id BIGINT UNSIGNED NULL,
+      project_id BIGINT UNSIGNED NULL,
       vendor VARCHAR(255) NOT NULL,
       transaction_date DATE NOT NULL,
       amount DECIMAL(12,2) NOT NULL,
@@ -670,8 +683,10 @@ async function ensureSchema() {
       PRIMARY KEY (id),
       KEY idx_transactions_receipt_id (receipt_id),
       KEY idx_transactions_category_id (category_id),
+      KEY idx_transactions_project_id (project_id),
       CONSTRAINT fk_transactions_receipt FOREIGN KEY (receipt_id) REFERENCES receipt_uploads(id) ON DELETE SET NULL,
-      CONSTRAINT fk_transactions_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+      CONSTRAINT fk_transactions_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
+      CONSTRAINT fk_transactions_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
 
@@ -758,6 +773,22 @@ async function ensureSchema() {
     }
 
     try {
+      await pool.query(`
+        ALTER TABLE transactions
+        ADD COLUMN project_id BIGINT UNSIGNED NULL AFTER category_id;
+      `);
+    } catch (e) {
+      if (e.code !== 'ER_DUP_FIELDNAME') throw e;
+    }
+
+    try {
+      await pool.query(`
+        ALTER TABLE transactions
+        ADD CONSTRAINT fk_transactions_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL;
+      `);
+    } catch (e) {}
+
+    try {
       await pool.query(`INSERT INTO settings (id, business_name, app_pin) VALUES (1, 'Racketty Boom Enterprises', '2468') ON DUPLICATE KEY UPDATE id=id;`);
     } catch (e) {}
 
@@ -786,6 +817,37 @@ app.post('/api/categories', async (req, res) => {
 app.delete('/api/categories/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM categories WHERE id = :id', { id: req.params.id });
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/projects', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM projects ORDER BY status ASC, name ASC');
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/projects', async (req, res) => {
+  try {
+    const { name, status } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name required' });
+    await pool.query('INSERT INTO projects (name, status) VALUES (?, ?) ON DUPLICATE KEY UPDATE status=?', [name, status || 'Active', status || 'Active']);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.put('/api/projects/:id', async (req, res) => {
+  try {
+    const { name, status } = req.body;
+    await pool.query('UPDATE projects SET name=?, status=? WHERE id=?', [name, status, req.params.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/projects/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM projects WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -907,10 +969,16 @@ app.post('/api/transactions/review-confirm', async (req, res) => {
   const connection = await pool.getConnection();
 
   try {
-    const { receiptId, vendor, date, invoice_number, items, subtotal, sales_tax_paid, sales_tax_owed, total, category_id, category_name, type, notes, payment_method, location } = req.body;
+    const { receiptId, vendor, date, invoice_number, items, subtotal, sales_tax_paid, sales_tax_owed, total, category_id, category_name, type, notes, payment_method, location, project_id: projectIdRaw } = req.body;
 
     const normalizedType = normalizeType(type);
     const normalizedAmount = Number(total);
+
+    let projectId = null;
+    if (projectIdRaw !== undefined && projectIdRaw !== null && projectIdRaw !== '') {
+      const n = Number(projectIdRaw);
+      projectId = Number.isFinite(n) ? n : null;
+    }
 
     if (!receiptId || !vendor || !date || !Number.isFinite(normalizedAmount) || !normalizedType) {
       return res.status(400).json({
@@ -939,12 +1007,13 @@ app.post('/api/transactions/review-confirm', async (req, res) => {
 
     const [transactionInsert] = await connection.query(
       `
-      INSERT INTO transactions (receipt_id, category_id, vendor, invoice_number, items, transaction_date, subtotal, sales_tax_paid, sales_tax_owed, amount, type, payment_method, location, notes)
-      VALUES (:receiptId, :categoryId, :vendor, :invoice_number, :items, :transactionDate, :subtotal, :sales_tax_paid, :sales_tax_owed, :amount, :type, :payment_method, :location, :notes)
+      INSERT INTO transactions (receipt_id, category_id, project_id, vendor, invoice_number, items, transaction_date, subtotal, sales_tax_paid, sales_tax_owed, amount, type, payment_method, location, notes)
+      VALUES (:receiptId, :categoryId, :projectId, :vendor, :invoice_number, :items, :transactionDate, :subtotal, :sales_tax_paid, :sales_tax_owed, :amount, :type, :payment_method, :location, :notes)
       `,
       {
         receiptId,
         categoryId: finalCategoryId || null,
+        projectId,
         vendor,
         invoice_number: invoice_number || null,
         items: items || null,
@@ -1262,11 +1331,17 @@ app.get('/api/wipe', async (req, res) => {
 app.post('/api/transactions', async (req, res) => {
   const connection = await pool.getConnection();
   try {
-    const { type, vendor, date, invoice_number, items, subtotal, sales_tax_paid, sales_tax_owed, total, category_id, category_name, payment_method, location, notes } = req.body;
+    const { type, vendor, date, invoice_number, items, subtotal, sales_tax_paid, sales_tax_owed, total, category_id, category_name, payment_method, location, notes, project_id: projectIdRaw } = req.body;
     if (!type || !vendor || !date || total === undefined) {
       return res.status(400).json({ error: 'Missing required fields: type, vendor, date, total' });
     }
     
+    let projectId = null;
+    if (projectIdRaw !== undefined && projectIdRaw !== null && projectIdRaw !== '') {
+      const n = Number(projectIdRaw);
+      projectId = Number.isFinite(n) ? n : null;
+    }
+
     await connection.beginTransaction();
     
     let finalCategoryId = category_id;
@@ -1278,10 +1353,10 @@ app.post('/api/transactions', async (req, res) => {
 
     const [txResult] = await connection.query(
       `INSERT INTO transactions 
-       (category_id, vendor, invoice_number, items, transaction_date, subtotal, sales_tax_paid, sales_tax_owed, amount, type, payment_method, location, notes, extraction_status, review_status)
-       VALUES (:categoryId, :vendor, :invoice_number, :items, :date, :subtotal, :sales_tax_paid, :sales_tax_owed, :amount, :type, :payment_method, :location, :notes, 'manual', 'approved')`,
+       (category_id, project_id, vendor, invoice_number, items, transaction_date, subtotal, sales_tax_paid, sales_tax_owed, amount, type, payment_method, location, notes, extraction_status, review_status)
+       VALUES (:categoryId, :projectId, :vendor, :invoice_number, :items, :date, :subtotal, :sales_tax_paid, :sales_tax_owed, :amount, :type, :payment_method, :location, :notes, 'manual', 'approved')`,
       { 
-        categoryId: finalCategoryId || null, vendor, invoice_number: invoice_number || null, items: items || null, date, 
+        categoryId: finalCategoryId || null, projectId, vendor, invoice_number: invoice_number || null, items: items || null, date, 
         subtotal: subtotal || 0, sales_tax_paid: sales_tax_paid || 0, sales_tax_owed: sales_tax_owed || 0, amount: total || 0, type, 
         payment_method: payment_method || null, location: location || null, notes: notes || null 
       }
@@ -1311,11 +1386,17 @@ app.get('/api/transactions/:id', async (req, res) => {
 app.put('/api/transactions/:id', async (req, res) => {
   const connection = await pool.getConnection();
   try {
-    const { type, vendor, date, invoice_number, items, subtotal, sales_tax_paid, sales_tax_owed, total, category_id, category_name, payment_method, location, notes } = req.body;
+    const { type, vendor, date, invoice_number, items, subtotal, sales_tax_paid, sales_tax_owed, total, category_id, category_name, payment_method, location, notes, project_id: projectIdRaw } = req.body;
     if (!type || !vendor || !date || total === undefined) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
+    let projectId = null;
+    if (projectIdRaw !== undefined && projectIdRaw !== null && projectIdRaw !== '') {
+      const n = Number(projectIdRaw);
+      projectId = Number.isFinite(n) ? n : null;
+    }
+
     await connection.beginTransaction();
     
     let finalCategoryId = category_id;
@@ -1327,13 +1408,13 @@ app.put('/api/transactions/:id', async (req, res) => {
 
     await connection.query(
       `UPDATE transactions SET 
-        category_id = :categoryId, vendor = :vendor, invoice_number = :invoice_number, items = :items, 
+        category_id = :categoryId, project_id = :projectId, vendor = :vendor, invoice_number = :invoice_number, items = :items, 
         transaction_date = :date, subtotal = :subtotal, sales_tax_paid = :sales_tax_paid, 
         sales_tax_owed = :sales_tax_owed, amount = :amount, type = :type, 
         payment_method = :payment_method, location = :location, notes = :notes
        WHERE id = :id`,
       { 
-        id: req.params.id, categoryId: finalCategoryId || null, vendor, invoice_number: invoice_number || null, items: items || null, date: date.slice(0, 10), 
+        id: req.params.id, categoryId: finalCategoryId || null, projectId, vendor, invoice_number: invoice_number || null, items: items || null, date: date.slice(0, 10), 
         subtotal: subtotal || 0, sales_tax_paid: sales_tax_paid || 0, sales_tax_owed: sales_tax_owed || 0, amount: total || 0, type, 
         payment_method: payment_method || null, location: location || null, notes: notes || null 
       }
@@ -1376,6 +1457,7 @@ app.get('/api/transactions', async (req, res) => {
         t.transaction_date AS date,
         t.amount,
         t.type,
+        t.project_id,
         t.notes,
         c.name AS category,
         t.created_at,

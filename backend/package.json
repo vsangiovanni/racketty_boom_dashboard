@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "import:excel": "node import_excel.js"
+    "import:excel": "node import_excel.js",
+    "assign:project-uno": "node assign_transactions_to_project_uno.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

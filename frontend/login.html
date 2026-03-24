@@ -11,17 +11,27 @@
     .glass-card { background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(248,250,252,1) 100%); }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-800 h-screen flex items-center justify-center p-4 relative overflow-hidden">
+<body class="bg-slate-900 text-slate-800 min-h-screen flex flex-col relative overflow-x-hidden">
   
+  <header class="relative z-20 border-b border-slate-800/80 bg-slate-900/95 backdrop-blur-sm shrink-0">
+    <div class="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
+      <div class="min-w-0 flex-1 text-center">
+        <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide truncate shell-business-name">Greg Tracker</p>
+        <p class="text-sm font-bold text-slate-100 tracking-tight">Acceso</p>
+      </div>
+      <a href="/help.html?page=login" class="inline-flex items-center justify-center p-2 text-slate-400 hover:text-rose-300 hover:bg-slate-800 rounded-lg shrink-0" title="Ayuda" aria-label="Ayuda"><span class="material-icons-round">help_outline</span></a>
+    </div>
+  </header>
+
+  <div class="flex-1 flex items-center justify-center p-4 relative overflow-hidden min-h-0">
   <!-- Background decoration -->
-  <div class="absolute top-1/4 -left-1/4 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-3xl"></div>
-  <div class="absolute -bottom-1/4 -right-1/4 w-[600px] h-[600px] bg-indigo-600/20 rounded-full blur-3xl"></div>
+  <div class="absolute top-1/4 -left-1/4 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="absolute -bottom-1/4 -right-1/4 w-[600px] h-[600px] bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
 
   <div class="glass-card w-full max-w-sm p-8 rounded-3xl shadow-2xl relative z-10 border border-white/20">
     <div class="text-center mb-8">
       <div id="login-logo-container" class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-black text-2xl shadow-lg mx-auto mb-4 overflow-hidden">RB</div>
-      <h1 id="login-business-name" class="text-2xl font-black text-slate-800 tracking-tight">Racketty Boom</h1>
-      <p class="text-sm font-semibold text-slate-500 mt-1 uppercase tracking-widest">Financial Tracker</p>
+      <p class="text-sm font-semibold text-slate-500 uppercase tracking-widest">Ingresa tu PIN</p>
     </div>
 
     <form id="login-form" class="space-y-6" onsubmit="event.preventDefault(); submitLogin();">
@@ -40,6 +50,9 @@
       </button>
     </form>
   </div>
+  </div>
+
+  <div data-shell-footer data-shell-footer-dark class="shrink-0 bg-slate-900/95"></div>
 
   <script>
     async function loadSettings() {
@@ -47,8 +60,7 @@
         const res = await fetch('/api/settings/public');
         const data = await res.json();
         if (data.business_name) {
-          document.getElementById('login-business-name').textContent = data.business_name;
-          document.title = `Login - ${data.business_name}`;
+          document.title = 'Acceso - ' + data.business_name;
         }
         if (data.logo_url) {
           const container = document.getElementById('login-logo-container');
@@ -91,5 +103,6 @@
       }
     }
   </script>
+  <script src="/js/app-shell.js"></script>
 </body>
 </html>

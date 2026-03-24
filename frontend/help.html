@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual de usuario - Greg Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .doc-nav a.doc-link-active { background: rgb(239 246 255); color: rgb(29 78 216); border-left: 3px solid rgb(37 99 235); }
+    .doc-section:focus { outline: none; }
+    .doc-section:target { scroll-margin-top: 5rem; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <header class="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+      <a id="help-back" href="/" class="inline-flex items-center gap-1.5 text-slate-600 hover:text-blue-700 text-sm font-semibold shrink-0">
+        <span class="material-icons-round text-lg">arrow_back</span>
+        <span id="help-back-label">Volver</span>
+      </a>
+      <div class="h-6 w-px bg-slate-200 hidden sm:block" aria-hidden="true"></div>
+      <div class="min-w-0 flex-1">
+        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide truncate shell-business-name">Greg Tracker</p>
+        <h1 class="text-lg font-bold text-slate-900">Manual de usuario</h1>
+      </div>
+      <label class="sm:hidden flex items-center gap-2 text-sm text-slate-600">
+        <span class="material-icons-round text-slate-400">menu_book</span>
+        <select id="doc-jump" class="border border-slate-200 rounded-lg px-2 py-1.5 text-sm font-medium bg-white max-w-[12rem]" aria-label="Ir a seccion"></select>
+      </label>
+    </div>
+    <div id="help-context-banner" class="bg-blue-50 border-t border-blue-100 text-blue-900 text-sm px-4 py-2 hidden">
+      <span class="max-w-6xl mx-auto block font-medium"></span>
+    </div>
+  </header>
+
+  <div class="flex-1 flex flex-col w-full max-w-6xl mx-auto w-full px-4 py-6 gap-6 lg:flex-row lg:items-start" data-shell-footer>
+    <nav class="doc-nav hidden lg:block w-56 shrink-0 sticky top-[4.5rem] self-start rounded-xl border border-slate-200 bg-white p-2 text-sm max-h-[calc(100vh-6rem)] overflow-y-auto" aria-label="Indice del manual">
+      <p class="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contenidos</p>
+      <ul class="space-y-0.5" id="doc-nav-list"></ul>
+    </nav>
+
+    <main class="flex-1 min-w-0 space-y-10" id="doc-main">
+
+      <article id="doc-login" class="doc-section scroll-mt-24 bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm" tabindex="-1">
+        <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2 mb-4">
+          <span class="material-icons-round text-blue-600">lock</span> Acceso (inicio de sesión)
+        </h2>
+        <p class="text-slate-600 mb-4">Pantalla de entrada con PIN. Solo quien conozca el código configurado en Ajustes puede usar el resto de la aplicación.</p>
+        <ul class="list-disc pl-5 text-slate-600 space-y-2">
+          <li>Introduce el <strong>PIN de 4 dígitos</strong> que definiste en Ajustes.</li>
+          <li>Si el PIN cambia, tendrás que iniciar sesión de nuevo.</li>
+          <li>El nombre y el logo que ves vienen de los datos públicos de la empresa (no requieren iniciar sesión para mostrarse).</li>
+        </ul>
+      </article>
+
+      <article id="doc-dashboard" class="doc-section scroll-mt-24 bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm" tabindex="-1">
+        <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2 mb-4">
+          <span class="material-icons-round text-blue-600">insights</span> Panel principal (Dashboard)
+        </h2>
+        <p class="text-slate-600 mb-4">Resumen financiero, graficos y tabla de movimientos.</p>
+        <ul class="list-disc pl-5 text-slate-600 space-y-2 mb-4">
+          <li><strong>Filtro de fechas:</strong> mes en curso, un año concreto o todo el historial. Los números y gráficos se actualizan al cambiar el filtro.</li>
+          <li><strong>Tarjetas KPI:</strong> ingresos brutos, gastos totales, beneficio neto (con margen aproximado) y una estimación de impuestos (diferencia entre impuestos pagados y adeudados en los datos).</li>
+          <li><strong>Gráficos:</strong> tendencia de flujo de caja, reparto de gastos por categoría y principales proveedores o pagadores.</li>
+          <li><strong>Registros:</strong> listado paginado; puedes eliminar un registro o abrirlo para editarlo en Entrada manual.</li>
+          <li><strong>Exportar:</strong> genera un Excel con los datos según el filtro de fechas activo.</li>
+          <li><strong>Candado:</strong> cierra sesión y vuelve a la pantalla de Acceso.</li>
+        </ul>
+        <p class="text-sm text-slate-500">Usa el menú lateral para ir a captura manual, escaneo con IA, proyectos, importación o ajustes.</p>
+      </article>
+
+      <article id="doc-manual-entry" class="doc-section scroll-mt-24 bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm" tabindex="-1">
+        <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2 mb-4">
+          <span class="material-icons-round text-blue-600">add_box</span> Entrada manual (registros)
+        </h2>
+        <p class="text-slate-600 mb-4">Alta o edición de un ingreso o gasto sin subir fotografía.</p>
+        <ul class="list-disc pl-5 text-slate-600 space-y-2 mb-4">
+          <li><strong>Tipo:</strong> Gasto o Ingreso. Según el tipo verás <em>Sales Tax Paid</em> (gasto) u <em>Sales Tax Owed</em> (ingreso).</li>
+          <li><strong>Campos clave:</strong> proveedor o cliente, fecha, importe total, categoría, proyecto, detalle de partidas, notas.</li>
+          <li><strong>Proyecto:</strong> lista los trabajos activos; los completados aparecen deshabilitados. Puedes crear uno nuevo con <em>New</em>.</li>
+          <li><strong>Total:</strong> si rellenas subtotal e impuestos, el total puede calcularse automáticamente al escribir.</li>
+          <li><strong>Editar:</strong> si abres la página con <code class="bg-slate-100 px-1 rounded text-sm">?id=número</code>, se cargan los datos de ese registro; al guardar se actualiza.</li>
+        </ul>
+        <p class="text-sm text-slate-500">Tras guardar vuelves al panel principal.</p>
+      </article>
+
+      <article id="doc-upload" class="doc-section scroll-mt-24 bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm" tabindex="-1">
+        <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2 mb-4">
+          <span class="material-icons-round text-blue-600">document_scanner</span> Escaneo de recibos (IA)
+        </h2>
+        <p class="text-slate-600 mb-4">Sube una foto de ticket o factura y la app intenta rellenar proveedor, fecha, importes y tipo.</p>
+        <ul class="list-disc pl-5 text-slate-600 space-y-2 mb-4">
+          <li><strong>Formato:</strong> solo imágenes (por ejemplo JPG o PNG). El PDF no está soportado en el servidor.</li>
+          <li><strong>Paso 1:</strong> elegir archivo; se envía al servidor y se muestra un borrador extraído por IA.</li>
+          <li><strong>Paso 2:</strong> revisa y corrige los campos antes de confirmar.</li>
+          <li><strong>Proyecto y categoría:</strong> puedes asignarlas antes de guardar; la categoría puede coincidir por nombre con lo detectado.</li>
+          <li><strong>Claves API:</strong> si falla la extracción, comprueba que en el servidor existan las credenciales de OpenAI o Gemini en la configuración.</li>
+        </ul>
+      </article>
+
+      <article id="doc-projects" class="doc-section scroll-mt-24 bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm" tabindex="-1">
+        <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2 mb-4">
+          <span class="material-icons-round text-blue-600">construction</span> Proyectos
+        </h2>
+        <p class="text-slate-600 mb-4">Agrupa ingresos y gastos por obra o trabajo.</p>
+        <ul class="list-disc pl-5 text-slate-600 space-y-2 mb-4">
+          <li><strong>Tabla y KPIs:</strong> solo cuentan movimientos que tienen <em>proyecto</em> asignado; verás ingresos, gastos y margen por proyecto.</li>
+          <li><strong>Nuevo proyecto:</strong> nombre y estado (Activo o Completado). Los completados no se suelen elegir en formularios nuevos.</li>
+          <li><strong>Eliminar:</strong> borra el proyecto; los movimientos vinculados pueden quedar sin proyecto según la base de datos.</li>
+          <li><strong>Gráfico:</strong> muestra una comparativa de los proyectos con más ingresos.</li>
+        </ul>
+      </article>
+
+      <article id="doc-import" class="doc-section scroll-mt-24 bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm" tabindex="-1">
+        <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2 mb-4">
+          <span class="material-icons-round text-blue-600">table_view</span> Importar Excel
+        </h2>
+        <p class="text-slate-600 mb-4">Carga masiva desde hoja de cálculo.</p>
+        <ol class="list-decimal pl-5 text-slate-600 space-y-2 mb-4">
+          <li><strong>Subida:</strong> elige un archivo .xlsx o .xls.</li>
+          <li><strong>Analizar:</strong> el servidor lee filas y muestra vista previa con estado por fila (lista para importar, avisos, etc.).</li>
+          <li><strong>Previsualizar:</strong> navega por páginas si hay muchas filas.</li>
+          <li><strong>Confirmar importación:</strong> inserta en bloque los registros validados; al terminar puedes volver al panel.</li>
+        </ol>
+        <p class="text-sm text-slate-500">Si algo falla, revisa que la base de datos tenga las tablas y migraciones aplicadas.</p>
+      </article>
+
+      <article id="doc-settings" class="doc-section scroll-mt-24 bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm" tabindex="-1">
+        <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2 mb-4">
+          <span class="material-icons-round text-blue-600">settings</span> Ajustes
+        </h2>
+        <p class="text-slate-600 mb-4">Datos de empresa, seguridad y marca.</p>
+        <ul class="list-disc pl-5 text-slate-600 space-y-2 mb-4">
+          <li><strong>Nombre de empresa:</strong> aparece en cabeceras y en la pantalla de acceso público.</li>
+          <li><strong>PIN:</strong> contraseña de acceso a la aplicación.</li>
+          <li><strong>Logo y avatar:</strong> imágenes que se muestran en el menú y en la cabecera del panel.</li>
+          <li><strong>Guardar:</strong> tras guardar, si cambiaste el PIN la sesión puede pedirte el nuevo código.</li>
+        </ul>
+      </article>
+
+      <article id="doc-general" class="doc-section scroll-mt-24 bg-slate-100 rounded-2xl border border-slate-200 p-6 md:p-8" tabindex="-1">
+        <h2 class="text-lg font-bold text-slate-800 mb-3">Consejos generales</h2>
+        <ul class="list-disc pl-5 text-slate-600 text-sm space-y-2">
+          <li>La app está pensada para móvil y escritorio; en pantallas pequeñas usa el menú (icono de menú o barra lateral).</li>
+          <li>Desde cualquier pantalla puedes abrir este manual con el icono de <strong>ayuda</strong> (?); la parte superior indica de qué pantalla venías y el índice lleva la sección correspondiente al principio.</li>
+          <li>Los datos sensibles del negocio solo están tras iniciar sesión; esta ayuda es pública para poder leer cómo entrar desde el acceso.</li>
+        </ul>
+      </article>
+    </main>
+  </div>
+
+  <script src="/js/app-shell.js"></script>
+  <script>
+(function () {
+  var SECTIONS = [
+    { id: 'login', slug: 'login', label: 'Acceso', el: 'doc-login' },
+    { id: 'dashboard', slug: 'dashboard', label: 'Panel principal', el: 'doc-dashboard' },
+    { id: 'manual-entry', slug: 'manual-entry', label: 'Entrada manual', el: 'doc-manual-entry' },
+    { id: 'upload', slug: 'upload', label: 'Escaneo IA', el: 'doc-upload' },
+    { id: 'projects', slug: 'projects', label: 'Proyectos', el: 'doc-projects' },
+    { id: 'import', slug: 'import', label: 'Importar Excel', el: 'doc-import' },
+    { id: 'settings', slug: 'settings', label: 'Ajustes', el: 'doc-settings' }
+  ];
+
+  var RETURN = {
+    login: { href: '/login.html', label: 'Acceso' },
+    dashboard: { href: '/', label: 'Panel principal' },
+    'manual-entry': { href: '/add-record.html', label: 'Entrada manual' },
+    upload: { href: '/upload.html', label: 'Escaneo IA' },
+    projects: { href: '/projects.html', label: 'Proyectos' },
+    import: { href: '/import.html', label: 'Importar Excel' },
+    settings: { href: '/settings.html', label: 'Ajustes' }
+  };
+
+  var navList = document.getElementById('doc-nav-list');
+  var jump = document.getElementById('doc-jump');
+  var banner = document.getElementById('help-context-banner');
+  var backA = document.getElementById('help-back');
+  var backLabel = document.getElementById('help-back-label');
+
+  SECTIONS.forEach(function (s) {
+    var li = document.createElement('li');
+    var a = document.createElement('a');
+    a.className = 'doc-nav-link block px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors';
+    a.href = '/help.html?page=' + encodeURIComponent(s.id);
+    a.textContent = s.label;
+    a.dataset.page = s.id;
+    li.appendChild(a);
+    navList.appendChild(li);
+
+    var opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.label;
+    jump.appendChild(opt);
+  });
+
+  var params = new URLSearchParams(window.location.search);
+  var page = params.get('page') || 'dashboard';
+  var found = SECTIONS.some(function (s) { return s.id === page; });
+  if (!found) page = 'dashboard';
+
+  var ret = RETURN[page] || RETURN.dashboard;
+  backA.href = ret.href;
+  backLabel.textContent = 'Volver a ' + ret.label;
+
+  var bannerText = banner.querySelector('span');
+  bannerText.textContent = 'Estas viendo la ayuda de: ' + (SECTIONS.find(function (x) { return x.id === page; }) || SECTIONS[1]).label + '. Puedes cambiar de seccion en el indice.';
+  banner.classList.remove('hidden');
+
+  jump.value = page;
+  jump.addEventListener('change', function () {
+    window.location.href = '/help.html?page=' + encodeURIComponent(jump.value);
+  });
+
+  function setActiveNav() {
+    document.querySelectorAll('.doc-nav-link').forEach(function (a) {
+      if (a.dataset.page === page) a.classList.add('doc-link-active');
+      else a.classList.remove('doc-link-active');
+    });
+  }
+  setActiveNav();
+
+  var target = document.getElementById((SECTIONS.find(function (s) { return s.id === page; }) || {}).el || 'doc-dashboard');
+  if (target) {
+    setTimeout(function () {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      try { target.focus({ preventScroll: true }); } catch (e) {}
+    }, 100);
+  }
+})();
+  </script>
+</body>
+</html>

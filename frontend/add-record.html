@@ -8,20 +8,23 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <style>body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f8fafc; }</style>
 </head>
-<body class="text-slate-800 pb-20">
+<body class="text-slate-800 min-h-screen flex flex-col bg-[#f8fafc]">
 
-  <header class="bg-white shadow-sm sticky top-0 z-50">
-    <div class="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <button onclick="window.history.back()" class="p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
-          <span class="material-icons-round">arrow_back</span>
-        </button>
-        <h1 id="page-title" class="text-xl font-bold tracking-tight">Manual Entry</h1>
+  <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-slate-200/80">
+    <div class="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+      <button type="button" onclick="window.history.back()" class="p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors shrink-0" aria-label="Volver">
+        <span class="material-icons-round">arrow_back</span>
+      </button>
+      <div class="min-w-0 flex-1">
+        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide truncate shell-business-name">Greg Tracker</p>
+        <h1 id="page-title" class="text-lg font-bold text-slate-900 tracking-tight truncate">Manual Entry</h1>
       </div>
+      <a href="/help.html?page=manual-entry" class="inline-flex items-center justify-center p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shrink-0" title="Ayuda" aria-label="Ayuda"><span class="material-icons-round">help_outline</span></a>
     </div>
   </header>
 
-  <main class="max-w-2xl mx-auto p-4 mt-4">
+  <div class="flex-1 flex flex-col w-full" data-shell-footer>
+  <main class="max-w-2xl mx-auto p-4 mt-4 w-full flex-1">
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
       <form id="record-form" class="space-y-6">
         
@@ -61,14 +64,22 @@
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Invoice Number</label>
-            <input type="text" id="invoice_number" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600" placeholder="e.g. INV-1045">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Project / Job</label>
+            <div class="flex gap-2">
+              <select id="project_id" class="flex-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-blue-600 focus:outline-none bg-white">
+                <option value="">No Project (General)</option>
+              </select>
+              <button type="button" onclick="createProjectModal()" class="px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium border border-blue-200 flex items-center gap-1">
+                <span class="material-icons-round text-sm">add</span> New
+              </button>
+            </div>
           </div>
 
           <!-- Items -->
           <div class="md:col-span-2">
             <label class="block text-sm font-medium text-slate-700 mb-1">Items / Details</label>
             <input type="text" id="items" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600" placeholder="e.g. 2x Hammers, 1x Nails">
+            <input type="hidden" id="invoice_number" value="">
           </div>
 
           <!-- Amounts -->
@@ -134,6 +145,7 @@
       </form>
     </div>
   </main>
+  </div>
 
   <!-- Category Management Modal -->
   <div id="category-modal" class="fixed inset-0 bg-slate-900/50 hidden z-50 flex items-center justify-center p-4">
@@ -153,6 +165,33 @@
           <!-- List injected here -->
         </ul>
       </div>
+    </div>
+  </div>
+
+  <!-- Create Project Modal (debe estar antes del script que registra el submit) -->
+  <div id="create-project-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+      <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+        <h2 class="text-xl font-bold text-slate-800">New Project</h2>
+        <button type="button" onclick="closeProjectModal()" class="text-slate-400 hover:text-slate-600"><span class="material-icons-round">close</span></button>
+      </div>
+      <form id="create-project-form" class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Project Name</label>
+          <input type="text" id="project-name" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none" placeholder="E.g. Kitchen Remodel" required>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Status</label>
+          <select id="project-status" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none">
+            <option value="Active" selected>Active</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </div>
+        <div class="pt-4 flex gap-3">
+          <button type="button" onclick="closeProjectModal()" class="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200">Cancel</button>
+          <button type="submit" class="flex-1 px-4 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700">Save Project</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -197,26 +236,35 @@
         if (!res.ok) throw new Error('Record not found');
         const tx = await res.json();
         
-        document.querySelector(`input[name="type"][value="${tx.type}"]`).checked = true;
+        const typeInput = document.querySelector(`input[name="type"][value="${tx.type}"]`);
+        if (typeInput) typeInput.checked = true;
         toggleTaxes();
         
-        document.getElementById('vendor').value = tx.vendor || '';
-        document.getElementById('date').value = tx.transaction_date ? tx.transaction_date.slice(0, 10) : '';
+        function setVal(id, v) {
+          const el = document.getElementById(id);
+          if (el) el.value = v == null || v === '' ? '' : String(v);
+        }
+        setVal('vendor', tx.vendor);
+        document.getElementById('date').value = tx.transaction_date ? String(tx.transaction_date).slice(0, 10) : '';
         document.getElementById('category_id').value = tx.category_id || '';
-        document.getElementById('invoice_number').value = tx.invoice_number || '';
-        document.getElementById('items').value = tx.items || '';
-        document.getElementById('subtotal').value = tx.subtotal || '';
+        setVal('invoice_number', tx.invoice_number);
+        setVal('items', tx.items);
+        setVal('subtotal', tx.subtotal);
         
         if (tx.type === 'Income') {
-          document.getElementById('sales_tax_owed').value = tx.sales_tax_owed || '';
+          setVal('sales_tax_owed', tx.sales_tax_owed);
         } else {
-          document.getElementById('sales_tax_paid').value = tx.sales_tax_paid || '';
+          setVal('sales_tax_paid', tx.sales_tax_paid);
         }
         
-        document.getElementById('total').value = tx.amount || '';
-        document.getElementById('payment_method').value = tx.payment_method || '';
-        document.getElementById('location').value = tx.location || '';
-        document.getElementById('notes').value = tx.notes || '';
+        setVal('total', tx.amount);
+        setVal('payment_method', tx.payment_method);
+        setVal('location', tx.location);
+        setVal('notes', tx.notes);
+        const projSel = document.getElementById('project_id');
+        if (projSel && tx.project_id != null && tx.project_id !== '') {
+          projSel.value = String(tx.project_id);
+        }
       } catch (err) {
         alert('Could not load record: ' + err.message);
       }
@@ -250,6 +298,7 @@
     async function initializePage() {
       document.getElementById('date').valueAsDate = new Date();
       await loadCategories();
+      await loadProjects();
       await loadRecordData();
     }
     initializePage();
@@ -277,7 +326,52 @@
       } catch(e) { alert('Failed to delete'); }
     }
 
-    loadCategories();
+    // Projects dropdown
+    async function loadProjects() {
+      try {
+        const res = await fetch('/api/projects');
+        const data = await res.json();
+        const projects = Array.isArray(data) ? data : [];
+        const select = document.getElementById('project_id');
+        const current = select.value;
+        select.innerHTML = '<option value="">No Project (General)</option>';
+        projects.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = p.name;
+          if(p.status === 'Completed') opt.disabled = true;
+          select.appendChild(opt);
+        });
+        if(current) select.value = current;
+      } catch(e) { console.error('Failed to load projects', e); }
+    }
+
+    function createProjectModal() {
+      document.getElementById('create-project-modal').classList.remove('hidden');
+    }
+    function closeProjectModal() {
+      document.getElementById('create-project-modal').classList.add('hidden');
+      document.getElementById('create-project-form').reset();
+    }
+
+    document.getElementById('create-project-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('project-name').value;
+      const status = document.getElementById('project-status').value;
+      try {
+        const res = await fetch('/api/projects', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({name, status})
+        });
+        if(res.ok) {
+          closeProjectModal();
+          loadProjects();
+        } else {
+          alert('Error creating project');
+        }
+      } catch(err) { alert(err.message); }
+    });
 
     // Form Submit
     document.getElementById('record-form').addEventListener('submit', async (e) => {
@@ -298,6 +392,7 @@
         sales_tax_owed: parseFloat(taxOwedEl.value) || 0,
         total: parseFloat(totalEl.value) || 0,
         category_id: document.getElementById('category_id').value,
+        project_id: document.getElementById('project_id').value || null,
         payment_method: document.getElementById('payment_method').value,
         location: document.getElementById('location').value,
         notes: document.getElementById('notes').value
@@ -321,5 +416,7 @@
       }
     });
   </script>
+  <script src="/js/app-shell.js"></script>
+
 </body>
 </html>
