@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Racketty Boom</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .glass-card { background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(248,250,252,1) 100%); }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-800 h-screen flex items-center justify-center p-4 relative overflow-hidden">
+  
+  <!-- Background decoration -->
+  <div class="absolute top-1/4 -left-1/4 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-3xl"></div>
+  <div class="absolute -bottom-1/4 -right-1/4 w-[600px] h-[600px] bg-indigo-600/20 rounded-full blur-3xl"></div>
+
+  <div class="glass-card w-full max-w-sm p-8 rounded-3xl shadow-2xl relative z-10 border border-white/20">
+    <div class="text-center mb-8">
+      <div id="login-logo-container" class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-black text-2xl shadow-lg mx-auto mb-4 overflow-hidden">RB</div>
+      <h1 id="login-business-name" class="text-2xl font-black text-slate-800 tracking-tight">Racketty Boom</h1>
+      <p class="text-sm font-semibold text-slate-500 mt-1 uppercase tracking-widest">Financial Tracker</p>
+    </div>
+
+    <form id="login-form" class="space-y-6" onsubmit="event.preventDefault(); submitLogin();">
+      <div>
+        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Access PIN</label>
+        <div class="relative">
+          <span class="material-icons-round absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">lock</span>
+          <input type="password" id="pin" inputmode="numeric" required placeholder="Enter 4-digit PIN" class="w-full bg-white border border-slate-200 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 font-black tracking-widest text-lg transition-all" />
+        </div>
+        <p id="error-msg" class="text-rose-500 text-xs font-bold mt-2 hidden text-center">Invalid PIN. Please try again.</p>
+      </div>
+      
+      <button type="submit" id="btn-login" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-md">
+        <span>Unlock Dashboard</span>
+        <span class="material-icons-round text-[18px]">arrow_forward</span>
+      </button>
+    </form>
+  </div>
+
+  <script>
+    async function loadSettings() {
+      try {
+        const res = await fetch('/api/settings/public');
+        const data = await res.json();
+        if (data.business_name) {
+          document.getElementById('login-business-name').textContent = data.business_name;
+          document.title = `Login - ${data.business_name}`;
+        }
+        if (data.logo_url) {
+          const container = document.getElementById('login-logo-container');
+          container.innerHTML = `<img src="${data.logo_url}" class="w-full h-full object-contain" />`;
+          container.classList.remove('bg-gradient-to-br', 'from-blue-500', 'to-indigo-600', 'text-white', 'font-black', 'text-2xl');
+        }
+      } catch(e) {}
+    }
+    loadSettings();
+
+    async function submitLogin() {
+      const pin = document.getElementById('pin').value;
+      const btn = document.getElementById('btn-login');
+      const err = document.getElementById('error-msg');
+      
+      err.classList.add('hidden');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="material-icons-round animate-spin">refresh</span>';
+
+      try {
+        const res = await fetch('/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin })
+        });
+        
+        if (res.ok) {
+          window.location.href = '/';
+        } else {
+          err.classList.remove('hidden');
+          document.getElementById('pin').value = '';
+          document.getElementById('pin').focus();
+        }
+      } catch (error) {
+        err.textContent = 'Connection error. Check server.';
+        err.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Unlock Dashboard</span><span class="material-icons-round text-[18px]">arrow_forward</span>';
+      }
+    }
+  </script>
+</body>
+</html>

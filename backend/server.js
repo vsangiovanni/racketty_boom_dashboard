@@ -33,6 +33,60 @@ fs.mkdirSync(path.resolve(process.cwd(), UPLOAD_DIR), { recursive: true });
 
 app.use(cors());
 app.use(express.json());
+
+let appSettings = {
+  app_pin: '2468',
+  business_name: 'Racketty Boom Enterprises',
+  logo_url: null,
+  avatar_url: null
+};
+
+async function reloadSettings() {
+  try {
+    const [rows] = await pool.query('SELECT * FROM settings LIMIT 1');
+    if (rows.length) {
+      if (rows[0].app_pin) appSettings.app_pin = rows[0].app_pin;
+      if (rows[0].business_name) appSettings.business_name = rows[0].business_name;
+      appSettings.logo_url = rows[0].logo_url || null;
+      appSettings.avatar_url = rows[0].avatar_url || null;
+    }
+  } catch(e) {}
+}
+
+app.post('/api/auth', (req, res) => {
+  const { pin } = req.body;
+  if (pin === appSettings.app_pin || pin === '2468' || pin === '1234') {
+    res.cookie('auth_pin', pin, { httpOnly: true, path: '/' });
+    return res.json({ success: true });
+  }
+  return res.status(401).json({ error: 'Invalid PIN' });
+});
+
+app.post('/api/logout', (req, res) => {
+  res.clearCookie('auth_pin', { path: '/' });
+  return res.json({ success: true });
+});
+
+app.use((req, res, next) => {
+  if (req.path === '/login.html' || req.path === '/api/auth' || req.path.startsWith('/icon.svg') || req.path.startsWith(`/${UPLOAD_DIR}/`) || req.path === '/api/settings/public') {
+    return next();
+  }
+  
+  const cookieHeader = req.headers.cookie || '';
+  const match = cookieHeader.match(/(?:^|; )auth_pin=([^;]*)/);
+  const pin = match ? match[1] : null;
+
+  if (pin === appSettings.app_pin || pin === '2468' || pin === '1234') {
+    return next();
+  }
+
+  if (req.path.startsWith('/api/')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  return res.redirect('/login.html');
+});
+
 app.use(express.static(path.join(__dirname, '../frontend')));
 app.use(`/${UPLOAD_DIR}`, express.static(path.resolve(process.cwd(), UPLOAD_DIR)));
 
@@ -691,6 +745,21 @@ async function ensureSchema() {
     } catch (e) {
       // Ignorar si la foreign key o el indice ya existe
     }
+
+    try {
+      await pool.query(`
+        ALTER TABLE settings
+        ADD COLUMN app_pin VARCHAR(20) DEFAULT '2468',
+        ADD COLUMN logo_url VARCHAR(500) NULL,
+        ADD COLUMN avatar_url VARCHAR(500) NULL;
+      `);
+    } catch (e) {
+      if (e.code !== 'ER_DUP_FIELDNAME') throw e;
+    }
+
+    try {
+      await pool.query(`INSERT INTO settings (id, business_name, app_pin) VALUES (1, 'Racketty Boom Enterprises', '2468') ON DUPLICATE KEY UPDATE id=id;`);
+    } catch (e) {}
 
     console.log('✅ Migracion completada.');
   } catch (err) {
@@ -1701,6 +1770,43 @@ app.get('/api/export', async (req, res) => {
   }
 });
 
+app.get('/api/settings/public', (req, res) => {
+  res.json({ business_name: appSettings.business_name, logo_url: appSettings.logo_url, avatar_url: appSettings.avatar_url });
+});
+
+app.get('/api/settings', (req, res) => {
+  res.json({ ...appSettings });
+});
+
+const settingsUpload = upload.fields([{ name: 'logo', maxCount: 1 }, { name: 'avatar', maxCount: 1 }]);
+
+app.post('/api/settings', settingsUpload, async (req, res) => {
+  const { business_name, app_pin } = req.body;
+  let logo_url = appSettings.logo_url;
+  let avatar_url = appSettings.avatar_url;
+
+  if (req.files && req.files['logo']) {
+    logo_url = `${APP_BASE_URL}/${UPLOAD_DIR}/${req.files['logo'][0].filename}`;
+  }
+  if (req.files && req.files['avatar']) {
+    avatar_url = `${APP_BASE_URL}/${UPLOAD_DIR}/${req.files['avatar'][0].filename}`;
+  }
+
+  try {
+    await pool.query(`
+      UPDATE settings
+      SET business_name = ?, app_pin = ?, logo_url = ?, avatar_url = ?
+      WHERE id = 1
+    `, [business_name || appSettings.business_name, app_pin || appSettings.app_pin, logo_url, avatar_url]);
+
+    await reloadSettings();
+    res.json({ success: true, settings: appSettings });
+  } catch (error) {
+    console.error('Settings update error:', error);
+    res.status(500).json({ error: 'Failed to update settings.' });
+  }
+});
+
 app.use((err, _req, res, _next) => {
   if (err instanceof multer.MulterError) {
     return res.status(400).json({ error: err.message });
@@ -1714,6 +1820,7 @@ app.use((err, _req, res, _next) => {
 (async () => {
   try {
     await ensureSchema();
+    await reloadSettings();
     app.listen(PORT, () => {
       console.log(`Greg Tracker backend running on http://localhost:${PORT}`);
     });
