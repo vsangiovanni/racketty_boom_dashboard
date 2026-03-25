@@ -1,60 +1,44 @@
-# Backend (Node / Express)
+# Backend (Node.js / Express)
 
-Servidor principal del Greg Tracker: **API REST**, **autenticación por PIN con cookie**, **servicio de archivos estáticos del frontend** y **inicialización de esquema MySQL** al arrancar.
+This module contains the main API and runtime schema management for Greg Tracker.
 
-## Archivo central
+## Core Responsibilities
 
-| Archivo | Rol |
-|---------|-----|
-| **`server.js`** | Aplicación Express: CORS, JSON, `multer` para subidas, rutas `/api/*`, `ensureSchema()` (DDL + ALTER incrementales), arranque del pool MySQL y `listen`. |
+- Authentication with cookie-based access code validation.
+- REST APIs for transactions, projects, categories, settings, and imports.
+- Receipt upload + AI extraction draft + review-confirm flow.
+- MySQL schema bootstrap/update through `ensureSchema()` during startup.
+- Static serving support for frontend screens and uploads.
 
-Es el punto único de verdad para la mayoría de endpoints. Si añades una ruta nueva, casi siempre va aquí.
+## Key File
 
-## Autenticación
+- `server.js` -> primary application entry point and route definitions.
 
-- `POST /api/auth` — valida PIN contra `settings.app_pin` (cargado en memoria desde BD).
-- Cookie `httpOnly` `auth_pin`.
-- Middleware global: rutas públicas listadas en código (`login.html`, `help.html`, prefijo `/js/`, ` /api/settings/public`, etc.); el resto exige cookie válida o redirige a login / 401 en API.
+## Project Analytics Endpoints
 
-## API (grupos funcionales)
+- `GET /api/projects/:id/stats` -> income, expenses, net profit, margin, tx count.
+- `GET /api/projects/:id/transactions?limit=10` -> recent project transactions.
+- `GET /api/projects/:id/breakdown?limit=6` -> top categories and vendors.
 
-Sin listar cada ruta: busca en `server.js` por texto `app.get`, `app.post`, etc.
+These endpoints power `frontend/project-details.html`.
 
-- **Transacciones:** listado paginado, CRUD, `review-confirm` (confirmar borrador tras subir recibo), export Excel.
-- **Recibos / IA:** subida de imagen, borrador en tablas de extracción, integración OpenAI/Gemini según `VISION_PROVIDER` y claves en `.env`.
-- **Categorías, proyectos, settings** (incl. subida logo/avatar).
-- **Importación:** endpoint de commit tras el flujo del `import.html`.
-- **Stats / agregados** para el dashboard.
-- **`/health`** — comprobación de BD.
+## Other Important API Areas
 
-Variables relevantes: ver **`.env.example`** en esta carpeta (copiar a `.env`).
+- `/api/transactions` -> list, create, update, delete, pagination.
+- `/api/transactions/review-confirm` -> creates transaction from reviewed AI draft.
+- `/api/import/preview` and `/api/import/commit` -> Excel import flow.
+- `/api/settings` and `/api/settings/public` -> branding + access code metadata.
+- `/api/auth` -> sign in and access cookie issuance.
+- `/health` -> DB health check endpoint.
 
-## Scripts auxiliares (`node …`)
+## Scripts
 
-| Script | Uso |
-|--------|-----|
-| `npm start` / `npm run dev` | Arranca `server.js`. |
-| `npm run import:excel` | `import_excel.js` — importación desde Excel por línea de comandos (ruta configurable). |
-| `npm run assign:project-uno` | `assign_transactions_to_project_uno.js` — asigna `project_id` a transacciones sin proyecto (proyecto “Uno” o id mínimo). |
-| `run_migration.js` | Ejecutar migraciones SQL según cómo esté implementado. |
-| `import_excel.js` | Lógica batch Excel (usa `xlsx` / flujo propio). |
-| `cleanup.js`, `fix_columns.js`, `seed_categories.js` | Mantenimiento / datos iniciales puntuales. |
-| `auto_start.js` | Arranque automático en entornos donde se use. |
+- `npm start` / `npm run dev` -> run backend server.
+- `npm run import:excel` -> CLI-based Excel import.
+- `npm run assign:project-uno` -> assign missing `project_id` values.
 
-## Carpeta `services/`
+## Notes for Future Work
 
-Ver **[services/README.md](services/README.md)** — importación Excel reutilizable desde código.
-
-## Archivos a tener en cuenta
-
-- **`project-stats-api.js`** — fragmentos de rutas `app.get` **no integrados** en `server.js`. Si se quieren usar, hay que requerirlos o copiar rutas dentro de `server.js`; si no, son solo referencia o trabajo a medias.
-
-## Dependencias clave (`package.json`)
-
-- `express`, `cors`, `dotenv`, `mysql2`, `multer`, `xlsx`, `exceljs` (export).
-
-## Buenas prácticas al retomar el proyecto
-
-1. Tras cambios de BD, revisar si hace falta ampliar **`ensureSchema`** o un script en `database/`.
-2. No commitear **`.env`** (está en `.gitignore`).
-3. Subidas: directorio `UPLOAD_DIR` (relativo al cwd del proceso, normalmente `backend/`).
+- `project-stats-api.js` contains route fragments not wired as a module.
+- Keep schema changes aligned between `ensureSchema()` and SQL references in `database/`.
+- Avoid committing secrets from `.env`.

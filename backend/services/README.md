@@ -1,18 +1,18 @@
-# Servicios backend
+# Backend Services
 
-Módulos Node **requeridos** desde `server.js` u otros scripts para lógica reutilizable fuera del monolito principal.
+Reusable backend helpers live in this folder.
 
-## `excelImportService.js`
+## Current Service
 
-Servicio de **importación desde Excel**: lectura de hojas, mapeo de columnas y preparación de filas para insertar en la base (según el contrato que espere el endpoint de import o el script `import_excel.js`).
+- `excelImportService.js` -> parses Excel data, normalizes headers, converts dates/amounts, and prepares structured rows for import workflows.
 
-- **Quién lo usa:** busca referencias con `grep` o en `import_excel.js` / rutas `/api/import` en `server.js`.
-- **Al cambiar el formato del Excel** de clientes, actualizar aquí la lógica de parseo y las pruebas manuales desde `import.html` o el script CLI.
+## Usage Context
 
-## Añadir nuevos servicios
+- Used by backend import logic and scripts that need spreadsheet parsing.
+- Supports the preview/commit behavior exposed by import-related API routes.
 
-1. Crear `nuevoServicio.js` con `module.exports`.
-2. `require` desde `server.js` (o script) en la parte superior del archivo.
-3. Documentar en una línea en este README qué exporta y quién lo consume.
+## Guidelines
 
-Mantener servicios **sin efectos secundarios al cargar** (no conectar a BD al `require`); inicializar dentro de funciones exportadas o recibir `pool` por parámetro.
+- Keep services side-effect free on module load.
+- Pass dependencies (db pool, config) from caller when possible.
+- Document each new service here with purpose and consumer path.
