@@ -865,6 +865,136 @@ app.delete('/api/projects/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+/**
+ * Project statistics + recent transactions for the project details modal.
+ */
+app.get('/api/projects/:id/stats', async (req, res) => {
+  try {
+    const projectId = req.params.id;
+
+    const projectQuery = 'SELECT * FROM projects WHERE id = ?';
+    const [projectRows] = await pool.query(projectQuery, [projectId]);
+
+    if (projectRows.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const project = projectRows[0];
+
+    const statsQuery = `
+      SELECT
+        COALESCE(SUM(CASE WHEN t.type = 'Expense' THEN t.amount ELSE 0 END), 0) AS totalExpenses,
+        COALESCE(SUM(CASE WHEN t.type = 'Income' THEN t.amount ELSE 0 END), 0) AS totalIncome,
+        COUNT(*) AS transactionCount
+      FROM transactions t
+      WHERE t.project_id = ?
+    `;
+
+    const [statsRows] = await pool.query(statsQuery, [projectId]);
+    const stats = statsRows[0];
+
+    const totalExpenses = parseFloat(stats.totalExpenses) || 0;
+    const totalIncome = parseFloat(stats.totalIncome) || 0;
+    const netProfit = totalIncome - totalExpenses;
+    const margin = totalIncome > 0 ? ((netProfit / totalIncome) * 100).toFixed(2) : 0;
+
+    return res.json({
+      project: {
+        id: project.id,
+        name: project.name,
+        status: project.status,
+        createdAt: project.created_at,
+        updatedAt: project.updated_at
+      },
+      metrics: {
+        totalExpenses,
+        totalIncome,
+        netProfit,
+        margin: parseFloat(margin),
+        transactionCount: stats.transactionCount
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/projects/:id/transactions', async (req, res) => {
+  try {
+    const projectId = req.params.id;
+    const limit = Math.min(Math.max(Number(req.query.limit || 10), 1), 50);
+
+    const [rows] = await pool.query(
+      `
+      SELECT
+        t.id,
+        t.vendor,
+        t.transaction_date AS date,
+        t.amount,
+        t.type,
+        t.notes,
+        c.name AS category,
+        ru.storage_url AS receipt_url
+      FROM transactions t
+      LEFT JOIN categories c ON c.id = t.category_id
+      LEFT JOIN receipt_uploads ru ON ru.id = t.receipt_id
+      WHERE t.project_id = :projectId
+      ORDER BY t.transaction_date DESC, t.id DESC
+      LIMIT :limit
+      `,
+      { projectId, limit }
+    );
+
+    return res.json({ transactions: rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/projects/:id/breakdown', async (req, res) => {
+  try {
+    const projectId = req.params.id;
+    const limit = Math.min(Math.max(Number(req.query.limit || 6), 1), 25);
+
+    const [cats] = await pool.query(
+      `
+      SELECT
+        COALESCE(c.name, 'General') AS category,
+        COALESCE(SUM(CASE WHEN t.type = 'Income' THEN t.amount ELSE 0 END), 0) AS income,
+        COALESCE(SUM(CASE WHEN t.type = 'Expense' THEN t.amount ELSE 0 END), 0) AS expenses
+      FROM transactions t
+      LEFT JOIN categories c ON c.id = t.category_id
+      WHERE t.project_id = :projectId
+      GROUP BY COALESCE(c.name, 'General')
+      HAVING income <> 0 OR expenses <> 0
+      ORDER BY (income + expenses) DESC
+      LIMIT :limit
+      `,
+      { projectId, limit }
+    );
+
+    const [vendors] = await pool.query(
+      `
+      SELECT
+        t.vendor AS vendor,
+        COALESCE(SUM(CASE WHEN t.type = 'Income' THEN t.amount ELSE 0 END), 0) AS income,
+        COALESCE(SUM(CASE WHEN t.type = 'Expense' THEN t.amount ELSE 0 END), 0) AS expenses
+      FROM transactions t
+      WHERE t.project_id = :projectId
+      GROUP BY t.vendor
+      HAVING income <> 0 OR expenses <> 0
+      ORDER BY (income + expenses) DESC
+      LIMIT :limit
+      `,
+      { projectId, limit }
+    );
+
+    return res.json({ categories: cats, vendors });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/health', async (_req, res) => {
   try {
     await pool.query('SELECT 1');

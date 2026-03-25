@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -52,7 +52,7 @@
           <span class="material-icons-round text-[20px]">table_view</span> Bulk Import Excel
         </a>
         <a href="/help.html?page=projects" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200 mt-4 border-t border-slate-800 pt-4">
-          <span class="material-icons-round text-[20px]">help_outline</span> Ayuda
+          <span class="material-icons-round text-[20px]">help_outline</span> Help
         </a>
         <a href="/settings.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200 mt-2">
           <span class="material-icons-round text-[20px]">settings</span> Settings
@@ -73,7 +73,7 @@
         <h1 class="text-base font-bold text-slate-800 truncate sm:hidden">Projects</h1>
       </div>
       <div class="flex items-center gap-2 sm:gap-3">
-        <a href="/help.html?page=projects" class="inline-flex items-center justify-center p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shrink-0" title="Ayuda - Manual de usuario" aria-label="Ayuda"><span class="material-icons-round">help_outline</span></a>
+        <a href="/help.html?page=projects" class="inline-flex items-center justify-center p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shrink-0" title="Help - User Manual" aria-label="Help"><span class="material-icons-round">help_outline</span></a>
         <button onclick="createProjectModal()" class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm">
           <span class="material-icons-round text-[18px]">add</span> New Project
         </button>
@@ -205,10 +205,67 @@
     </div>
   </div>
 
+  <!-- Project Details Modal -->
+  <div id="project-details-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden">
+      <div class="p-6 border-b border-slate-100 flex justify-between items-start gap-4">
+        <div class="min-w-0">
+          <h2 class="text-xl font-bold text-slate-800">Project Details</h2>
+          <p id="project-details-subtitle" class="text-sm text-slate-500 mt-1 truncate"></p>
+        </div>
+        <button type="button" onclick="closeProjectDetailsModal()" class="text-slate-400 hover:text-slate-600"><span class="material-icons-round">close</span></button>
+      </div>
+
+      <div class="p-6 space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Total Income</p>
+            <p id="pd-total-income" class="text-2xl font-bold text-emerald-600 mt-1">$0.00</p>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Total Expenses</p>
+            <p id="pd-total-expenses" class="text-2xl font-bold text-rose-600 mt-1">$0.00</p>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Net Profit</p>
+            <p id="pd-net-profit" class="text-2xl font-bold text-slate-800 mt-1">$0.00</p>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Margin</p>
+            <p id="pd-margin" class="text-2xl font-bold text-slate-800 mt-1">0%</p>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div class="p-4 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between gap-3">
+            <h3 class="text-sm font-bold text-slate-800">Recent Transactions</h3>
+            <span id="pd-tx-count" class="text-xs font-bold text-slate-500"></span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+              <thead class="bg-slate-50 text-slate-500 font-semibold text-xs uppercase tracking-wider border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-4">Date</th>
+                  <th class="py-3 px-4">Vendor</th>
+                  <th class="py-3 px-4">Category</th>
+                  <th class="py-3 px-4 text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody id="pd-transactions-body" class="divide-y divide-slate-100">
+                <tr><td colspan="4" class="p-4 text-center text-slate-400">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     let chartInstance = null;
     let projectsCache = [];
     let editProjectId = null;
+    let currentProjectId = null;
 
     function toggleSidebar() {
       const sidebar = document.getElementById('sidebar');
@@ -291,7 +348,7 @@
             const margin = p.income > 0 ? ((pProfit / p.income) * 100).toFixed(1) + '%' : '0%';
             
             return `
-              <tr class="border-b border-slate-50 hover:bg-slate-50/50">
+              <tr onclick="window.location.href='/project-details.html?id=${p.id}'" class="border-b border-slate-50 hover:bg-slate-50/50 cursor-pointer">
                 <td class="py-3 px-4 font-semibold text-slate-800">${p.name}</td>
                 <td class="py-3 px-4">
                   <span class="px-2 py-1 text-[10px] font-bold uppercase rounded-md ${p.status==='Active' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'}">${p.status}</span>
@@ -300,8 +357,8 @@
                 <td class="py-3 px-4 text-right text-rose-600 font-medium">$${p.expenses.toLocaleString()}</td>
                 <td class="py-3 px-4 text-right text-slate-600 font-medium">${margin}</td>
                 <td class="py-3 px-4 text-center">
-                  <button onclick="editProject(${p.id})" class="text-slate-400 hover:text-blue-600 mr-1"><span class="material-icons-round text-[18px]">edit</span></button>
-                  <button onclick="deleteProject(${p.id})" class="text-rose-400 hover:text-rose-600"><span class="material-icons-round text-[18px]">delete</span></button>
+                  <button onclick="event.stopPropagation(); editProject(${p.id})" class="text-slate-400 hover:text-blue-600 mr-1"><span class="material-icons-round text-[18px]">edit</span></button>
+                  <button onclick="event.stopPropagation(); deleteProject(${p.id})" class="text-rose-400 hover:text-rose-600"><span class="material-icons-round text-[18px]">delete</span></button>
                 </td>
               </tr>
             `;
@@ -427,6 +484,78 @@
     // Initialize
     loadSettings();
     loadDashboard();
+
+    async function showProjectDetails(projectId) {
+      try {
+        currentProjectId = projectId;
+        const modal = document.getElementById('project-details-modal');
+        modal.classList.remove('hidden');
+
+        document.getElementById('pd-transactions-body').innerHTML =
+          '<tr><td colspan="4" class="p-4 text-center text-slate-400">Loading...</td></tr>';
+
+        const [statsRes, txRes] = await Promise.all([
+          fetch('/api/projects/' + projectId + '/stats'),
+          fetch('/api/projects/' + projectId + '/transactions?limit=10')
+        ]);
+
+        if (!statsRes.ok) throw new Error('Failed to load project stats');
+        if (!txRes.ok) throw new Error('Failed to load project transactions');
+
+        const statsPayload = await statsRes.json();
+        const txPayload = await txRes.json();
+        const txs = Array.isArray(txPayload.transactions) ? txPayload.transactions : [];
+
+        const project = statsPayload.project || {};
+        const metrics = statsPayload.metrics || {};
+
+        document.getElementById('project-details-subtitle').textContent =
+          (project.status ? project.status + ' ' : '') + '• ' + (metrics.transactionCount || 0) + ' transactions';
+
+        document.getElementById('pd-total-income').textContent =
+          '$' + Number(metrics.totalIncome || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        document.getElementById('pd-total-expenses').textContent =
+          '$' + Number(metrics.totalExpenses || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        const netProfit = Number(metrics.netProfit || 0);
+        const netEl = document.getElementById('pd-net-profit');
+        netEl.textContent = '$' + netProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        netEl.className = 'text-2xl font-bold mt-1 ' + (netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600');
+
+        const margin = Number(metrics.margin || 0);
+        document.getElementById('pd-margin').textContent = margin.toFixed(2) + '%';
+
+        document.getElementById('pd-tx-count').textContent =
+          'Showing ' + txs.length + ' of ' + (metrics.transactionCount || 0);
+
+        const body = document.getElementById('pd-transactions-body');
+        body.innerHTML = txs.length
+          ? txs.map(t => {
+              const isIncome = t.type === 'Income';
+              const amount = Number(t.amount || 0);
+              const color = isIncome ? 'text-emerald-600' : 'text-rose-600';
+              const sign = isIncome ? '+' : '-';
+              const dateStr = t.date ? new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+              return `
+                <tr>
+                  <td class="py-3 px-4 text-slate-500 text-xs">${dateStr}</td>
+                  <td class="py-3 px-4 text-slate-800 text-xs truncate max-w-[180px]" title="${t.vendor || ''}">${t.vendor || ''}</td>
+                  <td class="py-3 px-4 text-slate-500 text-xs truncate max-w-[160px]">${t.category || 'General'}</td>
+                  <td class="py-3 px-4 text-right font-bold text-xs tabular-nums ${color}">${sign}$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+              `;
+            }).join('')
+          : '<tr><td colspan="4" class="p-4 text-center text-slate-400">No transactions found.</td></tr>';
+      } catch (err) {
+        alert(err.message || 'Failed to load project details');
+      }
+    }
+
+    function closeProjectDetailsModal() {
+      currentProjectId = null;
+      document.getElementById('project-details-modal').classList.add('hidden');
+    }
   </script>
   <script src="/js/app-shell.js"></script>
 </body>

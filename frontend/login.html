@@ -17,9 +17,9 @@
     <div class="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
       <div class="min-w-0 flex-1 text-center">
         <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide truncate shell-business-name">Greg Tracker</p>
-        <p class="text-sm font-bold text-slate-100 tracking-tight">Acceso</p>
+        <p class="text-sm font-bold text-slate-100 tracking-tight">Access</p>
       </div>
-      <a href="/help.html?page=login" class="inline-flex items-center justify-center p-2 text-slate-400 hover:text-rose-300 hover:bg-slate-800 rounded-lg shrink-0" title="Ayuda" aria-label="Ayuda"><span class="material-icons-round">help_outline</span></a>
+      <a href="/help.html?page=login" class="inline-flex items-center justify-center p-2 text-slate-400 hover:text-rose-300 hover:bg-slate-800 rounded-lg shrink-0" title="Help - User Manual" aria-label="Help"><span class="material-icons-round">help_outline</span></a>
     </div>
   </header>
 
@@ -31,7 +31,7 @@
   <div class="glass-card w-full max-w-sm p-8 rounded-3xl shadow-2xl relative z-10 border border-white/20">
     <div class="text-center mb-8">
       <div id="login-logo-container" class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-black text-2xl shadow-lg mx-auto mb-4 overflow-hidden">RB</div>
-      <p class="text-sm font-semibold text-slate-500 uppercase tracking-widest">Ingresa tu PIN</p>
+      <p class="text-sm font-semibold text-slate-500 uppercase tracking-widest">Enter your PIN</p>
     </div>
 
     <form id="login-form" class="space-y-6" onsubmit="event.preventDefault(); submitLogin();">
@@ -60,7 +60,7 @@
         const res = await fetch('/api/settings/public');
         const data = await res.json();
         if (data.business_name) {
-          document.title = 'Acceso - ' + data.business_name;
+          document.title = 'Access - ' + data.business_name;
         }
         if (data.logo_url) {
           const container = document.getElementById('login-logo-container');
