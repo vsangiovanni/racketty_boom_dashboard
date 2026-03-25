@@ -184,13 +184,14 @@
                   <th class="py-3 px-5">Date</th>
                   <th class="py-3 px-5">Vendor</th>
                   <th class="py-3 px-5">Category</th>
+                  <th class="py-3 px-5">Project</th>
                   <th class="py-3 px-5 text-right">Amount</th>
                   <th class="py-3 px-5 text-center">Receipt</th>
                   <th class="py-3 px-5 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody id="records-tbody" class="divide-y divide-slate-100/80">
-                <tr><td colspan="6" class="py-10 text-center text-slate-400">Loading ledger...</td></tr>
+                <tr><td colspan="7" class="py-10 text-center text-slate-400">Loading ledger...</td></tr>
               </tbody>
             </table>
           </div>
@@ -362,7 +363,7 @@
         tbody.innerHTML = '';
         
         if (!data.transactions || data.transactions.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-slate-400">No records found.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" class="py-10 text-center text-slate-400">No records found.</td></tr>';
           return;
         }
 
@@ -376,6 +377,7 @@
             <td class="py-3 px-4 lg:px-5 text-slate-500 text-xs font-medium">${new Date(tx.date).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}</td>
             <td class="py-3 px-4 lg:px-5 font-bold text-slate-800 max-w-[150px] sm:max-w-[200px] truncate" title="${tx.vendor}">${tx.vendor}</td>
             <td class="py-3 px-4 lg:px-5 text-slate-500 text-xs truncate max-w-[120px]"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wider">${tx.category || 'General'}</span></td>
+            <td class="py-3 px-4 lg:px-5 text-slate-500 text-xs truncate max-w-[160px]"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] font-bold tracking-wider">${tx.project || 'No Project'}</span></td>
             <td class="py-3 px-4 lg:px-5 text-right font-black tabular-nums ${amountColor}">${isIncome?'+':''}$${Number(tx.amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td class="py-3 px-4 lg:px-5 text-center">${tx.receipt_url ? `<button onclick="window.open('${tx.receipt_url}', '_blank')" class="text-blue-500 hover:text-blue-700 bg-blue-50 p-1 rounded transition-colors" title="View Receipt"><span class="material-icons-round text-[16px]">receipt_long</span></button>` : `<span class="text-slate-200">-</span>`}</td><td class="py-3 px-4 lg:px-5 text-center opacity-50 group-hover:opacity-100 transition-opacity">
               <button onclick="window.location.href='/add-record.html?id=${tx.id}'" class="text-slate-400 hover:text-blue-600 p-1 mx-1 transition-colors" title="Edit"><span class="material-icons-round text-[16px]">edit</span></button>

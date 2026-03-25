@@ -35,7 +35,7 @@ app.use(cors());
 app.use(express.json());
 
 let appSettings = {
-  app_pin: '2468',
+  app_pin: null,
   business_name: 'Racketty Boom Enterprises',
   logo_url: null,
   avatar_url: null
@@ -55,11 +55,14 @@ async function reloadSettings() {
 
 app.post('/api/auth', (req, res) => {
   const { pin } = req.body;
+  if (!appSettings.app_pin) {
+    return res.status(401).json({ error: 'Access code not configured.' });
+  }
   if (pin === appSettings.app_pin) {
     res.cookie('auth_pin', pin, { httpOnly: true, path: '/' });
     return res.json({ success: true });
   }
-  return res.status(401).json({ error: 'Invalid PIN' });
+  return res.status(401).json({ error: 'Invalid access code.' });
 });
 
 app.post('/api/logout', (req, res) => {
@@ -764,12 +767,22 @@ async function ensureSchema() {
     try {
       await pool.query(`
         ALTER TABLE settings
-        ADD COLUMN app_pin VARCHAR(20) DEFAULT '2468',
+        ADD COLUMN app_pin VARCHAR(20) DEFAULT NULL,
         ADD COLUMN logo_url VARCHAR(500) NULL,
         ADD COLUMN avatar_url VARCHAR(500) NULL;
       `);
     } catch (e) {
       if (e.code !== 'ER_DUP_FIELDNAME') throw e;
+    }
+
+    // Si la columna ya existia con un DEFAULT antiguo, lo ajustamos a NULL.
+    try {
+      await pool.query(`
+        ALTER TABLE settings
+        MODIFY app_pin VARCHAR(20) NULL DEFAULT NULL;
+      `);
+    } catch (e) {
+      // Ignorar si la columna no existe todavia.
     }
 
     try {
@@ -789,7 +802,7 @@ async function ensureSchema() {
     } catch (e) {}
 
     try {
-      await pool.query(`INSERT INTO settings (id, business_name, app_pin) VALUES (1, 'Racketty Boom Enterprises', '2468') ON DUPLICATE KEY UPDATE id=id;`);
+      await pool.query(`INSERT INTO settings (id, business_name, app_pin) VALUES (1, 'Racketty Boom Enterprises', NULL) ON DUPLICATE KEY UPDATE id=id;`);
     } catch (e) {}
 
     console.log('✅ Migracion completada.');
@@ -1458,6 +1471,7 @@ app.get('/api/transactions', async (req, res) => {
         t.amount,
         t.type,
         t.project_id,
+        p.name AS project,
         t.notes,
         c.name AS category,
         t.created_at,
@@ -1465,6 +1479,7 @@ app.get('/api/transactions', async (req, res) => {
         ru.storage_url as receipt_url
       FROM transactions t
       LEFT JOIN categories c ON c.id = t.category_id
+      LEFT JOIN projects p ON p.id = t.project_id
       LEFT JOIN receipt_uploads ru ON ru.id = t.receipt_id
       ORDER BY t.transaction_date DESC, t.id DESC
       LIMIT :limit OFFSET :offset
