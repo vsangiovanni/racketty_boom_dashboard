@@ -19,6 +19,7 @@ This module contains the main API and runtime schema management for Greg Tracker
 - `GET /api/projects/:id/stats` -> income, expenses, net profit, margin, tx count.
 - `GET /api/projects/:id/transactions?limit=10` -> recent project transactions.
 - `GET /api/projects/:id/breakdown?limit=6` -> top categories and vendors.
+- `GET /api/projects/:id/ai-insights` -> AI-generated summary, insights, and recommendations.
 
 These endpoints power `frontend/project-details.html`.
 

@@ -57,6 +57,31 @@
         <p id="pd-transaction-count" class="text-sm text-slate-500 mt-3"></p>
       </section>
 
+      <!-- Insights -->
+      <section class="mb-6">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-100 bg-slate-50/30 flex items-center gap-2">
+            <span class="material-icons-round text-blue-600 text-[18px]">insights</span>
+            <div>
+              <h3 class="text-sm font-bold text-slate-800">Insights & Recommendations</h3>
+              <p class="text-xs text-slate-500 mt-1">Automated highlights based on current project data.</p>
+            </div>
+          </div>
+          <div class="p-4">
+            <p id="pd-insights-summary" class="text-sm text-slate-600 mb-3"></p>
+            <ul id="pd-insights-list" class="space-y-2 text-sm text-slate-700 mb-4">
+              <li class="text-slate-400">Loading insights...</li>
+            </ul>
+            <div>
+              <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Recommended Actions</p>
+              <ul id="pd-recommendations-list" class="space-y-2 text-sm text-slate-700">
+                <li class="text-slate-400">Loading recommendations...</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Breakdown -->
       <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -148,6 +173,127 @@
       return '$' + v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
+    function ratioPct(part, total) {
+      const p = Number(part || 0);
+      const t = Number(total || 0);
+      if (t <= 0) return 0;
+      return (p / t) * 100;
+    }
+
+    function renderRuleBasedInsights(metrics, cats, vendors, txs) {
+      const summaryEl = document.getElementById('pd-insights-summary');
+      const list = document.getElementById('pd-insights-list');
+      const recList = document.getElementById('pd-recommendations-list');
+      const insights = [];
+      const recommendations = [];
+
+      const totalIncome = Number(metrics.totalIncome || 0);
+      const totalExpenses = Number(metrics.totalExpenses || 0);
+      const netProfit = Number(metrics.netProfit || 0);
+      const margin = Number(metrics.margin || 0);
+      const txCount = Number(metrics.transactionCount || 0);
+
+      if (txCount === 0) {
+        insights.push('No transactions yet. Start by adding at least 3 records to unlock meaningful trends and recommendations.');
+      } else {
+        insights.push(`This project has ${txCount} transaction${txCount === 1 ? '' : 's'} with ${fmtMoney(totalIncome)} income and ${fmtMoney(totalExpenses)} expenses.`);
+      }
+
+      if (totalIncome === 0 && totalExpenses > 0) {
+        insights.push('Expenses are recorded without income. Consider adding invoiced income entries to evaluate project profitability accurately.');
+        recommendations.push('Record pending invoices for this project and map them to expected payment dates.');
+      } else if (margin < 10 && totalIncome > 0) {
+        insights.push(`Margin is currently ${margin.toFixed(2)}%. Review high-cost vendors and categories to recover at least a 10-15% margin.`);
+        recommendations.push('Set a margin target and review the highest expense lines weekly until margin improves.');
+      } else if (margin >= 10 && margin < 25) {
+        insights.push(`Healthy baseline margin at ${margin.toFixed(2)}%. A target of 25% could be reached by reducing top expense lines.`);
+        recommendations.push('Use vendor quotes or bulk purchasing on top cost lines to raise margin.');
+      } else if (margin >= 25) {
+        insights.push(`Strong margin at ${margin.toFixed(2)}%. Keep tracking vendor costs to protect profitability as volume grows.`);
+        recommendations.push('Lock in supplier rates while the project is performing above target margin.');
+      }
+
+      const topVendor = (vendors || [])
+        .map(v => ({
+          name: v.vendor || 'Unknown vendor',
+          expenses: Number(v.expenses || 0),
+          income: Number(v.income || 0)
+        }))
+        .sort((a, b) => b.expenses - a.expenses)[0];
+
+      if (topVendor && topVendor.expenses > 0) {
+        const vendorPct = ratioPct(topVendor.expenses, totalExpenses);
+        insights.push(`Top expense vendor: ${topVendor.name} (${fmtMoney(topVendor.expenses)}, ${vendorPct.toFixed(1)}% of total expenses). Negotiate pricing or diversify if concentration remains high.`);
+        if (vendorPct >= 35) {
+          recommendations.push('Reduce dependency on a single vendor by adding at least one alternative supplier.');
+        }
+      }
+
+      const topCategory = (cats || [])
+        .map(c => ({
+          name: c.category || 'General',
+          expenses: Number(c.expenses || 0),
+          income: Number(c.income || 0)
+        }))
+        .sort((a, b) => b.expenses - a.expenses)[0];
+
+      if (topCategory && topCategory.expenses > 0) {
+        const catPct = ratioPct(topCategory.expenses, totalExpenses);
+        insights.push(`Top cost category: ${topCategory.name} (${fmtMoney(topCategory.expenses)}, ${catPct.toFixed(1)}% of total expenses). Track this category weekly to prevent overruns.`);
+        recommendations.push(`Create a category budget cap for ${topCategory.name} and track variance each week.`);
+      }
+
+      const incomeTxCount = (txs || []).filter(t => t.type === 'Income').length;
+      const expenseTxCount = (txs || []).filter(t => t.type === 'Expense').length;
+      if (expenseTxCount > incomeTxCount * 2 && txCount >= 5) {
+        insights.push('Expense activity is significantly higher than income activity. Review billing cadence and collections timing for this project.');
+        recommendations.push('Tighten billing cadence: issue invoices in smaller milestones to improve cash flow.');
+      }
+
+      if (netProfit < 0) {
+        insights.push(`Project is currently negative by ${fmtMoney(Math.abs(netProfit))}. Prioritize scope control and near-term revenue capture.`);
+        recommendations.push('Run a scope and change-order review to recover negative profitability.');
+      }
+
+      summaryEl.textContent = 'AI insights are unavailable. Showing local analytical fallback.';
+      list.innerHTML = insights
+        .slice(0, 6)
+        .map(item => `<li class="flex items-start gap-2"><span class="material-icons-round text-slate-400 text-[16px] mt-0.5">lightbulb</span><span>${item}</span></li>`)
+        .join('');
+
+      recList.innerHTML = recommendations.length
+        ? recommendations
+            .slice(0, 6)
+            .map(item => `<li class="flex items-start gap-2"><span class="material-icons-round text-blue-500 text-[16px] mt-0.5">task_alt</span><span>${item}</span></li>`)
+            .join('')
+        : '<li class="text-slate-400">No specific actions suggested yet.</li>';
+    }
+
+    async function renderAIInsights() {
+      const summaryEl = document.getElementById('pd-insights-summary');
+      const list = document.getElementById('pd-insights-list');
+      const recList = document.getElementById('pd-recommendations-list');
+
+      const res = await fetch('/api/projects/' + projectId + '/ai-insights');
+      if (!res.ok) {
+        throw new Error('AI insights unavailable');
+      }
+      const payload = await res.json();
+
+      const summary = String(payload.summary || '').trim();
+      const insights = Array.isArray(payload.insights) ? payload.insights : [];
+      const recommendations = Array.isArray(payload.recommendations) ? payload.recommendations : [];
+
+      summaryEl.textContent = summary || 'AI-generated analysis based on current project metrics and transaction patterns.';
+      list.innerHTML = (insights.length ? insights : ['No insights generated.'])
+        .map(item => `<li class="flex items-start gap-2"><span class="material-icons-round text-indigo-500 text-[16px] mt-0.5">auto_awesome</span><span>${item}</span></li>`)
+        .join('');
+
+      recList.innerHTML = (recommendations.length ? recommendations : ['No recommendations generated.'])
+        .map(item => `<li class="flex items-start gap-2"><span class="material-icons-round text-blue-500 text-[16px] mt-0.5">task_alt</span><span>${item}</span></li>`)
+        .join('');
+    }
+
     async function loadProject() {
       try {
         const [statsRes, txRes, breakdownRes] = await Promise.all([
@@ -210,6 +356,11 @@
         // Transactions
         const txs = Array.isArray(txPayload.transactions) ? txPayload.transactions : [];
         document.getElementById('pd-recent-subtitle').textContent = 'Showing ' + txs.length + ' of ' + (metrics.transactionCount || 0);
+        try {
+          await renderAIInsights();
+        } catch (_aiErr) {
+          renderRuleBasedInsights(metrics, cats, vendors, txs);
+        }
 
         const body = document.getElementById('pd-transactions-body');
         body.innerHTML = txs.length

@@ -18,6 +18,7 @@ The UI is implemented as static HTML pages with inline JavaScript and shared she
 ## Recent UX Updates
 
 - Project details moved from modal to standalone page.
+- Project details include AI-generated insights and actionable recommendations.
 - Recent ledger includes project column.
 - Contextual help links available across screens.
 - English copy standardized for user-facing texts and docs.

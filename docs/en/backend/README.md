@@ -10,6 +10,7 @@
 ## Newly Documented Behavior
 
 - Project analytics endpoints support the dedicated project details page.
+- Project AI insights endpoint (`/api/projects/:id/ai-insights`) returns summary, insights, and recommendations.
 - Transaction APIs include `project_id` read/write behavior.
 - Public help and shared JS routes are allowed for pre-login documentation.
 

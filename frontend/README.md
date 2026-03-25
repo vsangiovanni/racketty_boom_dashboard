@@ -20,6 +20,7 @@ The frontend is a multi-page static UI served by the Express backend.
 - Project row click in `projects.html` opens `project-details.html?id=...`.
 - Dashboard ledger now shows each transaction's project.
 - Add/edit and upload flows include `project_id` support.
+- Project details now include an AI-powered "Insights & Recommendations" card (with local fallback when AI is unavailable).
 - Shared header/footer behavior unified through `js/app-shell.js`.
 
 ## Shared Frontend Utility

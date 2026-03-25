@@ -11,6 +11,8 @@ It combines manual data entry, AI-assisted receipt extraction, and Excel import/
   - `GET /api/projects/:id/stats`
   - `GET /api/projects/:id/transactions`
   - `GET /api/projects/:id/breakdown`
+- AI project insights endpoint:
+  - `GET /api/projects/:id/ai-insights`
 - Dashboard "Recent Ledger" now includes a **Project** column.
 - Access-code flow no longer relies on a hardcoded default value.
 
@@ -22,7 +24,7 @@ It combines manual data entry, AI-assisted receipt extraction, and Excel import/
    - `add-record.html` (manual entry/edit)
    - `upload.html` (AI receipt extraction + review)
    - `import.html` (Excel preview + commit)
-4. Manage projects in `projects.html` and open project analytics in `project-details.html`.
+4. Manage projects in `projects.html` and open project analytics in `project-details.html` (including AI insights and recommendations).
 5. Update company profile and access code in `settings.html`.
 6. Open context-aware help from any screen via `help.html?page=...`.
 

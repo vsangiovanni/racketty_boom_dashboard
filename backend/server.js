@@ -579,6 +579,125 @@ async function extractReceiptDataWithAI({ imagePath, mimeType }) {
   return extractWithOpenAI({ base64Image, mimeType });
 }
 
+async function generateProjectInsightsWithOpenAI(projectContext) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY is missing.');
+
+  const model = process.env.OPENAI_TEXT_MODEL || 'gpt-4o-mini';
+  const prompt = [
+    'You are a senior financial operations analyst.',
+    'Analyze the following project finance context and return practical business insights.',
+    'Return STRICT JSON only (no markdown, no commentary) with this exact shape:',
+    '{"summary":"string","insights":["string"],"recommendations":["string"]}',
+    'Rules:',
+    '- English only',
+    '- summary max 200 chars',
+    '- insights: 3 to 5 bullet-style sentences',
+    '- recommendations: 3 to 5 clear, actionable sentences',
+    '- Keep tone concise and professional',
+    '',
+    'PROJECT_CONTEXT_JSON:',
+    JSON.stringify(projectContext)
+  ].join('\n');
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0.2,
+      response_format: { type: 'json_object' },
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(`OpenAI API error: ${response.status} ${JSON.stringify(data)}`);
+  }
+
+  const content = data?.choices?.[0]?.message?.content;
+  if (!content) throw new Error('OpenAI response did not include message content.');
+  return parseStrictJson(content);
+}
+
+async function generateProjectInsightsWithGemini(projectContext) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY is missing.');
+
+  const model = process.env.GEMINI_TEXT_MODEL || 'gemini-2.0-flash';
+  const prompt = [
+    'You are a senior financial operations analyst.',
+    'Analyze this project finance context and produce concise, actionable insights.',
+    'Output STRICT JSON only with exact keys:',
+    '{"summary":"string","insights":["string"],"recommendations":["string"]}',
+    'Rules:',
+    '- English only',
+    '- summary max 200 chars',
+    '- insights: 3 to 5 items',
+    '- recommendations: 3 to 5 items',
+    '',
+    'PROJECT_CONTEXT_JSON:',
+    JSON.stringify(projectContext)
+  ].join('\n');
+
+  const url = `https://generativelanguage.googleapis.com/v1alpha/models/${model}:generateContent?key=${apiKey}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      generationConfig: {
+        temperature: 0.2,
+        responseMimeType: 'application/json'
+      },
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: prompt }]
+        }
+      ]
+    })
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(`Gemini API error: ${response.status} ${JSON.stringify(data)}`);
+  }
+
+  const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!content) throw new Error('Gemini response did not include content text.');
+  return parseStrictJson(content);
+}
+
+async function generateProjectInsightsWithAI(projectContext) {
+  const provider = (process.env.VISION_PROVIDER || 'openai').toLowerCase();
+  const canUseOpenAI = Boolean(process.env.OPENAI_API_KEY);
+  const canUseGemini = Boolean(process.env.GEMINI_API_KEY);
+
+  if (provider === 'gemini') {
+    try {
+      return await generateProjectInsightsWithGemini(projectContext);
+    } catch (err) {
+      if (canUseOpenAI) {
+        return generateProjectInsightsWithOpenAI(projectContext);
+      }
+      throw err;
+    }
+  }
+
+  try {
+    return await generateProjectInsightsWithOpenAI(projectContext);
+  } catch (err) {
+    if (canUseGemini) {
+      return generateProjectInsightsWithGemini(projectContext);
+    }
+    throw err;
+  }
+}
+
 let transactionsCompanyColumnCheck = null;
 
 async function hasTransactionsCompanyColumn(connection) {
@@ -992,6 +1111,125 @@ app.get('/api/projects/:id/breakdown', async (req, res) => {
     return res.json({ categories: cats, vendors });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/projects/:id/ai-insights', async (req, res) => {
+  try {
+    const projectId = req.params.id;
+
+    const [projectRows] = await pool.query(
+      'SELECT id, name, status, created_at, updated_at FROM projects WHERE id = ? LIMIT 1',
+      [projectId]
+    );
+    if (!projectRows.length) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    const project = projectRows[0];
+
+    const [metricRows] = await pool.query(
+      `
+      SELECT
+        COALESCE(SUM(CASE WHEN t.type = 'Expense' THEN t.amount ELSE 0 END), 0) AS totalExpenses,
+        COALESCE(SUM(CASE WHEN t.type = 'Income' THEN t.amount ELSE 0 END), 0) AS totalIncome,
+        COUNT(*) AS transactionCount
+      FROM transactions t
+      WHERE t.project_id = ?
+      `,
+      [projectId]
+    );
+    const metric = metricRows[0] || {};
+    const totalExpenses = Number(metric.totalExpenses || 0);
+    const totalIncome = Number(metric.totalIncome || 0);
+    const netProfit = totalIncome - totalExpenses;
+    const margin = totalIncome > 0 ? Number(((netProfit / totalIncome) * 100).toFixed(2)) : 0;
+
+    const [categories] = await pool.query(
+      `
+      SELECT
+        COALESCE(c.name, 'General') AS category,
+        COALESCE(SUM(CASE WHEN t.type = 'Income' THEN t.amount ELSE 0 END), 0) AS income,
+        COALESCE(SUM(CASE WHEN t.type = 'Expense' THEN t.amount ELSE 0 END), 0) AS expenses
+      FROM transactions t
+      LEFT JOIN categories c ON c.id = t.category_id
+      WHERE t.project_id = ?
+      GROUP BY COALESCE(c.name, 'General')
+      HAVING income <> 0 OR expenses <> 0
+      ORDER BY (income + expenses) DESC
+      LIMIT 5
+      `,
+      [projectId]
+    );
+
+    const [vendors] = await pool.query(
+      `
+      SELECT
+        t.vendor AS vendor,
+        COALESCE(SUM(CASE WHEN t.type = 'Income' THEN t.amount ELSE 0 END), 0) AS income,
+        COALESCE(SUM(CASE WHEN t.type = 'Expense' THEN t.amount ELSE 0 END), 0) AS expenses
+      FROM transactions t
+      WHERE t.project_id = ?
+      GROUP BY t.vendor
+      HAVING income <> 0 OR expenses <> 0
+      ORDER BY (income + expenses) DESC
+      LIMIT 5
+      `,
+      [projectId]
+    );
+
+    const [transactions] = await pool.query(
+      `
+      SELECT
+        t.transaction_date AS date,
+        t.vendor,
+        COALESCE(c.name, 'General') AS category,
+        t.type,
+        t.amount
+      FROM transactions t
+      LEFT JOIN categories c ON c.id = t.category_id
+      WHERE t.project_id = ?
+      ORDER BY t.transaction_date DESC, t.id DESC
+      LIMIT 12
+      `,
+      [projectId]
+    );
+
+    const projectContext = {
+      project: {
+        id: project.id,
+        name: project.name,
+        status: project.status
+      },
+      metrics: {
+        transactionCount: Number(metric.transactionCount || 0),
+        totalIncome,
+        totalExpenses,
+        netProfit,
+        margin
+      },
+      topCategories: categories,
+      topVendors: vendors,
+      recentTransactions: transactions
+    };
+
+    const ai = await generateProjectInsightsWithAI(projectContext);
+    const insights = Array.isArray(ai?.insights) ? ai.insights.map(x => String(x).trim()).filter(Boolean) : [];
+    const recommendations = Array.isArray(ai?.recommendations) ? ai.recommendations.map(x => String(x).trim()).filter(Boolean) : [];
+    const summary = String(ai?.summary || '').trim();
+
+    return res.json({
+      source: 'ai',
+      summary,
+      insights,
+      recommendations
+    });
+  } catch (err) {
+    const msg = String(err?.message || '');
+    const missingKey = msg.includes('OPENAI_API_KEY is missing') || msg.includes('GEMINI_API_KEY is missing');
+    if (missingKey) {
+      return res.status(503).json({ error: 'AI provider not configured. Set API key to enable AI insights.' });
+    }
+    return res.status(500).json({ error: err.message });
   }
 });
 

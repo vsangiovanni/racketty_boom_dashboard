@@ -11,6 +11,7 @@ This folder keeps supplemental English documentation for Greg Tracker.
 ## Current App Highlights
 
 - Dedicated project detail screen with project-specific analytics.
+- AI-powered project insights and recommendation card on project detail.
 - Full English UI and help experience.
 - Dashboard ledger includes project association.
 - Access-code flow uses nullable configuration and avoids hardcoded default value.
