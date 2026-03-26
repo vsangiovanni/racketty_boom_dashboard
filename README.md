@@ -7,6 +7,8 @@ It combines manual data entry, AI-assisted receipt extraction, and Excel import/
 
 - Full UI and user manual in English.
 - Dedicated project details screen at `frontend/project-details.html` (no modal).
+- Client lead-capture: `frontend/quote.html` replaces outbound “Free quote” links and submits requests to the internal app.
+- Dashboard lead inbox: managers/admin can see and update submitted quote requests.
 - Project analytics endpoints:
   - `GET /api/projects/:id/stats`
   - `GET /api/projects/:id/transactions`
@@ -18,8 +20,8 @@ It combines manual data entry, AI-assisted receipt extraction, and Excel import/
 
 ## Main User Flow
 
-1. Sign in from `login.html` with the access code configured in Settings.
-2. Use `index.html` to review KPIs, charts, and recent ledger records.
+1. Open `/` for the Racketty Boom landing, then sign in from `login.html` with your team or company access code.
+2. Use `dashboard.html` to review KPIs, charts, recent ledger records, and quote request submissions.
 3. Add records using:
    - `add-record.html` (manual entry/edit)
    - `upload.html` (AI receipt extraction + review)

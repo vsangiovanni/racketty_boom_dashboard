@@ -3,436 +3,632 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard - Racketty Boom</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>Racketty Boom Construction — Remodeling &amp; Construction · Centralia, WA</title>
+  <meta name="description" content="Racketty Boom Construction — remodeling and new construction in Centralia, WA. Free estimates, insured & bonded. Kitchens, baths, whole-home renovations, decks, and more.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,600&display=swap" rel="stylesheet">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    .glass-card { background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(248,250,252,1) 100%); }
-    .kpi-title { font-size: 0.85rem; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 700; color: #64748b; }
-    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    :root {
+      --ink: #0c1222;
+      --muted: #5c6578;
+      --cream: #f6f3ee;
+      --paper: #fffffe;
+      --accent: #c45c26;
+      --accent-dark: #9a4218;
+      --forest: #1e3a2f;
+      --forest-light: #2d4a3e;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--cream);
+      line-height: 1.6;
+    }
+    .font-display { font-family: 'Fraunces', Georgia, serif; }
+    .nav-blur {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      background: rgba(246, 243, 238, 0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(12, 18, 34, 0.06);
+    }
+    .nav-inner {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      text-decoration: none;
+      color: inherit;
+    }
+    .brand img { height: 44px; width: auto; display: block; }
+    .brand span { font-weight: 700; font-size: 0.92rem; letter-spacing: -0.02em; }
+    .nav-anchors {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.15rem 0.1rem;
+      justify-content: center;
+      flex: 1;
+      min-width: min(100%, 420px);
+    }
+    .nav-anchors a {
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.4rem 0.55rem;
+      border-radius: 0.4rem;
+      white-space: nowrap;
+    }
+    .nav-anchors a:hover { color: var(--forest); background: rgba(30, 58, 47, 0.07); }
+    @media (max-width: 900px) {
+      .nav-anchors { order: 3; width: 100%; justify-content: flex-start; }
+    }
+    .nav-links { display: flex; align-items: center; gap: 0.5rem; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1.1rem;
+      border-radius: 0.65rem;
+      font-weight: 700;
+      font-size: 0.82rem;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(196, 92, 38, 0.35);
+    }
+    .btn-primary:hover { box-shadow: 0 6px 28px rgba(196, 92, 38, 0.45); }
+    .btn-ghost-dark {
+      background: transparent;
+      color: var(--forest);
+      border: 1.5px solid rgba(30, 58, 47, 0.28);
+    }
+    .btn-ghost-dark:hover { background: rgba(30, 58, 47, 0.06); }
+    .btn-ghost-light {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border: 1.5px solid rgba(255,255,255,0.35);
+    }
+    .btn-ghost-light:hover { background: rgba(255,255,255,0.2); }
+    .hero {
+      position: relative;
+      min-height: min(92vh, 920px);
+      display: grid;
+      align-items: end;
+      padding: 5.5rem 1.25rem 3rem;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      z-index: 0;
+    }
+    .hero-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(105deg, rgba(12, 18, 34, 0.9) 0%, rgba(12, 18, 34, 0.5) 48%, rgba(12, 18, 34, 0.3) 100%);
+    }
+    .hero-content { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; width: 100%; }
+    .hero-badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.72);
+      margin-bottom: 0.75rem;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 4.5vw, 3.35rem);
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.05;
+      margin: 0 0 0.75rem;
+      max-width: 22ch;
+    }
+    .hero .hook {
+      color: rgba(255,255,255,0.92);
+      font-size: 1.05rem;
+      max-width: 48ch;
+      margin: 0 0 0.75rem;
+    }
+    .hero .hook-follow {
+      color: rgba(255,255,255,0.88);
+      font-size: 0.98rem;
+      max-width: 52ch;
+      margin: 0 0 1.35rem;
+      font-weight: 500;
+    }
+    .hero-cta { display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: center; }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 1.35rem; }
+    .pill {
+      padding: 0.4rem 0.85rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.95);
+      border: 1px solid rgba(12, 18, 34, 0.06);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--forest);
+    }
+    .section {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 3.5rem 1.25rem;
+    }
+    .section.alt { background: linear-gradient(180deg, rgba(30, 58, 47, 0.04), transparent); }
+    .section-title {
+      font-size: clamp(1.65rem, 3vw, 2.15rem);
+      font-weight: 700;
+      margin: 0 0 0.4rem;
+      color: var(--forest);
+    }
+    .section-sub { color: var(--muted); margin: 0 0 1.75rem; max-width: 58ch; }
+    .social-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+    .social-row a {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.45rem 0.8rem;
+      border-radius: 0.5rem;
+      background: #fff;
+      border: 1px solid rgba(12, 18, 34, 0.08);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--forest);
+      text-decoration: none;
+    }
+    .social-row a:hover { border-color: var(--accent); color: var(--accent-dark); }
+    .svc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+    .svc-card {
+      background: var(--paper);
+      border-radius: 1rem;
+      padding: 1.15rem 1.25rem;
+      border: 1px solid rgba(12, 18, 34, 0.07);
+      box-shadow: 0 4px 20px rgba(12, 18, 34, 0.04);
+    }
+    .svc-card h3 { margin: 0 0 0.4rem; font-size: 1rem; color: var(--forest); }
+    .svc-card p { margin: 0; font-size: 0.88rem; color: var(--muted); }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+    @media (max-width: 700px) { .steps { grid-template-columns: 1fr; } }
+    .step {
+      background: var(--paper);
+      border-radius: 1rem;
+      padding: 1.35rem;
+      border: 1px solid rgba(12, 18, 34, 0.07);
+      position: relative;
+      overflow: hidden;
+    }
+    .step::before {
+      content: attr(data-n);
+      position: absolute;
+      top: 0.85rem;
+      right: 1rem;
+      font-size: 2rem;
+      font-weight: 800;
+      color: rgba(196, 92, 38, 0.12);
+      line-height: 1;
+    }
+    .step h3 { margin: 0 0 0.35rem; font-size: 1rem; color: var(--forest); }
+    .step p { margin: 0; font-size: 0.88rem; color: var(--muted); }
+    .bento {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      grid-auto-rows: minmax(110px, 20vw);
+      gap: 0.6rem;
+    }
+    @media (max-width: 768px) {
+      .bento { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 130px; }
+    }
+    .bento-item {
+      border-radius: 1rem;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 8px 28px rgba(12, 18, 34, 0.1);
+    }
+    .bento-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.5s ease; }
+    .bento-item:hover img { transform: scale(1.04); }
+    .bento-a { grid-column: span 3; grid-row: span 2; }
+    .bento-b { grid-column: span 3; grid-row: span 1; }
+    .bento-c { grid-column: span 2; grid-row: span 1; }
+    @media (max-width: 768px) {
+      .bento-a, .bento-b, .bento-c { grid-column: span 2; grid-row: span 1; }
+    }
+    .review-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+    }
+    .review-card {
+      background: var(--paper);
+      border-radius: 1rem;
+      padding: 1.25rem;
+      border: 1px solid rgba(12, 18, 34, 0.07);
+      box-shadow: 0 4px 20px rgba(12, 18, 34, 0.04);
+    }
+    .stars { color: #d4a017; font-size: 0.9rem; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .review-quote { font-size: 0.88rem; color: var(--ink); margin: 0 0 0.75rem; font-style: italic; }
+    .review-meta { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+    details.faq-it {
+      background: var(--paper);
+      border: 1px solid rgba(12, 18, 34, 0.08);
+      border-radius: 0.75rem;
+      margin-bottom: 0.5rem;
+      padding: 0 1rem;
+    }
+    details.faq-it summary {
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: var(--forest);
+      padding: 1rem 0;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    details.faq-it summary::-webkit-details-marker { display: none; }
+    details.faq-it summary::after { content: '+'; font-weight: 800; color: var(--accent); }
+    details.faq-it[open] summary::after { content: '–'; }
+    details.faq-it p { margin: 0 0 1rem; font-size: 0.88rem; color: var(--muted); }
+    .hours-table { width: 100%; max-width: 380px; border-collapse: collapse; font-size: 0.88rem; }
+    .hours-table td { padding: 0.35rem 0; border-bottom: 1px solid rgba(12,18,34,0.08); }
+    .hours-table td:first-child { font-weight: 600; color: var(--forest); width: 42%; }
+    .cta-band {
+      background: linear-gradient(135deg, var(--forest) 0%, var(--forest-light) 100%);
+      color: #fff;
+      padding: 3rem 1.25rem;
+      text-align: center;
+    }
+    .cta-band-inner { max-width: 720px; margin: 0 auto; }
+    .cta-band h2 { margin: 0 0 0.5rem; font-size: 1.75rem; }
+    .cta-band p { margin: 0 0 1.25rem; opacity: 0.88; font-size: 0.95rem; }
+    .cta-band .row { display: flex; flex-wrap: wrap; gap: 0.65rem; justify-content: center; }
+    footer {
+      background: #152822;
+      color: rgba(255,255,255,0.86);
+      padding: 2.75rem 1.25rem 2rem;
+    }
+    .footer-cols {
+      max-width: 1240px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+    }
+    .footer-col h3 {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      opacity: 0.75;
+      margin: 0 0 0.75rem;
+    }
+    .footer-col ul { list-style: none; margin: 0; padding: 0; }
+    .footer-col li { margin-bottom: 0.35rem; }
+    .footer-col a { color: #fff; text-decoration: none; font-size: 0.86rem; font-weight: 500; }
+    .footer-col a:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .fine-print {
+      max-width: 1240px;
+      margin: 2rem auto 0;
+      padding-top: 1.25rem;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 0.72rem;
+      opacity: 0.6;
+      line-height: 1.5;
+    }
   </style>
 </head>
-<body class="bg-[#f1f5f9] text-slate-800 h-screen flex overflow-hidden">
-
-  <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/60 z-40 hidden md:hidden backdrop-blur-sm" onclick="toggleSidebar()"></div>
-
-  <aside id="sidebar" class="bg-slate-900 text-slate-300 w-64 flex-shrink-0 fixed inset-y-0 left-0 z-50 transition-transform -translate-x-full md:relative md:translate-x-0 flex flex-col shadow-2xl md:shadow-none">
-    <div class="h-16 flex items-center px-6 bg-slate-950 border-b border-slate-800/50 justify-between">
-      <div class="flex items-center gap-3">
-        <div id="sidebar-logo-container" class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-sm overflow-hidden">RB</div>
-        <span id="sidebar-business-name" class="shell-business-name text-white font-bold tracking-wide truncate max-w-[130px]">Greg Tracker</span>
+<body>
+  <nav class="nav-blur" aria-label="Primary">
+    <div class="nav-inner">
+      <a class="brand" href="#top" aria-label="Top of page">
+        <img src="/assets/landing/logo.webp" width="348" height="348" alt="Racketty Boom logo">
+        <span>Racketty Boom</span>
+      </a>
+      <div class="nav-anchors">
+        <a href="#about">About</a>
+        <a href="#services">Services</a>
+        <a href="#quote">Get a quote</a>
+        <a href="#work">Our work</a>
+        <a href="#reviews">Reviews</a>
+        <a href="#faq">FAQ</a>
+        <a href="#contact">Contact &amp; hours</a>
       </div>
-      <button class="md:hidden text-slate-400 hover:text-white" onclick="toggleSidebar()"><span class="material-icons-round">close</span></button>
+      <div class="nav-links">
+        <a href="/quote.html" class="btn btn-primary">Free quote</a>
+      </div>
     </div>
-    
-    <div class="p-4 flex-1 overflow-y-auto">
-      <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 mt-2 px-2">Financials</div>
-      <nav class="space-y-1">
-        <a href="/" class="flex items-center gap-3 px-3 py-2.5 bg-blue-600/10 text-blue-400 rounded-lg font-medium border border-blue-500/20">
-          <span class="material-icons-round text-[20px]">insights</span> Dashboard
-        </a>
-        <a href="/add-record.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
-          <span class="material-icons-round text-[20px]">add_box</span> Manual Entry
-        </a>
-        <a href="/upload.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
-          <span class="material-icons-round text-[20px]">document_scanner</span> AI Receipt Scan
-        </a>
-        <a href="/projects.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
-          <span class="material-icons-round text-[20px]">construction</span> Projects
-        </a>
-      </nav>
+  </nav>
 
-      <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 mt-8 px-2">Reports & Automation</div>
-      <nav class="space-y-1">
-        <a href="#" onclick="toggleSidebar(); exportReport(); return false;" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-emerald-400 hover:text-emerald-300">
-          <span class="material-icons-round text-[20px]">file_download</span> Export Excel Report
-        </a>
-        <a href="/import.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
-          <span class="material-icons-round text-[20px]">table_view</span> Bulk Import Excel
-        </a>
-        <a href="/help.html?page=dashboard" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200 mt-4 border-t border-slate-800 pt-4">
-          <span class="material-icons-round text-[20px]">help_outline</span> Help
-        </a>
-        <a href="/settings.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200 mt-2">
-          <span class="material-icons-round text-[20px]">settings</span> Settings
-        </a>
-      </nav>
+  <header class="hero" id="top">
+    <div class="hero-bg" style="background-image: url('/assets/landing/hero.webp');" role="img" aria-label="Racketty Boom construction project"></div>
+    <div class="hero-content">
+      <p class="hero-badge">Construction &amp; remodeling · Centralia, WA &amp; surrounding areas</p>
+      <h1 class="font-display">Racketty Boom Construction</h1>
+      <p class="hook">Reputable construction and remodeling with high-quality workmanship and a focus on customer satisfaction — from whole-home renovations to targeted repairs.</p>
+      <p class="hook-follow">Free estimates · Insured &amp; bonded · Family-owned and local. Tell us about your project and get a clear, honest bid — no surprises on what matters.</p>
+      <div class="hero-cta">
+        <a href="/quote.html" class="btn btn-primary" id="hero-primary">Get a free quote</a>
+        <a href="#work" class="btn btn-ghost-light">See our work</a>
+      </div>
+      <div class="pill-row" aria-label="Company highlights">
+        <span class="pill">Insured</span>
+        <span class="pill">Bonded</span>
+        <span class="pill">Family owned</span>
+        <span class="pill">Locally owned</span>
+        <span class="pill">Emergency services</span>
+      </div>
     </div>
-  </aside>
+  </header>
 
-  <div class="flex-1 flex flex-col overflow-hidden min-w-0 relative">
-    
-    <header class="h-16 bg-white/80 backdrop-blur-md shadow-sm flex items-center justify-between px-4 lg:px-8 z-10 flex-shrink-0 border-b border-slate-200/50">
-      <div class="flex items-center gap-3 min-w-0">
-        <button class="md:hidden text-slate-500 hover:bg-slate-100 p-2 rounded-lg shrink-0" onclick="toggleSidebar()"><span class="material-icons-round">menu</span></button>
-        <div class="hidden sm:flex flex-col min-w-0">
-          <span class="shell-business-name text-[11px] font-semibold text-slate-500 uppercase tracking-wide truncate max-w-[14rem] lg:max-w-md">Greg Tracker</span>
-          <h1 class="text-xl font-bold text-slate-800 tracking-tight leading-tight">Executive Dashboard</h1>
-        </div>
-        <h1 class="text-base font-bold text-slate-800 truncate sm:hidden">Dashboard</h1>
+  <section class="section" id="about" aria-labelledby="about-h">
+    <h2 id="about-h" class="section-title font-display">About us</h2>
+    <p class="section-sub">Trusted construction and remodeling in Centralia, WA and the surrounding areas. We combine experience, attention to detail, and clear communication from first estimate to final walkthrough.</p>
+    <p style="margin:0; max-width:58ch; color:var(--muted); font-size:0.95rem;">We work closely with homeowners to bring their vision to life while protecting schedule and budget. Whether it is a full renovation, a kitchen or bath, exterior upgrades, or focused repairs, you get craftsmanship you can inspect and a team that respects your home.</p>
+    <p class="section-sub" style="margin-bottom:0.5rem;"><strong>Connect</strong></p>
+    <div class="social-row">
+      <a href="https://maps.google.com/maps?cid=18001669086686799493" target="_blank" rel="noopener noreferrer">Google Maps</a>
+      <a href="https://www.facebook.com/591991794257762" target="_blank" rel="noopener noreferrer">Facebook</a>
+      <a href="https://www.yelp.com/biz/racketty-boom-enterprises-centralia" target="_blank" rel="noopener noreferrer">Yelp</a>
+      <a href="#reviews">All reviews</a>
+    </div>
+  </section>
+
+  <section class="section alt" id="services" aria-labelledby="svc-h">
+    <h2 id="svc-h" class="section-title font-display">Our services</h2>
+    <p class="section-sub">Full-service remodeling and construction — everything most homeowners need, in one place.</p>
+    <div class="svc-grid">
+      <div class="svc-card">
+        <h3>Total home renovation</h3>
+        <p>End-to-end remodeling and construction to transform your entire home into a cohesive, comfortable space.</p>
       </div>
-      <div class="flex items-center gap-2 sm:gap-3">
-        <a href="/help.html?page=dashboard" class="inline-flex items-center justify-center p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Help - User Manual" aria-label="Help"><span class="material-icons-round">help_outline</span></a>
-        <button onclick="exportReport()" class="hidden sm:flex items-center gap-2 bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-slate-700 transition-colors shadow-sm"><span class="material-icons-round text-[16px]">download</span> Export</button>
-        <div class="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200">
-          <span class="material-icons-round text-slate-400 pl-2 text-sm">calendar_today</span>
-          <select id="time-filter" class="bg-transparent border-none text-slate-700 text-sm font-bold focus:ring-0 cursor-pointer pl-1 pr-8 py-1.5" onchange="loadStats()">
-            <option value="month-current" selected>This Month</option>
-            <option value="year-2026">2026</option>
-            <option value="year-2025">2025</option>
-            <option value="year-2024">2024</option>
-            <option value="all">All Time</option>
-          </select>
-        </div>
-        <div id="header-avatar-container" class="hidden sm:flex w-8 h-8 rounded-full bg-slate-200 overflow-hidden border border-slate-300">
-          <span class="material-icons-round text-slate-400 m-auto text-sm">person</span>
-        </div>
-        <button onclick="logout()" class="flex items-center justify-center p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="Lock / Logout">
-          <span class="material-icons-round">lock_outline</span>
-        </button>
+      <div class="svc-card">
+        <h3>Kitchen renovation</h3>
+        <p>Functional, stylish kitchens with careful planning, durable materials, and meticulous installation.</p>
       </div>
-    </header>
-
-    <main class="flex-1 overflow-y-auto p-4 lg:p-8 scrollbar-hide flex flex-col" data-shell-footer>
-      
-      <!-- Premium KPIs -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
-        
-        <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden group hover:shadow-md transition-all">
-          <div class="kpi-title mb-2">Gross Income</div>
-          <div class="text-3xl font-black text-slate-800 tracking-tight" id="dash-income">$0.00</div>
-          <div class="text-xs font-semibold text-green-600 mt-2 flex items-center gap-1"><span class="material-icons-round text-[14px]">trending_up</span> Billed Revenue</div>
-          <div class="absolute -right-4 -top-4 w-24 h-24 bg-green-500/10 rounded-full blur-2xl group-hover:bg-green-500/20 transition-all"></div>
-        </div>
-        
-        <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden group hover:shadow-md transition-all">
-          <div class="kpi-title mb-2">Total Expenses</div>
-          <div class="text-3xl font-black text-slate-800 tracking-tight" id="dash-expense">$0.00</div>
-          <div class="text-xs font-semibold text-rose-500 mt-2 flex items-center gap-1"><span class="material-icons-round text-[14px]">account_balance_wallet</span> Cost of Operations</div>
-          <div class="absolute -right-4 -top-4 w-24 h-24 bg-rose-500/10 rounded-full blur-2xl group-hover:bg-rose-500/20 transition-all"></div>
-        </div>
-        
-        <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-md border border-slate-700 relative overflow-hidden group hover:shadow-lg transition-all text-white">
-          <div class="kpi-title text-slate-400 mb-2">Net Profit</div>
-          <div class="flex items-baseline gap-2">
-            <div class="text-3xl font-black tracking-tight" id="dash-balance">$0.00</div>
-            <div class="text-sm font-bold px-2 py-0.5 rounded bg-white/10 text-emerald-400" id="dash-margin">0% Margin</div>
-          </div>
-          <div class="text-xs font-semibold text-slate-400 mt-2 flex items-center gap-1"><span class="material-icons-round text-[14px]">insights</span> Bottom Line</div>
-          <div class="absolute -right-4 -bottom-4 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-500/30 transition-all"></div>
-        </div>
-        
-        <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden group hover:shadow-md transition-all">
-          <div class="kpi-title mb-2">Tax Liability (Est)</div>
-          <div class="text-3xl font-black text-amber-600 tracking-tight" id="dash-tax">$0.00</div>
-          <div class="text-xs font-semibold text-amber-700/70 mt-2 flex items-center gap-1"><span class="material-icons-round text-[14px]">account_balance</span> Owed vs Paid Difference</div>
-          <div class="absolute -right-4 -top-4 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all"></div>
-        </div>
-
+      <div class="svc-card">
+        <h3>Bathroom renovation</h3>
+        <p>Modernize baths with quality fixtures, waterproofing, tile, and accessibility options where needed.</p>
       </div>
-
-      <!-- Advanced Charts Grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-        
-        <!-- Cash Flow Area Chart -->
-        <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200/60 lg:col-span-8">
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Cash Flow Trend</h3>
-            <span class="text-xs font-bold bg-blue-50 text-blue-600 px-2 py-1 rounded">Monthly</span>
-          </div>
-          <div class="relative h-[280px] w-full">
-            <canvas id="trendChart"></canvas>
-          </div>
-        </div>
-        
-        <!-- Top Categories Doughnut -->
-        <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200/60 lg:col-span-4 flex flex-col">
-          <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-6">Expense Breakdown</h3>
-          <div class="relative flex-1 w-full flex items-center justify-center min-h-[200px]">
-            <canvas id="categoryChart"></canvas>
-          </div>
-        </div>
-
+      <div class="svc-card">
+        <h3>Painting &amp; staining</h3>
+        <p>Interior and exterior finishes that protect surfaces and elevate curb appeal and indoor atmosphere.</p>
       </div>
-
-      <!-- Bottom Row: Top Vendors & Records -->
-      <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 mb-10">
-        
-        <!-- Top Vendors Bar -->
-        <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200/60 xl:col-span-4">
-          <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-6">Top Payees / Vendors</h3>
-          <div class="relative h-[250px] w-full">
-            <canvas id="vendorChart"></canvas>
-          </div>
-        </div>
-
-        <!-- Records Table -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden flex flex-col xl:col-span-8">
-          <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
-            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Recent Ledger</h2>
-            <div class="flex gap-2">
-              <button onclick="window.location.href='/add-record.html'" class="text-xs font-bold bg-slate-900 text-white px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors">Add New</button>
-            </div>
-          </div>
-          
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm whitespace-nowrap">
-              <thead class="bg-slate-50 text-slate-500 font-semibold text-xs uppercase tracking-wider border-b border-slate-200">
-                <tr>
-                  <th class="py-3 px-5">Date</th>
-                  <th class="py-3 px-5">Vendor</th>
-                  <th class="py-3 px-5">Category</th>
-                  <th class="py-3 px-5">Project</th>
-                  <th class="py-3 px-5 text-right">Amount</th>
-                  <th class="py-3 px-5 text-center">Receipt</th>
-                  <th class="py-3 px-5 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="records-tbody" class="divide-y divide-slate-100/80">
-                <tr><td colspan="7" class="py-10 text-center text-slate-400">Loading ledger...</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="p-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
-            <button id="btn-prev" class="text-slate-600 disabled:text-slate-300 font-bold py-1.5 px-3 rounded-lg hover:bg-slate-200 transition-colors text-xs uppercase" disabled>Prev</button>
-            <div class="text-xs font-medium text-slate-500">Page <span id="current-page" class="text-slate-800 font-bold">1</span> of <span id="total-pages">1</span></div>
-            <button id="btn-next" class="text-slate-600 disabled:text-slate-300 font-bold py-1.5 px-3 rounded-lg hover:bg-slate-200 transition-colors text-xs uppercase" disabled>Next</button>
-          </div>
-        </div>
-
+      <div class="svc-card">
+        <h3>Interior remodeling</h3>
+        <p>Room refreshes, layout improvements, and finish upgrades tailored to how you live day to day.</p>
       </div>
-      
-    </main>
+      <div class="svc-card">
+        <h3>Deck &amp; patio installation</h3>
+        <p>Outdoor living spaces built for safety, drainage, and long life — composite, wood, and railings done right.</p>
+      </div>
+      <div class="svc-card">
+        <h3>General contractor</h3>
+        <p>Single point of accountability, coordinated trades, and a schedule you can actually track.</p>
+      </div>
+      <div class="svc-card">
+        <h3>Flooring</h3>
+        <p>Quality materials and professional installation to improve comfort, acoustics, and resale value.</p>
+      </div>
+      <div class="svc-card">
+        <h3>Concrete</h3>
+        <p>Repairs, flatwork, and new pours for driveways, patios, walkways, and structural needs.</p>
+      </div>
+      <div class="svc-card">
+        <h3>Masonry</h3>
+        <p>Brick, stone, and related work for durability, drainage, and lasting curb appeal.</p>
+      </div>
+      <div class="svc-card">
+        <h3>SheetRock / drywall</h3>
+        <p>Installation and repair for smooth walls and ceilings ready for paint and trim.</p>
+      </div>
+      <div class="svc-card">
+        <h3>Other repair services</h3>
+        <p>Maintenance and smaller repairs that keep your property healthy between larger projects.</p>
+      </div>
+    </div>
+    <p style="margin-top:1.25rem;">
+      <a href="#work" class="btn btn-ghost-dark">Full service list &amp; photo galleries</a>
+    </p>
+  </section>
+
+  <section class="section" id="quote" aria-labelledby="quote-h">
+    <h2 id="quote-h" class="section-title font-display">Ready to get started</h2>
+    <p class="section-sub">Getting a quote is simple — same three-step story our customers know, without clutter.</p>
+    <div class="steps">
+      <div class="step" data-n="1">
+        <h3>Send us a text</h3>
+        <p>Reach out from your phone with a short description and photos if you have them.</p>
+      </div>
+      <div class="step" data-n="2">
+        <h3>Talk it through</h3>
+        <p>We discuss scope, timing, and options so expectations are clear before work begins.</p>
+      </div>
+      <div class="step" data-n="3">
+        <h3>Receive your quote</h3>
+        <p>Detailed, honest numbers so you can decide with confidence — no surprises on the essentials.</p>
+      </div>
+    </div>
+    <p style="margin-top:1.5rem;">
+      <a href="/quote.html" class="btn btn-primary">Get a free quote</a>
+    </p>
+  </section>
+
+  <section class="section alt" id="work" aria-labelledby="work-h">
+    <h2 id="work-h" class="section-title font-display">Our best work</h2>
+    <p class="section-sub">Real project photography — kitchens, baths, exteriors, decks, and whole-home renovations.</p>
+    <div class="bento">
+      <div class="bento-item bento-a"><img src="/assets/landing/work-1.webp" alt="Racketty Boom renovation" loading="lazy" width="1500" height="1500"></div>
+      <div class="bento-item bento-b"><img src="/assets/landing/work-2.webp" alt="Racketty Boom interior" loading="lazy" width="1500" height="1500"></div>
+      <div class="bento-item bento-c"><img src="/assets/landing/work-3.webp" alt="Racketty Boom construction detail" loading="lazy" width="1500" height="1500"></div>
+      <div class="bento-item bento-c"><img src="/assets/landing/work-4.webp" alt="Racketty Boom remodel" loading="lazy" width="1500" height="1500"></div>
+      <div class="bento-item bento-c"><img src="/assets/landing/work-5.webp" alt="Racketty Boom project" loading="lazy" width="1000" height="1000"></div>
+      <div class="bento-item bento-c"><img src="/assets/landing/work-6.webp" alt="Racketty Boom renovation" loading="lazy" width="1000" height="1000"></div>
+    </div>
+    <p style="margin-top:1.25rem;">
+      <a href="#work" class="btn btn-ghost-dark">Browse all photos</a>
+    </p>
+  </section>
+
+  <section class="section" id="reviews" aria-labelledby="rev-h">
+    <h2 id="rev-h" class="section-title font-display">Reviews</h2>
+    <p class="section-sub">Highlights from homeowners who hired Racketty Boom for remodels, storm recovery, and full renovations.</p>
+    <div class="review-grid">
+      <div class="review-card">
+        <div class="stars" aria-hidden="true">★★★★★</div>
+        <p class="review-quote">&ldquo;We would recommend and hire Greg and Bob at Racketty Boom again and again… on time, very detail oriented… estimates were spot on the bid, no surprises.&rdquo;</p>
+        <p class="review-meta">— Tyler S. · Bathroom renovation · Google</p>
+      </div>
+      <div class="review-card">
+        <div class="stars" aria-hidden="true">★★★★★</div>
+        <p class="review-quote">&ldquo;After contacting over 10 local contractors… Greg at Racketty Boom blew the other contractors out of the water… turned our ugly beige 90's bathroom into a beautiful farm-house inspired piece of art.&rdquo;</p>
+        <p class="review-meta">— Reagan O. · Bathroom remodel · Yelp</p>
+      </div>
+      <div class="review-card">
+        <div class="stars" aria-hidden="true">★★★★★</div>
+        <p class="review-quote">&ldquo;From the first call to Greg to the project complete was a pleasure… done in the time frame and dollar amount that was provided.&rdquo;</p>
+        <p class="review-meta">— Betty P. · Total home renovation · Google</p>
+      </div>
+      <div class="review-card">
+        <div class="stars" aria-hidden="true">★★★★★</div>
+        <p class="review-quote">&ldquo;I purchased a dilapidated house… over the months they rehabbed the property inside and out… professional and provided options to reduce cost.&rdquo;</p>
+        <p class="review-meta">— Rosa S. R. · Rental rehab · Google</p>
+      </div>
+      <div class="review-card">
+        <div class="stars" aria-hidden="true">★★★★★</div>
+        <p class="review-quote">&ldquo;The quality of the work is consistently excellent… jobs are done on time and on budget. I highly recommend working with Racketty Boom Construction.&rdquo;</p>
+        <p class="review-meta">— Ben S. · Commercial partner · Google</p>
+      </div>
+      <div class="review-card">
+        <div class="stars" aria-hidden="true">★★★★★</div>
+        <p class="review-quote">&ldquo;We have used Racketty Boom twice… all work was completed on-time and looks absolutely awesome… recommend them without hesitation.&rdquo;</p>
+        <p class="review-meta">— Barb P. · Bath &amp; fence · Yelp</p>
+      </div>
+    </div>
+    <p style="margin-top:1rem;"><a href="#reviews" class="btn btn-ghost-dark">Read all reviews</a></p>
+  </section>
+
+  <section class="section alt" id="faq" aria-labelledby="faq-h">
+    <h2 id="faq-h" class="section-title font-display">Frequently asked questions</h2>
+    <p class="section-sub">Straight answers — aligned with what we publish for new clients.</p>
+    <details class="faq-it">
+      <summary>Do you provide free estimates?</summary>
+      <p>Yes. Racketty Boom Construction offers free estimates for construction and remodeling projects. We evaluate scope and provide a clear estimate so you can decide without upfront cost or obligation.</p>
+    </details>
+    <details class="faq-it">
+      <summary>How are you different from other contractors?</summary>
+      <p>We emphasize customer service, personal attention, and practical design solutions. Clear communication, reliable scheduling, and quality workmanship are non-negotiable — we aim to exceed expectations, not just meet a minimum bid.</p>
+    </details>
+    <details class="faq-it">
+      <summary>What services do you offer?</summary>
+      <p>New construction and additions, kitchen and bath remodeling, basement finishing, roofing and siding, general contracting, and a wide range of interior and exterior repairs — see the services grid above for the full list.</p>
+    </details>
+    <details class="faq-it">
+      <summary>Do you offer discounts?</summary>
+      <p>We offer discounts for senior citizens and veterans. Ask when you request a quote so we can apply any eligible savings.</p>
+    </details>
+  </section>
+
+  <section class="section" id="contact" aria-labelledby="contact-h">
+    <h2 id="contact-h" class="section-title font-display">Service area &amp; hours</h2>
+    <p class="section-sub">Proudly serving <strong>Centralia, WA</strong> and surrounding communities. Exact dispatch and emergency availability may vary — confirm on our public site or by message.</p>
+    <table class="hours-table" aria-label="Business hours">
+      <tr><td>Sunday</td><td>Closed</td></tr>
+      <tr><td>Monday</td><td>8:00am – 6:00pm</td></tr>
+      <tr><td>Tuesday</td><td>8:00am – 6:00pm</td></tr>
+      <tr><td>Wednesday</td><td>8:00am – 6:00pm</td></tr>
+      <tr><td>Thursday</td><td>8:00am – 6:00pm</td></tr>
+      <tr><td>Friday</td><td>8:00am – 6:00pm</td></tr>
+      <tr><td>Saturday</td><td>8:00am – 6:00pm</td></tr>
+    </table>
+    <p style="margin-top:1.25rem;">
+      <a href="/quote.html" class="btn btn-primary">Contact &amp; booking</a>
+    </p>
+  </section>
+
+  <div class="cta-band" aria-labelledby="cta-band-h">
+    <div class="cta-band-inner">
+      <h2 id="cta-band-h" class="font-display">Ready to start your project?</h2>
+      <p>Send a message with a few photos if you have them. We will walk through scope, timing, and budget — <strong>free estimates</strong>, clear communication, and workmanship you can be proud to show off.</p>
+      <div class="row">
+        <a href="/quote.html" class="btn btn-primary">Get a free quote</a>
+        <a href="#reviews" class="btn btn-ghost-light">Read homeowner reviews</a>
+      </div>
+    </div>
   </div>
 
-  <script>
-    function toggleSidebar() {
-      document.getElementById('sidebar').classList.toggle('-translate-x-full');
-      document.getElementById('sidebar-overlay').classList.toggle('hidden');
-    }
+  <footer>
+    <div class="footer-cols">
+      <div class="footer-col">
+        <h3>Company</h3>
+        <ul>
+          <li><a href="#top">Home</a></li>
+          <li><a href="#about">About</a></li>
+          <li><a href="#work">Our work</a></li>
+          <li><a href="#reviews">Reviews</a></li>
+          <li><a href="#work">Photo gallery</a></li>
+          <li><a href="#contact">Jobs &amp; blog</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3>Services</h3>
+        <ul>
+          <li><a href="#services">All services</a></li>
+          <li><a href="#quote">Get a quote</a></li>
+          <li>Total renovation · Kitchen · Bath</li>
+          <li>Painting · Interior · Deck/patio</li>
+          <li>GC · Flooring · Concrete</li>
+          <li>Masonry · Drywall · Repairs</li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3>Service area</h3>
+        <ul>
+          <li><a href="#contact">Hours &amp; location</a></li>
+          <li><a href="#quote">How to get a quote</a></li>
+          <li>Centralia, WA &amp; surrounding communities</li>
+        </ul>
+      </div>
+    </div>
+    <p class="fine-print">
+      Racketty Boom Construction · Centralia, WA. Project photos and logo on this page are bundled for fast loading. For scheduling, SMS, and phone options, continue on our main site.
+    </p>
+  </footer>
 
-    // Modern Chart defaults
-    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    Chart.defaults.color = '#64748b';
-    Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.9)';
-    Chart.defaults.plugins.tooltip.padding = 10;
-    Chart.defaults.plugins.tooltip.cornerRadius = 8;
-
-    let trendChartInstance = null;
-    let catChartInstance = null;
-    let vendorChartInstance = null;
-
-    function renderCharts(monthlyData, categoryData, vendorData) {
-      const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const incomes = new Array(12).fill(0);
-      const expenses = new Array(12).fill(0);
-      
-      monthlyData.forEach(item => { incomes[item.month - 1] = item.income; expenses[item.month - 1] = item.expense; });
-
-      // Trend Area Chart
-      const trendCtx = document.getElementById('trendChart').getContext('2d');
-      if (trendChartInstance) trendChartInstance.destroy();
-      
-      // Gradients
-      const incGrad = trendCtx.createLinearGradient(0, 0, 0, 300);
-      incGrad.addColorStop(0, 'rgba(16, 185, 129, 0.2)'); incGrad.addColorStop(1, 'rgba(16, 185, 129, 0)');
-      const expGrad = trendCtx.createLinearGradient(0, 0, 0, 300);
-      expGrad.addColorStop(0, 'rgba(244, 63, 94, 0.2)'); expGrad.addColorStop(1, 'rgba(244, 63, 94, 0)');
-
-      trendChartInstance = new Chart(trendCtx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            { label: 'Income', data: incomes, borderColor: '#10b981', backgroundColor: incGrad, fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHitRadius: 10 },
-            { label: 'Expenses', data: expenses, borderColor: '#f43f5e', backgroundColor: expGrad, fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0, pointHitRadius: 10 }
-          ]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: { legend: { position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true } } },
-          scales: { 
-            y: { beginAtZero: true, grid: { color: '#f1f5f9', drawBorder: false }, ticks: { callback: v => '$' + (v/1000) + 'k' } }, 
-            x: { grid: { display: false, drawBorder: false } } 
-          }
-        }
-      });
-
-      // Category Doughnut
-      const catCtx = document.getElementById('categoryChart').getContext('2d');
-      if (catChartInstance) catChartInstance.destroy();
-      catChartInstance = new Chart(catCtx, {
-        type: 'doughnut',
-        data: {
-          labels: categoryData.length ? categoryData.map(c => c.name) : ['No Data'],
-          datasets: [{
-            data: categoryData.length ? categoryData.map(c => c.total) : [1],
-            backgroundColor: categoryData.length ? ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'] : ['#e2e8f0'],
-            borderWidth: 0, hoverOffset: 4
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, usePointStyle: true, padding: 20 } } },
-          cutout: '75%'
-        }
-      });
-
-      // Vendor Bar Chart (Horizontal)
-      const vendCtx = document.getElementById('vendorChart').getContext('2d');
-      if (vendorChartInstance) vendorChartInstance.destroy();
-      vendorChartInstance = new Chart(vendCtx, {
-        type: 'bar',
-        data: {
-          labels: vendorData.map(v => v.name),
-          datasets: [{
-            label: 'Total Paid', data: vendorData.map(v => v.total),
-            backgroundColor: '#3b82f6', borderRadius: 4, barThickness: 12
-          }]
-        },
-        options: {
-          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: { 
-            x: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { callback: v => '$' + (v/1000) + 'k' } },
-            y: { grid: { display: false } }
-          }
-        }
-      });
-    }
-
-    async function loadAppSettings() {
-      try {
-        const res = await fetch('/api/settings/public');
-        const data = await res.json();
-        if (data.logo_url) {
-          document.getElementById('sidebar-logo-container').innerHTML = `<img src="${data.logo_url}" class="w-full h-full object-contain bg-white" />`;
-          document.getElementById('sidebar-logo-container').classList.remove('bg-gradient-to-br', 'from-blue-500', 'to-indigo-600', 'text-white', 'font-bold');
-        }
-        if (data.avatar_url) {
-          const avatarEl = document.getElementById('header-avatar-container');
-          if (avatarEl) avatarEl.innerHTML = `<img src="${data.avatar_url}" class="w-full h-full object-cover" />`;
-        }
-      } catch (e) {
-        console.error('Failed to load app settings', e);
-      }
-    }
-
-    async function loadStats() {
-      const filterVal = document.getElementById('time-filter').value;
-      let filterQuery = '';
-      
-      if (filterVal === 'all') filterQuery = '?filter=all';
-      else if (filterVal.startsWith('year-')) filterQuery = `?filter=year&value=${filterVal.split('-')[1]}`;
-      else if (filterVal === 'month-current') {
-        const now = new Date();
-        filterQuery = `?filter=month&value=${now.getFullYear()}-${now.getMonth()+1}`;
-      }
-
-      try {
-        const res = await fetch(`/api/stats${filterQuery}`);
-        const data = await res.json();
-        
-        document.getElementById('dash-income').textContent = '$' + data.summary.income.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        document.getElementById('dash-expense').textContent = '$' + data.summary.expense.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        
-        const balEl = document.getElementById('dash-balance');
-        balEl.textContent = (data.summary.balance < 0 ? '-$' : '$') + Math.abs(data.summary.balance).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        
-        document.getElementById('dash-margin').textContent = data.summary.margin.toFixed(1) + '% Margin';
-        
-        const taxEl = document.getElementById('dash-tax');
-        taxEl.textContent = (data.summary.tax_liability < 0 ? '-$' : '$') + Math.abs(data.summary.tax_liability).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        
-        renderCharts(data.monthly, data.categories, data.vendors || []);
-      } catch (err) { console.error('Stats Error:', err); }
-    }
-
-    let currentPage = 1;
-    let currentLimit = 10;
-
-    async function loadRecords(page) {
-      try {
-        const res = await fetch(`/api/transactions?page=${page}&limit=${currentLimit}`);
-        const data = await res.json();
-        const tbody = document.getElementById('records-tbody');
-        tbody.innerHTML = '';
-        
-        if (!data.transactions || data.transactions.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" class="py-10 text-center text-slate-400">No records found.</td></tr>';
-          return;
-        }
-
-        data.transactions.forEach(tx => {
-          const isIncome = tx.type === 'Income';
-          const amountColor = isIncome ? 'text-emerald-600' : 'text-slate-800';
-          
-          const tr = document.createElement('tr');
-          tr.className = 'hover:bg-slate-50 transition-colors group';
-          tr.innerHTML = `
-            <td class="py-3 px-4 lg:px-5 text-slate-500 text-xs font-medium">${new Date(tx.date).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}</td>
-            <td class="py-3 px-4 lg:px-5 font-bold text-slate-800 max-w-[150px] sm:max-w-[200px] truncate" title="${tx.vendor}">${tx.vendor}</td>
-            <td class="py-3 px-4 lg:px-5 text-slate-500 text-xs truncate max-w-[120px]"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wider">${tx.category || 'General'}</span></td>
-            <td class="py-3 px-4 lg:px-5 text-slate-500 text-xs truncate max-w-[160px]"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] font-bold tracking-wider">${tx.project || 'No Project'}</span></td>
-            <td class="py-3 px-4 lg:px-5 text-right font-black tabular-nums ${amountColor}">${isIncome?'+':''}$${Number(tx.amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-            <td class="py-3 px-4 lg:px-5 text-center">${tx.receipt_url ? `<button onclick="window.open('${tx.receipt_url}', '_blank')" class="text-blue-500 hover:text-blue-700 bg-blue-50 p-1 rounded transition-colors" title="View Receipt"><span class="material-icons-round text-[16px]">receipt_long</span></button>` : `<span class="text-slate-200">-</span>`}</td><td class="py-3 px-4 lg:px-5 text-center opacity-50 group-hover:opacity-100 transition-opacity">
-              <button onclick="window.location.href='/add-record.html?id=${tx.id}'" class="text-slate-400 hover:text-blue-600 p-1 mx-1 transition-colors" title="Edit"><span class="material-icons-round text-[16px]">edit</span></button>
-              <button onclick="deleteRecord(${tx.id})" class="text-slate-400 hover:text-rose-600 p-1 mx-1 transition-colors" title="Delete"><span class="material-icons-round text-[16px]">delete</span></button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
-
-        const pg = data.pagination;
-        document.getElementById('current-page').textContent = pg.page;
-        document.getElementById('total-pages').textContent = pg.totalPages || 1;
-        document.getElementById('btn-prev').disabled = pg.page <= 1;
-        document.getElementById('btn-next').disabled = pg.page >= pg.totalPages;
-        currentPage = pg.page;
-      } catch (err) {}
-    }
-
-    document.getElementById('btn-prev').addEventListener('click', () => { if (currentPage > 1) loadRecords(currentPage - 1); });
-    document.getElementById('btn-next').addEventListener('click', () => { loadRecords(currentPage + 1); });
-
-    async function deleteRecord(id) {
-      if (!confirm('Are you sure you want to delete this record?')) return;
-      try {
-        await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
-        loadRecords(currentPage);
-        loadStats();
-      } catch (err) {}
-    }
-
-    function exportReport() {
-      const filterVal = document.getElementById('time-filter').value;
-      let filterQuery = '';
-      if (filterVal === 'all') filterQuery = '?filter=all';
-      else if (filterVal.startsWith('year-')) filterQuery = `?filter=year&value=${filterVal.split('-')[1]}`;
-      else if (filterVal === 'month-current') {
-        const now = new Date();
-        filterQuery = `?filter=month&value=${now.getFullYear()}-${now.getMonth()+1}`;
-      }
-      window.location.href = `/api/export${filterQuery}`;
-    }
-
-    async function logout() {
-      try {
-        await fetch('/api/logout', { method: 'POST' });
-        window.location.href = '/login.html';
-      } catch (e) {
-        window.location.href = '/login.html';
-      }
-    }
-
-    loadAppSettings();
-    loadStats();
-    loadRecords(1);
-  </script>
   <script src="/js/app-shell.js"></script>
 </body>
 </html>

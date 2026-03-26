@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team users - Greg Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  </style>
+</head>
+<body class="bg-[#f1f5f9] text-slate-800 min-h-screen flex flex-col">
+
+  <header class="h-16 bg-white/80 backdrop-blur-md shadow-sm flex items-center justify-between px-4 lg:px-8 z-10 border-b border-slate-200/50 shrink-0">
+    <div class="flex items-center gap-3 min-w-0">
+      <a href="/dashboard.html" class="text-slate-500 hover:bg-slate-100 p-2 rounded-lg shrink-0" aria-label="Dashboard"><span class="material-icons-round">arrow_back</span></a>
+      <div class="min-w-0">
+        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide truncate shell-business-name">Greg Tracker</p>
+        <h1 class="text-xl font-bold text-slate-800 tracking-tight">Team users</h1>
+      </div>
+    </div>
+    <a href="/help.html?page=settings" class="inline-flex items-center justify-center p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg shrink-0" title="Help" aria-label="Help"><span class="material-icons-round">help_outline</span></a>
+  </header>
+
+  <main class="flex-1 overflow-y-auto p-4 lg:p-8 max-w-4xl mx-auto w-full" data-shell-footer>
+    <p id="session-line" class="text-sm text-slate-600 mb-4"></p>
+    <div id="forbidden" class="hidden bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-4 text-sm font-medium mb-6"></div>
+
+    <div id="admin-panel" class="hidden space-y-8">
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
+        <p class="font-bold mb-1">How sign-in works</p>
+        <p class="text-amber-800/90">With <strong>no</strong> team users, only the company PIN from Settings works. After you add at least one active user, everyone must pick their name on the login screen and use <strong>their</strong> personal code (stored hashed on the server).</p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-4 border-b border-slate-100 bg-slate-50/30">
+          <h2 class="text-sm font-bold text-slate-800">Add user</h2>
+          <p class="text-xs text-slate-500 mt-1">Admin only. Each user gets their own access code.</p>
+        </div>
+        <form id="add-form" class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input type="text" id="add-name" required placeholder="Display name" class="px-3 py-2 rounded-lg border border-slate-200 text-sm" />
+          <select id="add-role" class="px-3 py-2 rounded-lg border border-slate-200 text-sm">
+            <option value="Manager">Manager</option>
+            <option value="Admin">Admin</option>
+            <option value="Viewer">Viewer (read-only)</option>
+          </select>
+          <input type="password" id="add-pin" required placeholder="Personal access code" class="px-3 py-2 rounded-lg border border-slate-200 text-sm sm:col-span-2" />
+          <button type="submit" class="sm:col-span-2 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-bold hover:bg-slate-800">Create user</button>
+        </form>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-4 border-b border-slate-100 bg-slate-50/30">
+          <h2 class="text-sm font-bold text-slate-800">Existing users</h2>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Name</th>
+                <th class="py-3 px-4">Role</th>
+                <th class="py-3 px-4">Active</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+        <p id="users-empty" class="hidden p-6 text-center text-slate-400 text-sm">No team users yet.</p>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/app-shell.js"></script>
+  <script>
+    async function loadMe() {
+      var res = await fetch('/api/session/me', { credentials: 'same-origin' });
+      if (!res.ok) return null;
+      return res.json();
+    }
+
+    async function loadUsers() {
+      var res = await fetch('/api/users', { credentials: 'same-origin' });
+      return res;
+    }
+
+    function renderRows(users) {
+      var body = document.getElementById('users-body');
+      var empty = document.getElementById('users-empty');
+      if (!users.length) {
+        body.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+      body.innerHTML = users.map(function (u) {
+        var active = u.is_active === 1 || u.is_active === true;
+        return '<tr class="hover:bg-slate-50">' +
+          '<td class="py-3 px-4 font-medium text-slate-800">' + (u.display_name || '') + '</td>' +
+          '<td class="py-3 px-4 text-slate-600">' + u.role + '</td>' +
+          '<td class="py-3 px-4">' + (active ? '<span class="text-emerald-600 font-semibold">Yes</span>' : '<span class="text-slate-400">No</span>') + '</td>' +
+          '<td class="py-3 px-4 text-right whitespace-nowrap space-x-1">' +
+          '<button type="button" data-act="pin" data-id="' + u.id + '" class="text-xs font-bold text-blue-600 hover:underline">New PIN</button>' +
+          '<button type="button" data-act="toggle" data-id="' + u.id + '" data-active="' + (active ? '1' : '0') + '" class="text-xs font-bold text-slate-600 hover:underline">' + (active ? 'Deactivate' : 'Activate') + '</button>' +
+          '<button type="button" data-act="del" data-id="' + u.id + '" class="text-xs font-bold text-rose-600 hover:underline">Delete</button>' +
+          '</td></tr>';
+      }).join('');
+    }
+
+    document.getElementById('users-body').addEventListener('click', async function (e) {
+      var btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      var id = Number(btn.getAttribute('data-id'));
+      var act = btn.getAttribute('data-act');
+      if (act === 'pin') {
+        var pin = window.prompt('New personal access code for this user:');
+        if (!pin) return;
+        var res = await fetch('/api/users/' + id, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ user_pin: pin })
+        });
+        if (!res.ok) {
+          var j = await res.json().catch(function () { return {}; });
+          alert(j.error || 'Failed to update PIN');
+          return;
+        }
+        init();
+        return;
+      }
+      if (act === 'toggle') {
+        var was = btn.getAttribute('data-active') === '1';
+        if (!window.confirm(was ? 'Deactivate this user? They will not be able to sign in.' : 'Activate this user?')) return;
+        var res2 = await fetch('/api/users/' + id, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ is_active: !was })
+        });
+        if (!res2.ok) {
+          var j2 = await res2.json().catch(function () { return {}; });
+          alert(j2.error || 'Failed to update');
+          return;
+        }
+        init();
+        return;
+      }
+      if (act === 'del') {
+        if (!window.confirm('Permanently delete this user?')) return;
+        var res3 = await fetch('/api/users/' + id, { method: 'DELETE', credentials: 'same-origin' });
+        if (!res3.ok) {
+          var j3 = await res3.json().catch(function () { return {}; });
+          alert(j3.error || 'Failed to delete');
+          return;
+        }
+        init();
+      }
+    });
+
+    document.getElementById('add-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var name = document.getElementById('add-name').value.trim();
+      var role = document.getElementById('add-role').value;
+      var pin = document.getElementById('add-pin').value;
+      var optBefore = { multiUser: false };
+      try {
+        var or = await fetch('/api/auth/options', { credentials: 'same-origin' });
+        if (or.ok) optBefore = await or.json();
+      } catch (e0) {}
+      var res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ display_name: name, role: role, user_pin: pin })
+      });
+      if (!res.ok) {
+        var j = await res.json().catch(function () { return {}; });
+        alert(j.error || 'Failed to create user');
+        return;
+      }
+      document.getElementById('add-form').reset();
+      var optAfter = { multiUser: false };
+      try {
+        var or2 = await fetch('/api/auth/options', { credentials: 'same-origin' });
+        if (or2.ok) optAfter = await or2.json();
+      } catch (e1) {}
+      if (!optBefore.multiUser && optAfter.multiUser) {
+        alert('The first team user was created. From now on you must sign in with a team member and personal code. Please log in again.');
+        window.location.href = '/login.html';
+        return;
+      }
+      init();
+    });
+
+    async function init() {
+      var me = await loadMe();
+      var sessionLine = document.getElementById('session-line');
+      var forbidden = document.getElementById('forbidden');
+      var panel = document.getElementById('admin-panel');
+      if (me && me.mode === 'user') {
+        sessionLine.textContent = 'Signed in as ' + me.display_name + ' (' + me.role + ').';
+      } else if (me) {
+        sessionLine.textContent = 'Signed in with company access (legacy admin session).';
+      }
+
+      var ures = await loadUsers();
+      if (ures.status === 401) {
+        window.location.href = '/login.html';
+        return;
+      }
+      if (ures.status === 403) {
+        forbidden.textContent = 'Only an Admin can manage team users.';
+        forbidden.classList.remove('hidden');
+        panel.classList.add('hidden');
+        return;
+      }
+      if (!ures.ok) {
+        forbidden.textContent = 'Could not load users.';
+        forbidden.classList.remove('hidden');
+        panel.classList.add('hidden');
+        return;
+      }
+      forbidden.classList.add('hidden');
+      panel.classList.remove('hidden');
+      var users = await ures.json();
+      renderRows(users);
+    }
+
+    init();
+  </script>
+</body>
+</html>

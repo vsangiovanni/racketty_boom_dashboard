@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free Estimate — Racketty Boom</title>
+  <meta name="description" content="Request a free estimate from Racketty Boom Construction. Tell us about your project and we will follow up with clear next steps.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #0c1222;
+      --muted: #5c6578;
+      --cream: #f6f3ee;
+      --paper: #fffffe;
+      --accent: #c45c26;
+      --accent-dark: #9a4218;
+      --forest: #1e3a2f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--cream);
+      line-height: 1.6;
+    }
+    .font-display { font-family: 'Fraunces', Georgia, serif; }
+    .nav-blur {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      background: rgba(246, 243, 238, 0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(12, 18, 34, 0.06);
+    }
+    .nav-inner {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      text-decoration: none;
+      color: inherit;
+    }
+    .brand img { height: 44px; width: auto; display: block; }
+    .brand span { font-weight: 700; font-size: 0.92rem; letter-spacing: -0.02em; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1.1rem;
+      border-radius: 0.65rem;
+      font-weight: 700;
+      font-size: 0.82rem;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(196, 92, 38, 0.35);
+    }
+    .btn-primary:hover { box-shadow: 0 6px 28px rgba(196, 92, 38, 0.45); }
+    .btn-ghost-dark {
+      background: transparent;
+      color: var(--forest);
+      border: 1.5px solid rgba(30, 58, 47, 0.28);
+    }
+    .btn-ghost-dark:hover { background: rgba(30, 58, 47, 0.06); }
+    .page {
+      padding: 7.5rem 1.25rem 3rem;
+      max-width: 920px;
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--paper);
+      border-radius: 1.1rem;
+      padding: 1.6rem 1.35rem;
+      border: 1px solid rgba(12, 18, 34, 0.07);
+      box-shadow: 0 10px 30px rgba(12, 18, 34, 0.04);
+    }
+    h1 {
+      margin: 0 0 0.35rem;
+      font-size: clamp(1.55rem, 3.2vw, 2.1rem);
+      font-weight: 700;
+      color: var(--forest);
+    }
+    .sub {
+      margin: 0 0 1.4rem;
+      color: var(--muted);
+      max-width: 70ch;
+      font-size: 0.98rem;
+    }
+    form {
+      display: grid;
+      gap: 0.95rem;
+    }
+    label {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--forest);
+      margin-bottom: 0.25rem;
+      display: inline-block;
+    }
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.95rem;
+    }
+    @media (max-width: 720px) { .field-grid { grid-template-columns: 1fr; } }
+    input, select, textarea {
+      width: 100%;
+      padding: 0.8rem 0.9rem;
+      border-radius: 0.8rem;
+      border: 1px solid rgba(12, 18, 34, 0.12);
+      background: #fff;
+      font-family: inherit;
+      color: var(--ink);
+      outline: none;
+    }
+    textarea { min-height: 120px; resize: vertical; }
+    .help {
+      margin-top: -0.35rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      align-items: center;
+      justify-content: flex-start;
+      margin-top: 0.35rem;
+    }
+    #quote-status {
+      font-weight: 700;
+      padding: 0.8rem 0.95rem;
+      border-radius: 0.8rem;
+      border: 1px solid rgba(12, 18, 34, 0.1);
+      background: rgba(30, 58, 47, 0.05);
+      color: var(--forest);
+      display: none;
+    }
+    #quote-status.error {
+      background: rgba(196, 92, 38, 0.08);
+      color: var(--accent-dark);
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav-blur" aria-label="Primary">
+    <div class="nav-inner">
+      <a class="brand" href="/" aria-label="Go to home">
+        <img src="/assets/landing/logo.webp" width="348" height="348" alt="Racketty Boom logo">
+        <span>Racketty Boom</span>
+      </a>
+      <div style="display:flex; gap:0.6rem; align-items:center;">
+        <a class="btn btn-ghost-dark" href="/#work">See our work</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="page">
+    <section class="card">
+      <h1 class="font-display">Request a free estimate</h1>
+      <p class="sub">Tell us what you are planning. We will review your details and follow up with clear next steps (and no surprises).</p>
+
+      <form id="quote-form">
+        <div>
+          <label for="customer_name">Full name *</label>
+          <input id="customer_name" name="customer_name" type="text" required autocomplete="name">
+        </div>
+
+        <div class="field-grid">
+          <div>
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email">
+          </div>
+          <div>
+            <label for="phone">Phone</label>
+            <input id="phone" name="phone" type="tel" autocomplete="tel">
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <div>
+            <label for="service_type">Service / project type</label>
+            <select id="service_type" name="service_type">
+              <option value="">Choose…</option>
+              <option>Total home renovation</option>
+              <option>Kitchen renovation</option>
+              <option>Bathroom renovation</option>
+              <option>Painting &amp; staining</option>
+              <option>Interior remodeling</option>
+              <option>Deck &amp; patio installation</option>
+              <option>General contractor</option>
+              <option>Flooring</option>
+              <option>Concrete</option>
+              <option>Masonry</option>
+              <option>SheetRock / drywall</option>
+              <option>Other repair services</option>
+            </select>
+          </div>
+          <div>
+            <label for="preferred_contact">Preferred contact</label>
+            <select id="preferred_contact" name="preferred_contact">
+              <option value="">No preference</option>
+              <option>text</option>
+              <option>call</option>
+              <option>email</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="project_address">Project address (optional)</label>
+          <input id="project_address" name="project_address" type="text" autocomplete="street-address">
+        </div>
+
+        <div>
+          <label for="estimated_budget">Estimated budget (optional)</label>
+          <input id="estimated_budget" name="estimated_budget" type="text" placeholder="$10,000 — $25,000">
+        </div>
+
+        <div>
+          <label for="message">Project details *</label>
+          <textarea id="message" name="message" required placeholder="What do you want to improve or build? Timeline, scope, and anything we should know."></textarea>
+          <div class="help">Tip: If you have photos, describe what you are showing (we can request them when we follow up).</div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" type="submit">Send request</button>
+          <a class="btn btn-ghost-dark" href="/#contact">View hours &amp; area</a>
+        </div>
+
+        <div id="quote-status" role="status" aria-live="polite"></div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      var form = document.getElementById('quote-form');
+      var statusEl = document.getElementById('quote-status');
+
+      function setStatus(text, isError) {
+        statusEl.textContent = text;
+        statusEl.classList.toggle('error', !!isError);
+        statusEl.style.display = 'block';
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        setStatus('', false);
+
+        var payload = {
+          customer_name: form.customer_name.value,
+          email: form.email.value,
+          phone: form.phone.value,
+          service_type: form.service_type.value,
+          project_address: form.project_address.value,
+          preferred_contact: form.preferred_contact.value,
+          estimated_budget: form.estimated_budget.value,
+          message: form.message.value
+        };
+
+        fetch('/api/quote-requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(payload)
+        })
+          .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+          .then(function (r) {
+            if (!r.ok) {
+              var msg = r.data && r.data.error ? r.data.error : 'Failed to submit.';
+              setStatus(msg, true);
+              return;
+            }
+            setStatus('Thanks! Your request was received. We will follow up shortly with next steps.', false);
+            form.reset();
+          })
+          .catch(function () {
+            setStatus('Network error. Please try again.', true);
+          });
+      });
+    })();
+  </script>
+</body>
+</html>
+

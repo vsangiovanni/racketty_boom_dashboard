@@ -127,6 +127,40 @@
         </div>
       </section>
 
+      <!-- Budget & Commitments -->
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-100 bg-slate-50/30">
+            <h3 class="text-sm font-bold text-slate-800">Budget vs Actual</h3>
+            <p id="pd-budget-status" class="text-xs text-slate-500 mt-1">Loading budget...</p>
+          </div>
+          <div class="p-4 space-y-3 text-sm">
+            <div class="grid grid-cols-2 gap-3">
+              <div><p class="text-xs text-slate-500">Total Budget</p><p id="pd-budget-total" class="font-bold text-slate-800">$0.00</p></div>
+              <div><p class="text-xs text-slate-500">Actual Expense</p><p id="pd-budget-actual" class="font-bold text-rose-600">$0.00</p></div>
+              <div><p class="text-xs text-slate-500">Committed Cost</p><p id="pd-budget-committed" class="font-bold text-amber-600">$0.00</p></div>
+              <div><p class="text-xs text-slate-500">Projected Final Cost</p><p id="pd-budget-projected" class="font-bold text-slate-800">$0.00</p></div>
+            </div>
+            <form id="pd-budget-form" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+              <input id="pd-input-total-budget" type="number" step="0.01" min="0" placeholder="Total Budget" class="px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+              <input id="pd-input-committed-cost" type="number" step="0.01" min="0" placeholder="Committed Cost" class="px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+              <button type="submit" class="sm:col-span-2 inline-flex justify-center px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">Save Budget</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-100 bg-slate-50/30">
+            <h3 class="text-sm font-bold text-slate-800">Ledger Activity (auto)</h3>
+            <p class="text-xs text-slate-500 mt-1">Derived from Income and Expense transactions for this project. This is not physical job-site progress.</p>
+          </div>
+          <div class="p-4 space-y-3 text-sm">
+            <div id="pd-ledger-signals" class="text-slate-600">Loading...</div>
+            <ul id="pd-ledger-bullets" class="list-disc pl-5 space-y-1 text-slate-600 text-sm"></ul>
+          </div>
+        </div>
+      </section>
+
       <!-- Recent Transactions -->
       <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="p-4 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between gap-3">
@@ -180,6 +214,80 @@
       return (p / t) * 100;
     }
 
+    async function loadBudgetSummary() {
+      const res = await fetch('/api/projects/' + projectId + '/budget-summary');
+      if (!res.ok) throw new Error('Failed to load budget summary');
+      const payload = await res.json();
+      const budget = payload.budget || {};
+      document.getElementById('pd-budget-total').textContent = fmtMoney(budget.total_budget);
+      document.getElementById('pd-budget-actual').textContent = fmtMoney(budget.actual_expense);
+      document.getElementById('pd-budget-committed').textContent = fmtMoney(budget.committed_cost);
+      document.getElementById('pd-budget-projected').textContent = fmtMoney(budget.projected_final_cost);
+      document.getElementById('pd-budget-status').textContent = `Status: ${budget.status || 'OK'} • Consumed: ${(Number(budget.consumed_percent || 0)).toFixed(2)}%`;
+      document.getElementById('pd-input-total-budget').value = Number(budget.total_budget || 0);
+      document.getElementById('pd-input-committed-cost').value = Number(budget.committed_cost || 0);
+    }
+
+    async function saveBudget(e) {
+      e.preventDefault();
+      const body = {
+        total_budget: Number(document.getElementById('pd-input-total-budget').value || 0),
+        committed_cost: Number(document.getElementById('pd-input-committed-cost').value || 0),
+        categories: []
+      };
+      const res = await fetch('/api/projects/' + projectId + '/budget', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error('Failed to save budget');
+      await loadBudgetSummary();
+      await loadLedgerSignals();
+    }
+
+    async function loadLedgerSignals() {
+      const res = await fetch('/api/projects/' + projectId + '/ledger-signals', { credentials: 'same-origin' });
+      if (!res.ok) {
+        let detail = res.status + ' ' + res.statusText;
+        try {
+          const errBody = await res.json();
+          if (errBody && errBody.error) detail += ': ' + errBody.error;
+        } catch (_e) {}
+        throw new Error('Failed to load ledger signals (' + detail + '). If you just updated the app, do a hard refresh or unregister the service worker — a stale 404 from the old cache is a common cause.');
+      }
+      const s = await res.json();
+      const box = document.getElementById('pd-ledger-signals');
+      const bullets = document.getElementById('pd-ledger-bullets');
+
+      if (!s.transaction_count) {
+        box.textContent = 'No ledger activity for this project yet.';
+        bullets.innerHTML = '<li>Add Expense and Income lines with this project selected.</li>';
+        return;
+      }
+
+      const first = s.first_date ? new Date(s.first_date).toLocaleDateString('en-US') : '';
+      const last = s.last_date ? new Date(s.last_date).toLocaleDateString('en-US') : '';
+      box.innerHTML = `
+        <p><span class="font-semibold text-slate-800">${s.transaction_count}</span> ledger lines
+        (<span class="text-rose-600 font-medium">${s.expense_count}</span> expenses,
+        <span class="text-emerald-600 font-medium">${s.income_count}</span> income)</p>
+        <p class="text-xs text-slate-500 mt-1">Activity window: ${first} → ${last} (${s.activity_span_days} day span)</p>
+      `;
+
+      const lines = [];
+      lines.push(`Average weekly expense (by calendar span): ${fmtMoney(s.avg_weekly_expense)}`);
+      lines.push(`Average weekly income (by calendar span): ${fmtMoney(s.avg_weekly_income)}`);
+      if (s.income_to_expense_ratio != null) {
+        lines.push(`Income-to-expense ratio: ${s.income_to_expense_ratio}× (higher usually means more billed than spent)`);
+      } else if (s.income_count > 0 && s.expense_count === 0) {
+        lines.push('Only income recorded so far in this window.');
+      }
+      if (s.budget_consumed_percent != null) {
+        lines.push(`Share of total project budget consumed by expenses: ${Number(s.budget_consumed_percent).toFixed(2)}%`);
+      }
+      bullets.innerHTML = lines.map((t) => '<li>' + t + '</li>').join('');
+    }
+
     function renderRuleBasedInsights(metrics, cats, vendors, txs) {
       const summaryEl = document.getElementById('pd-insights-summary');
       const list = document.getElementById('pd-insights-list');
@@ -200,8 +308,8 @@
       }
 
       if (totalIncome === 0 && totalExpenses > 0) {
-        insights.push('Expenses are recorded without income. Consider adding invoiced income entries to evaluate project profitability accurately.');
-        recommendations.push('Record pending invoices for this project and map them to expected payment dates.');
+        insights.push('Expenses are recorded without income. Add Income transactions in the ledger for this project to evaluate profitability.');
+        recommendations.push('Record expected client payments as Income in Manual Entry or import them so cash position matches reality.');
       } else if (margin < 10 && totalIncome > 0) {
         insights.push(`Margin is currently ${margin.toFixed(2)}%. Review high-cost vendors and categories to recover at least a 10-15% margin.`);
         recommendations.push('Set a margin target and review the highest expense lines weekly until margin improves.');
@@ -246,8 +354,8 @@
       const incomeTxCount = (txs || []).filter(t => t.type === 'Income').length;
       const expenseTxCount = (txs || []).filter(t => t.type === 'Expense').length;
       if (expenseTxCount > incomeTxCount * 2 && txCount >= 5) {
-        insights.push('Expense activity is significantly higher than income activity. Review billing cadence and collections timing for this project.');
-        recommendations.push('Tighten billing cadence: issue invoices in smaller milestones to improve cash flow.');
+        insights.push('Expense activity is significantly higher than income activity in the ledger. Review whether income entries are missing or delayed.');
+        recommendations.push('Post milestone income entries in the ledger as you bill the client to keep the project view balanced.');
       }
 
       if (netProfit < 0) {
@@ -384,10 +492,14 @@
             }).join('')
           : '<tr><td colspan="6" class="p-4 text-center text-slate-400">No transactions found.</td></tr>';
 
+        await Promise.all([loadBudgetSummary(), loadLedgerSignals()]);
+
       } catch (err) {
         alert(err.message || 'Failed to load project details');
       }
     }
+
+    document.getElementById('pd-budget-form').addEventListener('submit', (e) => saveBudget(e).catch((err) => alert(err.message)));
 
     if (projectId) loadProject();
   </script>

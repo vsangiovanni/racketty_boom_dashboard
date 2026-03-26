@@ -4,8 +4,10 @@ The frontend is a multi-page static UI served by the Express backend.
 
 ## Main Screens
 
+- `index.html` -> public marketing landing; imagery in `assets/landing/` (bundled) and lead-capture CTAs.
+- `quote.html` -> public free estimate form (submits to the internal quote requests inbox).
+- `dashboard.html` -> authenticated executive dashboard (KPIs, charts, recent ledger).
 - `login.html` -> access screen.
-- `index.html` -> dashboard with KPIs, charts, and recent ledger.
 - `add-record.html` -> manual transaction create/edit.
 - `upload.html` -> receipt upload and AI-assisted extraction review.
 - `import.html` -> Excel preview/validation/commit flow.
@@ -18,6 +20,7 @@ The frontend is a multi-page static UI served by the Express backend.
 
 - UI text and in-app documentation standardized in English.
 - Project row click in `projects.html` opens `project-details.html?id=...`.
+- Dashboard now includes a "Quote Requests" lead inbox for managers/admins.
 - Dashboard ledger now shows each transaction's project.
 - Add/edit and upload flows include `project_id` support.
 - Project details now include an AI-powered "Insights & Recommendations" card (with local fallback when AI is unavailable).

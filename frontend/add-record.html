@@ -408,7 +408,7 @@
           body: JSON.stringify(payload)
         });
         if (!response.ok) throw new Error((await response.json()).error);
-        window.location.href = '/';
+        window.location.href = '/dashboard.html';
       } catch (err) {
         alert('Error: ' + err.message);
         btn.disabled = false;

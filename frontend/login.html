@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Racketty Boom</title>
+  <title>Secure Access - Racketty Boom</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <style>
@@ -17,7 +17,7 @@
     <div class="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
       <div class="min-w-0 flex-1 text-center">
         <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide truncate shell-business-name">Greg Tracker</p>
-        <p class="text-sm font-bold text-slate-100 tracking-tight">Access</p>
+        <p class="text-sm font-bold text-slate-100 tracking-tight">Secure Access</p>
       </div>
       <a href="/help.html?page=login" class="inline-flex items-center justify-center p-2 text-slate-400 hover:text-rose-300 hover:bg-slate-800 rounded-lg shrink-0" title="Help - User Manual" aria-label="Help"><span class="material-icons-round">help_outline</span></a>
     </div>
@@ -31,23 +31,33 @@
   <div class="glass-card w-full max-w-sm p-8 rounded-3xl shadow-2xl relative z-10 border border-white/20">
     <div class="text-center mb-8">
       <div id="login-logo-container" class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-black text-2xl shadow-lg mx-auto mb-4 overflow-hidden">RB</div>
-      <p class="text-sm font-semibold text-slate-500 uppercase tracking-widest">Enter your PIN</p>
+      <p id="login-headline" class="text-sm font-semibold text-slate-500 uppercase tracking-widest">Enter your access code</p>
+      <p id="login-subline" class="text-xs text-slate-400 mt-1">Use your company secure code to continue</p>
     </div>
 
     <form id="login-form" class="space-y-6" onsubmit="event.preventDefault(); submitLogin();">
+      <div id="login-team-fields" class="hidden space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Team member</label>
+          <select id="login-user-id" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm font-medium">
+            <option value="">Select your name</option>
+          </select>
+        </div>
+      </div>
       <div>
-        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Access PIN</label>
+        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-2"><span id="pin-label">Access Code</span></label>
         <div class="relative">
           <span class="material-icons-round absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">lock</span>
-          <input type="password" id="pin" inputmode="numeric" required placeholder="Enter 4-digit PIN" class="w-full bg-white border border-slate-200 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 font-black tracking-widest text-lg transition-all" />
+          <input type="password" id="pin" inputmode="numeric" required placeholder="Enter your access code" class="w-full bg-white border border-slate-200 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 font-black tracking-widest text-lg transition-all" />
         </div>
-        <p id="error-msg" class="text-rose-500 text-xs font-bold mt-2 hidden text-center">Invalid PIN. Please try again.</p>
+        <p id="error-msg" class="text-rose-500 text-xs font-bold mt-2 hidden text-center">Invalid access code. Please try again.</p>
       </div>
       
-      <button type="submit" id="btn-login" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-md">
-        <span>Unlock Dashboard</span>
+      <button type="submit" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-md">
+        <span>Enter Workspace</span>
         <span class="material-icons-round text-[18px]">arrow_forward</span>
       </button>
+      <p class="text-center mt-5"><a href="/" class="text-xs font-semibold text-slate-500 hover:text-slate-300 transition-colors">Racketty Boom home</a></p>
     </form>
   </div>
   </div>
@@ -60,7 +70,7 @@
         const res = await fetch('/api/settings/public');
         const data = await res.json();
         if (data.business_name) {
-          document.title = 'Access - ' + data.business_name;
+          document.title = 'Secure Access - ' + data.business_name;
         }
         if (data.logo_url) {
           const container = document.getElementById('login-logo-container');
@@ -71,25 +81,68 @@
     }
     loadSettings();
 
+    var loginMultiUser = false;
+
+    async function loadAuthOptions() {
+      try {
+        const res = await fetch('/api/auth/options');
+        if (!res.ok) return;
+        const data = await res.json();
+        loginMultiUser = !!data.multiUser;
+        var teamEl = document.getElementById('login-team-fields');
+        var sel = document.getElementById('login-user-id');
+        if (loginMultiUser && data.users && data.users.length) {
+          teamEl.classList.remove('hidden');
+          document.getElementById('login-headline').textContent = 'Sign in as team member';
+          document.getElementById('login-subline').textContent = 'Choose your name and enter your personal access code.';
+          document.getElementById('pin-label').textContent = 'Your access code';
+          sel.innerHTML = '<option value="">Select your name</option>' +
+            data.users.map(function (u) {
+              return '<option value="' + u.id + '">' + (u.display_name || 'User') + ' (' + u.role + ')</option>';
+            }).join('');
+        } else {
+          teamEl.classList.add('hidden');
+        }
+      } catch (e) {}
+    }
+    loadAuthOptions();
+
     async function submitLogin() {
-      const pin = document.getElementById('pin').value;
-      const btn = document.getElementById('btn-login');
-      const err = document.getElementById('error-msg');
-      
+      var pin = document.getElementById('pin').value;
+      var btn = document.getElementById('btn-login');
+      var err = document.getElementById('error-msg');
+      var body = { pin: pin };
+
+      if (loginMultiUser) {
+        var uid = document.getElementById('login-user-id').value;
+        if (!uid) {
+          err.textContent = 'Select your name.';
+          err.classList.remove('hidden');
+          return;
+        }
+        body.user_id = Number(uid);
+      }
+
       err.classList.add('hidden');
       btn.disabled = true;
       btn.innerHTML = '<span class="material-icons-round animate-spin">refresh</span>';
 
       try {
-        const res = await fetch('/api/auth', {
+        var res = await fetch('/api/auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pin })
+          body: JSON.stringify(body)
         });
-        
+
         if (res.ok) {
-          window.location.href = '/';
+          window.location.href = '/dashboard.html';
         } else {
+          var msg = 'Invalid access code. Please try again.';
+          try {
+            var j = await res.json();
+            if (j && j.error) msg = j.error;
+          } catch (e2) {}
+          err.textContent = msg;
           err.classList.remove('hidden');
           document.getElementById('pin').value = '';
           document.getElementById('pin').focus();
@@ -99,7 +152,7 @@
         err.classList.remove('hidden');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<span>Unlock Dashboard</span><span class="material-icons-round text-[18px]">arrow_forward</span>';
+        btn.innerHTML = '<span>Enter Workspace</span><span class="material-icons-round text-[18px]">arrow_forward</span>';
       }
     }
   </script>

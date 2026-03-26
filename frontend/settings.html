@@ -19,7 +19,7 @@
     
     <header class="h-16 bg-white/80 backdrop-blur-md shadow-sm flex items-center justify-between px-4 lg:px-8 z-10 flex-shrink-0 border-b border-slate-200/50">
       <div class="flex items-center gap-3 min-w-0">
-        <a href="/" class="text-slate-500 hover:bg-slate-100 p-2 rounded-lg transition-colors shrink-0" aria-label="Inicio"><span class="material-icons-round">arrow_back</span></a>
+        <a href="/dashboard.html" class="text-slate-500 hover:bg-slate-100 p-2 rounded-lg transition-colors shrink-0" aria-label="Dashboard"><span class="material-icons-round">arrow_back</span></a>
         <div class="flex flex-col min-w-0">
           <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide truncate shell-business-name">Greg Tracker</span>
           <h1 class="text-xl font-bold text-slate-800 tracking-tight leading-tight">Settings</h1>
@@ -31,10 +31,36 @@
     <main class="flex-1 overflow-y-auto p-4 lg:p-8 scrollbar-hide flex flex-col" data-shell-footer>
       
       <div class="max-w-2xl mx-auto w-full flex-1">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+        <div id="settings-readonly-panel" class="hidden space-y-4">
+          <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-4 text-sm">
+            <p class="font-bold mb-1">View only</p>
+            <p>Only <strong>Administrators</strong> can change company settings, the master PIN, and branding. Ask an Admin if something needs updating.</p>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden p-6">
+            <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wide mb-3">Public branding (read-only)</h2>
+            <p class="text-lg font-bold text-slate-800 mb-4" id="ro-business-name">—</p>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <p class="text-xs font-bold text-slate-500 mb-2">Logo</p>
+                <div class="w-20 h-20 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden" id="ro-logo-container">
+                  <span class="material-icons-round text-slate-300">business</span>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs font-bold text-slate-500 mb-2">Header avatar</p>
+                <div class="w-20 h-20 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden" id="ro-avatar-container">
+                  <span class="material-icons-round text-slate-300">person</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="settings-admin-panel" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
           <div class="p-6 border-b border-slate-100 bg-slate-50/30">
             <h2 class="text-lg font-bold text-slate-800 tracking-wide">Company & Security</h2>
             <p class="text-xs text-slate-500 mt-1">Update your business details, PIN, and branding.</p>
+            <p class="text-xs text-slate-600 mt-3"><a href="/users.html" class="text-blue-600 font-bold hover:underline">Team users</a> — add people with their own access codes and roles (Admin only).</p>
           </div>
           
           <form id="settings-form" class="p-6 space-y-6" onsubmit="event.preventDefault(); saveSettings();">
@@ -79,7 +105,7 @@
 
             <div class="pt-6 border-t border-slate-100 flex items-center justify-end gap-3">
               <p id="status-msg" class="text-xs font-bold mr-auto hidden"></p>
-              <button type="button" onclick="window.location.href='/'" class="px-5 py-2.5 rounded-lg font-bold text-sm text-slate-600 hover:bg-slate-100 transition-colors">Cancel</button>
+              <button type="button" onclick="window.location.href='/dashboard.html'" class="px-5 py-2.5 rounded-lg font-bold text-sm text-slate-600 hover:bg-slate-100 transition-colors">Cancel</button>
               <button type="submit" id="btn-save" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-bold text-sm shadow-sm hover:bg-blue-700 transition-colors flex items-center gap-2">
                 <span class="material-icons-round text-[18px]">save</span> Save Settings
               </button>
@@ -95,9 +121,10 @@
   <script>
     async function loadSettings() {
       try {
-        const res = await fetch('/api/settings');
+        const res = await fetch('/api/settings', { credentials: 'same-origin' });
+        if (!res.ok) return;
         const data = await res.json();
-        
+
         document.getElementById('business_name').value = data.business_name || '';
         document.getElementById('app_pin').value = data.app_pin || '';
 
@@ -109,6 +136,36 @@
         }
       } catch (e) {
         console.error('Failed to load settings', e);
+      }
+    }
+
+    async function loadSettingsPublic() {
+      try {
+        const res = await fetch('/api/settings/public', { credentials: 'same-origin' });
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('ro-business-name').textContent = data.business_name || '—';
+        if (data.logo_url) {
+          document.getElementById('ro-logo-container').innerHTML = `<img src="${data.logo_url}" class="w-full h-full object-contain" alt="" />`;
+        }
+        if (data.avatar_url) {
+          document.getElementById('ro-avatar-container').innerHTML = `<img src="${data.avatar_url}" class="w-full h-full object-cover" alt="" />`;
+        }
+      } catch (e) {
+        console.error('Failed to load public settings', e);
+      }
+    }
+
+    async function initSettingsPage() {
+      const meRes = await fetch('/api/session/me', { credentials: 'same-origin' });
+      const me = meRes.ok ? await meRes.json() : {};
+      const isAdmin = me.role === 'Admin';
+      document.getElementById('settings-admin-panel').classList.toggle('hidden', !isAdmin);
+      document.getElementById('settings-readonly-panel').classList.toggle('hidden', isAdmin);
+      if (isAdmin) {
+        await loadSettings();
+      } else {
+        await loadSettingsPublic();
       }
     }
 
@@ -145,7 +202,8 @@
 
         const res = await fetch('/api/settings', {
           method: 'POST',
-          body: formData
+          body: formData,
+          credentials: 'same-origin'
         });
 
         if (res.ok) {
@@ -156,14 +214,20 @@
           await fetch('/api/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
             body: JSON.stringify({ pin: document.getElementById('app_pin').value })
           });
-          setTimeout(() => { window.location.href = '/'; }, 1500);
+          setTimeout(() => { window.location.href = '/dashboard.html'; }, 1500);
         } else {
-          throw new Error('Failed to save');
+          let detail = 'Error saving settings.';
+          try {
+            const j = await res.json();
+            if (j && j.error) detail = j.error;
+          } catch (e2) {}
+          throw new Error(detail);
         }
       } catch (e) {
-        msg.textContent = 'Error saving settings.';
+        msg.textContent = e.message || 'Error saving settings.';
         msg.className = 'text-xs font-bold mr-auto text-rose-500';
         msg.classList.remove('hidden');
       } finally {
@@ -172,7 +236,7 @@
       }
     }
 
-    loadSettings();
+    initSettingsPage();
   </script>
   <script src="/js/app-shell.js"></script>
 </body>

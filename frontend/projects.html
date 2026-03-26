@@ -29,7 +29,7 @@
     <div class="p-4 flex-1 overflow-y-auto">
       <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 mt-2 px-2">Financials</div>
       <nav class="space-y-1">
-        <a href="/" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+        <a href="/dashboard.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
           <span class="material-icons-round text-[20px]">insights</span> Dashboard
         </a>
         <a href="/add-record.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
@@ -54,7 +54,7 @@
         <a href="/help.html?page=projects" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200 mt-4 border-t border-slate-800 pt-4">
           <span class="material-icons-round text-[20px]">help_outline</span> Help
         </a>
-        <a href="/settings.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200 mt-2">
+        <a href="/settings.html" id="nav-settings" class="hidden flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200 mt-2">
           <span class="material-icons-round text-[20px]">settings</span> Settings
         </a>
       </nav>
@@ -483,6 +483,17 @@
 
     // Initialize
     loadSettings();
+    (async function hydrateAdminNav() {
+      try {
+        const res = await fetch('/api/session/me', { credentials: 'same-origin' });
+        if (!res.ok) return;
+        const me = await res.json();
+        if (me.role === 'Admin') {
+          const el = document.getElementById('nav-settings');
+          if (el) el.classList.remove('hidden');
+        }
+      } catch (e) {}
+    })();
     loadDashboard();
 
     async function showProjectDetails(projectId) {

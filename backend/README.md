@@ -4,11 +4,12 @@ This module contains the main API and runtime schema management for Greg Tracker
 
 ## Core Responsibilities
 
-- Authentication with cookie-based access code validation.
+- Authentication: company PIN and/or per-user access (hashed) with roles Admin / Manager / Viewer (`app_users` table).
 - REST APIs for transactions, projects, categories, settings, and imports.
 - Receipt upload + AI extraction draft + review-confirm flow.
+- Client lead capture: quote request intake and manager/admin lead inbox.
 - MySQL schema bootstrap/update through `ensureSchema()` during startup.
-- Static serving support for frontend screens and uploads.
+- Static serving support for frontend screens and uploads (`/` and `index.html` are public landing; app dashboard is `dashboard.html`).
 
 ## Key File
 
@@ -20,6 +21,7 @@ This module contains the main API and runtime schema management for Greg Tracker
 - `GET /api/projects/:id/transactions?limit=10` -> recent project transactions.
 - `GET /api/projects/:id/breakdown?limit=6` -> top categories and vendors.
 - `GET /api/projects/:id/ai-insights` -> AI-generated summary, insights, and recommendations.
+- `GET /api/projects/:id/ledger-signals` -> financial activity derived from ledger (counts, date span, weekly pace, income/expense ratio, optional budget consumption).
 
 These endpoints power `frontend/project-details.html`.
 
@@ -28,8 +30,15 @@ These endpoints power `frontend/project-details.html`.
 - `/api/transactions` -> list, create, update, delete, pagination.
 - `/api/transactions/review-confirm` -> creates transaction from reviewed AI draft.
 - `/api/import/preview` and `/api/import/commit` -> Excel import flow.
-- `/api/settings` and `/api/settings/public` -> branding + access code metadata.
-- `/api/auth` -> sign in and access cookie issuance.
+- `/api/quote-requests`:
+  - `POST /api/quote-requests` -> submit a free estimate request (public).
+  - `GET /api/quote-requests` -> list requests for managers/admins.
+  - `PATCH /api/quote-requests/:id` -> update lead status/notes (managers/admins).
+- `/api/settings` (GET/POST, **Admin only**) and `/api/settings/public` -> full settings vs public branding metadata.
+- `/api/auth` -> sign in (`pin` for company mode, or `user_id` + `pin` when team users exist); sets `auth_pin` or `gt_uid`/`gt_pin` cookies.
+- `/api/auth/options` -> public; whether multi-user login is required and the list of active users for the login screen.
+- `/api/session/me` -> current session (legacy vs named user + role).
+- `/api/users` -> Admin-only CRUD for team users (GET list, POST create, PATCH update PIN/role/active, DELETE).
 - `/health` -> DB health check endpoint.
 
 ## Scripts

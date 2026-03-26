@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const dotenv = require('dotenv');
 const multer = require('multer');
 const xlsx = require('xlsx');
@@ -53,34 +54,151 @@ async function reloadSettings() {
   } catch(e) {}
 }
 
-app.post('/api/auth', (req, res) => {
-  const { pin } = req.body;
-  if (!appSettings.app_pin) {
-    return res.status(401).json({ error: 'Access code not configured.' });
+function parseCookie(req, name) {
+  const raw = req.headers.cookie || '';
+  const parts = raw.split(';');
+  for (const p of parts) {
+    const idx = p.indexOf('=');
+    if (idx === -1) continue;
+    const k = p.slice(0, idx).trim();
+    if (k !== name) continue;
+    try {
+      return decodeURIComponent(p.slice(idx + 1).trim());
+    } catch (_e) {
+      return p.slice(idx + 1).trim();
+    }
   }
-  if (pin === appSettings.app_pin) {
-    res.cookie('auth_pin', pin, { httpOnly: true, path: '/' });
-    return res.json({ success: true });
+  return null;
+}
+
+function hashUserPin(pin) {
+  const pepper = process.env.APP_USER_PIN_PEPPER || 'greg-tracker-user-pin-pepper';
+  return crypto.createHash('sha256').update(pepper + '\0' + String(pin)).digest('hex');
+}
+
+async function countActiveAppUsers() {
+  try {
+    const [rows] = await pool.query('SELECT COUNT(*) AS n FROM app_users WHERE is_active = 1');
+    return Number(rows[0]?.n || 0);
+  } catch (_e) {
+    return 0;
   }
-  return res.status(401).json({ error: 'Invalid access code.' });
+}
+
+app.get('/api/auth/options', async (_req, res) => {
+  try {
+    await reloadSettings();
+    const n = await countActiveAppUsers();
+    if (n === 0) {
+      return res.json({ multiUser: false, users: [] });
+    }
+    const [rows] = await pool.query(
+      'SELECT id, display_name, role FROM app_users WHERE is_active = 1 ORDER BY display_name ASC'
+    );
+    return res.json({ multiUser: true, users: rows });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth', async (req, res) => {
+  try {
+    await reloadSettings();
+    const n = await countActiveAppUsers();
+    const { pin, user_id: userIdRaw } = req.body || {};
+
+    if (n > 0) {
+      const userId = Number(userIdRaw);
+      if (!userId || !pin) {
+        return res.status(400).json({ error: 'Select a user and enter an access code.' });
+      }
+      const [rows] = await pool.query(
+        'SELECT id, pin_hash, is_active FROM app_users WHERE id = :id LIMIT 1',
+        { id: userId }
+      );
+      if (!rows.length || !rows[0].is_active || hashUserPin(String(pin)) !== rows[0].pin_hash) {
+        return res.status(401).json({ error: 'Invalid user or access code.' });
+      }
+      res.clearCookie('auth_pin', { path: '/' });
+      res.cookie('gt_uid', String(rows[0].id), { httpOnly: true, path: '/', sameSite: 'lax' });
+      res.cookie('gt_pin', String(pin), { httpOnly: true, path: '/', sameSite: 'lax' });
+      return res.json({ success: true });
+    }
+
+    if (!appSettings.app_pin) {
+      return res.status(401).json({ error: 'Access code not configured.' });
+    }
+    if (pin === appSettings.app_pin) {
+      res.clearCookie('gt_uid', { path: '/' });
+      res.clearCookie('gt_pin', { path: '/' });
+      res.cookie('auth_pin', pin, { httpOnly: true, path: '/', sameSite: 'lax' });
+      return res.json({ success: true });
+    }
+    return res.status(401).json({ error: 'Invalid access code.' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/logout', (req, res) => {
   res.clearCookie('auth_pin', { path: '/' });
+  res.clearCookie('gt_uid', { path: '/' });
+  res.clearCookie('gt_pin', { path: '/' });
   return res.json({ success: true });
 });
 
-app.use((req, res, next) => {
-  if (req.path === '/login.html' || req.path === '/help.html' || req.path.startsWith('/js/') || req.path === '/api/auth' || req.path.startsWith('/icon.svg') || req.path.startsWith(`/${UPLOAD_DIR}/`) || req.path === '/api/settings/public') {
+app.use(async (req, res, next) => {
+  if (
+    req.path === '/' ||
+    req.path === '/index.html' ||
+    req.path === '/quote.html' ||
+    req.path === '/login.html' ||
+    req.path === '/help.html' ||
+    req.path.startsWith('/js/') ||
+    req.path.startsWith('/assets/') ||
+    (req.path === '/api/quote-requests' && req.method === 'POST') ||
+    req.path === '/api/auth' ||
+    req.path === '/api/auth/options' ||
+    req.path.startsWith('/icon.svg') ||
+    req.path.startsWith(`/${UPLOAD_DIR}/`) ||
+    req.path === '/api/settings/public'
+  ) {
     return next();
   }
-  
-  const cookieHeader = req.headers.cookie || '';
-  const match = cookieHeader.match(/(?:^|; )auth_pin=([^;]*)/);
-  const pin = match ? match[1] : null;
 
-  if (pin === appSettings.app_pin) {
-    return next();
+  req.actorUserId = null;
+  req.actorName = null;
+  req.actorRole = null;
+
+  const gtUid = parseCookie(req, 'gt_uid');
+  const gtPin = parseCookie(req, 'gt_pin');
+  if (gtUid && gtPin) {
+    try {
+      const uid = Number(gtUid);
+      if (uid) {
+        const [rows] = await pool.query(
+          'SELECT id, display_name, role, pin_hash, is_active FROM app_users WHERE id = ? LIMIT 1',
+          [uid]
+        );
+        if (rows.length && rows[0].is_active && hashUserPin(gtPin) === rows[0].pin_hash) {
+          req.actorUserId = rows[0].id;
+          req.actorName = rows[0].display_name;
+          req.actorRole = rows[0].role;
+          return next();
+        }
+      }
+    } catch (_e) {}
+  }
+
+  const pin = parseCookie(req, 'auth_pin');
+  if (pin && appSettings.app_pin && pin === appSettings.app_pin) {
+    try {
+      const activeUsers = await countActiveAppUsers();
+      if (activeUsers === 0) {
+        req.actorRole = 'Admin';
+        return next();
+      }
+    } catch (_e) {}
   }
 
   if (req.path.startsWith('/api/')) {
@@ -417,6 +535,58 @@ function parseStrictJson(text) {
     }
     throw new Error('Vision model did not return valid JSON.');
   }
+}
+
+function getUserRole(req) {
+  if (req.actorRole === 'Viewer' || req.actorRole === 'Manager' || req.actorRole === 'Admin') {
+    return req.actorRole;
+  }
+  const raw = String(req.headers['x-user-role'] || '').trim().toLowerCase();
+  if (raw === 'viewer') return 'Viewer';
+  if (raw === 'manager') return 'Manager';
+  return 'Admin';
+}
+
+function ensureAdmin(req, res) {
+  if (getUserRole(req) !== 'Admin') {
+    res.status(403).json({ error: 'Admin role required.' });
+    return false;
+  }
+  return true;
+}
+
+function ensureCanEdit(req, res) {
+  const role = getUserRole(req);
+  if (role === 'Viewer') {
+    res.status(403).json({ error: 'Viewer role is read-only.' });
+    return false;
+  }
+  return true;
+}
+
+async function getApprovalThreshold(connection) {
+  const [rows] = await connection.query('SELECT approval_threshold FROM settings LIMIT 1');
+  const value = Number(rows?.[0]?.approval_threshold || 0);
+  return Number.isFinite(value) && value > 0 ? value : 5000;
+}
+
+async function logAudit(connection, req, action, entity, entityId, details) {
+  const role = getUserRole(req);
+  const payload = details ? JSON.stringify(details) : null;
+  await connection.query(
+    `
+    INSERT INTO audit_logs (action, entity, entity_id, actor_role, actor_ip, details_json)
+    VALUES (:action, :entity, :entityId, :role, :ip, :details)
+    `,
+    {
+      action,
+      entity,
+      entityId: entityId ? String(entityId) : null,
+      role,
+      ip: req.ip || null,
+      details: payload
+    }
+  );
 }
 
 function normalizeAiPayload(payload) {
@@ -778,6 +948,27 @@ async function ensureSchema() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS quote_requests (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      customer_name VARCHAR(180) NOT NULL,
+      email VARCHAR(190) NULL,
+      phone VARCHAR(50) NULL,
+      service_type VARCHAR(120) NULL,
+      project_address VARCHAR(255) NULL,
+      preferred_contact VARCHAR(20) NULL,
+      estimated_budget VARCHAR(60) NULL,
+      message TEXT NULL,
+      status ENUM('new','contacted','scheduled','won','lost') NOT NULL DEFAULT 'new',
+      internal_notes TEXT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      INDEX idx_quote_status (status),
+      INDEX idx_quote_created (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS projects (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
       name VARCHAR(255) NOT NULL,
@@ -846,9 +1037,73 @@ async function ensureSchema() {
         business_name VARCHAR(255) DEFAULT 'Racketty Boom Enterprises',
         default_currency VARCHAR(10) DEFAULT 'USD',
         default_tax_rate DECIMAL(5,2) DEFAULT 0.00,
+        approval_threshold DECIMAL(12,2) DEFAULT 5000.00,
         date_format VARCHAR(20) DEFAULT 'MM/DD/YYYY',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS project_budgets (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        project_id BIGINT UNSIGNED NOT NULL,
+        total_budget DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        committed_cost DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        warning_percent DECIMAL(5,2) NOT NULL DEFAULT 80.00,
+        overrun_percent DECIMAL(5,2) NOT NULL DEFAULT 100.00,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_project_budget_project (project_id),
+        CONSTRAINT fk_project_budgets_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS project_budget_categories (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        project_id BIGINT UNSIGNED NOT NULL,
+        category_name VARCHAR(120) NOT NULL,
+        budget_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_project_category_budget (project_id, category_name),
+        CONSTRAINT fk_project_budget_categories_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    try {
+      await pool.query('DROP TABLE IF EXISTS project_invoices');
+    } catch (_e) {}
+
+    try {
+      await pool.query('DROP TABLE IF EXISTS project_execution_updates');
+    } catch (_e) {}
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS app_users (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        display_name VARCHAR(120) NOT NULL,
+        role ENUM('Admin','Manager','Viewer') NOT NULL DEFAULT 'Manager',
+        pin_hash CHAR(64) NOT NULL,
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY idx_app_users_active (is_active)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        action VARCHAR(100) NOT NULL,
+        entity VARCHAR(100) NOT NULL,
+        entity_id VARCHAR(100) NULL,
+        actor_role VARCHAR(50) NOT NULL,
+        actor_ip VARCHAR(64) NULL,
+        details_json JSON NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
 
@@ -906,6 +1161,15 @@ async function ensureSchema() {
 
     try {
       await pool.query(`
+        ALTER TABLE settings
+        ADD COLUMN approval_threshold DECIMAL(12,2) DEFAULT 5000.00;
+      `);
+    } catch (e) {
+      if (e.code !== 'ER_DUP_FIELDNAME') throw e;
+    }
+
+    try {
+      await pool.query(`
         ALTER TABLE transactions
         ADD COLUMN project_id BIGINT UNSIGNED NULL AFTER category_id;
       `);
@@ -951,6 +1215,158 @@ app.delete('/api/categories/:id', async (req, res) => {
     await pool.query('DELETE FROM categories WHERE id = :id', { id: req.params.id });
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/session/me', async (req, res) => {
+  try {
+    if (req.actorUserId) {
+      return res.json({
+        mode: 'user',
+        user_id: req.actorUserId,
+        display_name: req.actorName,
+        role: req.actorRole
+      });
+    }
+    return res.json({ mode: 'legacy', role: req.actorRole || 'Admin' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/users', async (req, res) => {
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const [rows] = await pool.query(
+      'SELECT id, display_name, role, is_active, created_at FROM app_users ORDER BY display_name ASC'
+    );
+    return res.json(rows);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/users', async (req, res) => {
+  if (!ensureCanEdit(req, res)) return;
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const { display_name: displayName, role: roleRaw, user_pin: userPin } = req.body || {};
+    const name = String(displayName || '').trim();
+    const pin = String(userPin || '').trim();
+    if (!name || !pin) {
+      return res.status(400).json({ error: 'display_name and user_pin are required.' });
+    }
+    let r = String(roleRaw || 'Manager').trim();
+    if (r !== 'Admin' && r !== 'Manager' && r !== 'Viewer') r = 'Manager';
+    await pool.query(
+      'INSERT INTO app_users (display_name, role, pin_hash) VALUES (:name, :role, :pinHash)',
+      { name, role: r, pinHash: hashUserPin(pin) }
+    );
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/users/:id', async (req, res) => {
+  if (!ensureCanEdit(req, res)) return;
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid user id.' });
+    const { display_name: displayName, role: roleRaw, user_pin: userPin, is_active: isActiveRaw } = req.body || {};
+
+    const [existing] = await pool.query('SELECT id, role, is_active FROM app_users WHERE id = ? LIMIT 1', [id]);
+    if (!existing.length) return res.status(404).json({ error: 'User not found.' });
+
+    const updates = [];
+    const params = { id };
+
+    if (displayName !== undefined) {
+      const name = String(displayName || '').trim();
+      if (!name) return res.status(400).json({ error: 'display_name cannot be empty.' });
+      updates.push('display_name = :dname');
+      params.dname = name;
+    }
+    if (roleRaw !== undefined) {
+      let r = String(roleRaw || '').trim();
+      if (r !== 'Admin' && r !== 'Manager' && r !== 'Viewer') {
+        return res.status(400).json({ error: 'Invalid role.' });
+      }
+      if (existing[0].role === 'Admin' && r !== 'Admin') {
+        const [admins] = await pool.query(
+          "SELECT COUNT(*) AS n FROM app_users WHERE is_active = 1 AND role = 'Admin' AND id <> ?",
+          [id]
+        );
+        if (admins[0].n < 1) {
+          return res.status(400).json({ error: 'Promote another Admin before changing this user\'s role.' });
+        }
+      }
+      updates.push('role = :role');
+      params.role = r;
+    }
+    if (userPin !== undefined) {
+      const pin = String(userPin || '').trim();
+      if (!pin) return res.status(400).json({ error: 'user_pin cannot be empty.' });
+      updates.push('pin_hash = :pinHash');
+      params.pinHash = hashUserPin(pin);
+    }
+    if (isActiveRaw !== undefined) {
+      const on = isActiveRaw === true || isActiveRaw === 1 || isActiveRaw === '1';
+      if (!on) {
+        const [cnt] = await pool.query('SELECT COUNT(*) AS n FROM app_users WHERE is_active = 1');
+        if (Number(cnt[0].n) <= 1 && existing[0].is_active) {
+          return res.status(400).json({ error: 'Cannot deactivate the last active user.' });
+        }
+        if (existing[0].role === 'Admin' && existing[0].is_active) {
+          const [admins] = await pool.query(
+            "SELECT COUNT(*) AS n FROM app_users WHERE is_active = 1 AND role = 'Admin' AND id <> ?",
+            [id]
+          );
+          if (admins[0].n < 1) {
+            return res.status(400).json({ error: 'Assign another Admin before deactivating this one.' });
+          }
+        }
+      }
+      updates.push('is_active = :active');
+      params.active = on ? 1 : 0;
+    }
+
+    if (!updates.length) return res.status(400).json({ error: 'No changes provided.' });
+    await pool.query(`UPDATE app_users SET ${updates.join(', ')} WHERE id = :id`, params);
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/users/:id', async (req, res) => {
+  if (!ensureCanEdit(req, res)) return;
+  if (!ensureAdmin(req, res)) return;
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid user id.' });
+    const [row] = await pool.query('SELECT role, is_active FROM app_users WHERE id = ?', [id]);
+    if (!row.length) return res.status(404).json({ error: 'User not found.' });
+    if (row[0].is_active) {
+      const [cnt] = await pool.query('SELECT COUNT(*) AS n FROM app_users WHERE is_active = 1');
+      if (Number(cnt[0].n) <= 1) {
+        return res.status(400).json({ error: 'Cannot delete the last active user.' });
+      }
+      if (row[0].role === 'Admin') {
+        const [admins] = await pool.query(
+          "SELECT COUNT(*) AS n FROM app_users WHERE is_active = 1 AND role = 'Admin' AND id <> ?",
+          [id]
+        );
+        if (admins[0].n < 1) {
+          return res.status(400).json({ error: 'Assign another Admin before deleting this user.' });
+        }
+      }
+    }
+    await pool.query('DELETE FROM app_users WHERE id = ?', [id]);
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/projects', async (req, res) => {
@@ -1111,6 +1527,215 @@ app.get('/api/projects/:id/breakdown', async (req, res) => {
     return res.json({ categories: cats, vendors });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/projects/:id/budget-summary', async (req, res) => {
+  try {
+    const projectId = req.params.id;
+    const [budgetRows] = await pool.query(
+      `
+      SELECT total_budget, committed_cost, warning_percent, overrun_percent
+      FROM project_budgets
+      WHERE project_id = :projectId
+      LIMIT 1
+      `,
+      { projectId }
+    );
+    const budget = budgetRows[0] || { total_budget: 0, committed_cost: 0, warning_percent: 80, overrun_percent: 100 };
+
+    const [actualRows] = await pool.query(
+      `
+      SELECT COALESCE(SUM(CASE WHEN type = 'Expense' THEN amount ELSE 0 END), 0) AS actual_expense
+      FROM transactions
+      WHERE project_id = :projectId
+      `,
+      { projectId }
+    );
+    const actualExpense = Number(actualRows?.[0]?.actual_expense || 0);
+    const totalBudget = Number(budget.total_budget || 0);
+    const committedCost = Number(budget.committed_cost || 0);
+    const projectedFinalCost = actualExpense + committedCost;
+    const consumedPct = totalBudget > 0 ? (actualExpense / totalBudget) * 100 : 0;
+    const warningPct = Number(budget.warning_percent || 80);
+    const overrunPct = Number(budget.overrun_percent || 100);
+    const status = consumedPct >= overrunPct ? 'Overrun' : consumedPct >= warningPct ? 'Warning' : 'OK';
+
+    const [categoryBudgetRows] = await pool.query(
+      `
+      SELECT
+        b.category_name,
+        b.budget_amount,
+        COALESCE(SUM(CASE WHEN t.type = 'Expense' THEN t.amount ELSE 0 END), 0) AS actual_amount
+      FROM project_budget_categories b
+      LEFT JOIN categories c ON c.name = b.category_name
+      LEFT JOIN transactions t ON t.project_id = b.project_id AND t.category_id = c.id
+      WHERE b.project_id = :projectId
+      GROUP BY b.id, b.category_name, b.budget_amount
+      ORDER BY b.category_name ASC
+      `,
+      { projectId }
+    );
+
+    return res.json({
+      budget: {
+        total_budget: totalBudget,
+        committed_cost: committedCost,
+        actual_expense: actualExpense,
+        projected_final_cost: projectedFinalCost,
+        consumed_percent: Number(consumedPct.toFixed(2)),
+        warning_percent: warningPct,
+        overrun_percent: overrunPct,
+        status
+      },
+      categories: categoryBudgetRows.map((r) => {
+        const b = Number(r.budget_amount || 0);
+        const a = Number(r.actual_amount || 0);
+        const pct = b > 0 ? (a / b) * 100 : 0;
+        return {
+          category_name: r.category_name,
+          budget_amount: b,
+          actual_amount: a,
+          consumed_percent: Number(pct.toFixed(2))
+        };
+      })
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/projects/:id/budget', async (req, res) => {
+  if (!ensureCanEdit(req, res)) return;
+  const connection = await pool.getConnection();
+  try {
+    const projectId = req.params.id;
+    const totalBudget = Number(req.body.total_budget || 0);
+    const committedCost = Number(req.body.committed_cost || 0);
+    const warningPercent = Number(req.body.warning_percent || 80);
+    const overrunPercent = Number(req.body.overrun_percent || 100);
+    const categories = Array.isArray(req.body.categories) ? req.body.categories : [];
+
+    await connection.beginTransaction();
+    await connection.query(
+      `
+      INSERT INTO project_budgets (project_id, total_budget, committed_cost, warning_percent, overrun_percent)
+      VALUES (:projectId, :totalBudget, :committedCost, :warningPercent, :overrunPercent)
+      ON DUPLICATE KEY UPDATE
+        total_budget = VALUES(total_budget),
+        committed_cost = VALUES(committed_cost),
+        warning_percent = VALUES(warning_percent),
+        overrun_percent = VALUES(overrun_percent)
+      `,
+      { projectId, totalBudget, committedCost, warningPercent, overrunPercent }
+    );
+
+    await connection.query('DELETE FROM project_budget_categories WHERE project_id = :projectId', { projectId });
+    for (const row of categories) {
+      const categoryName = String(row.category_name || '').trim();
+      const budgetAmount = Number(row.budget_amount || 0);
+      if (!categoryName) continue;
+      await connection.query(
+        `
+        INSERT INTO project_budget_categories (project_id, category_name, budget_amount)
+        VALUES (:projectId, :categoryName, :budgetAmount)
+        `,
+        { projectId, categoryName, budgetAmount }
+      );
+    }
+
+    await logAudit(connection, req, 'UPSERT', 'project_budget', projectId, { totalBudget, committedCost, categories: categories.length });
+    await connection.commit();
+    return res.json({ success: true });
+  } catch (err) {
+    await connection.rollback();
+    return res.status(500).json({ error: err.message });
+  } finally {
+    connection.release();
+  }
+});
+
+/**
+ * Financial activity derived from ledger transactions for this project.
+ * Not physical job-site progress; see project-details UI disclaimer.
+ */
+app.get('/api/projects/:id/ledger-signals', async (req, res) => {
+  try {
+    const projectId = req.params.id;
+
+    const [aggRows] = await pool.query(
+      `
+      SELECT
+        COUNT(*) AS transaction_count,
+        COALESCE(SUM(CASE WHEN type = 'Expense' THEN 1 ELSE 0 END), 0) AS expense_count,
+        COALESCE(SUM(CASE WHEN type = 'Income' THEN 1 ELSE 0 END), 0) AS income_count,
+        COALESCE(SUM(CASE WHEN type = 'Expense' THEN amount ELSE 0 END), 0) AS total_expense,
+        COALESCE(SUM(CASE WHEN type = 'Income' THEN amount ELSE 0 END), 0) AS total_income,
+        MIN(transaction_date) AS first_date,
+        MAX(transaction_date) AS last_date,
+        CASE
+          WHEN MIN(transaction_date) IS NULL THEN 0
+          ELSE DATEDIFF(MAX(transaction_date), MIN(transaction_date)) + 1
+        END AS activity_span_days
+      FROM transactions
+      WHERE project_id = :projectId
+      `,
+      { projectId }
+    );
+
+    const r = aggRows[0] || {};
+    const spanDays = Math.max(1, Number(r.activity_span_days || 0) || 1);
+    const weeks = spanDays / 7;
+    const totalExp = Number(r.total_expense || 0);
+    const totalInc = Number(r.total_income || 0);
+    const avgWeeklyExpense = weeks > 0 ? totalExp / weeks : totalExp;
+    const avgWeeklyIncome = weeks > 0 ? totalInc / weeks : totalInc;
+    let incomeToExpenseRatio = null;
+    if (totalExp > 0) incomeToExpenseRatio = Number((totalInc / totalExp).toFixed(2));
+    else if (totalInc > 0) incomeToExpenseRatio = null;
+
+    const [budRows] = await pool.query(
+      'SELECT total_budget FROM project_budgets WHERE project_id = :projectId LIMIT 1',
+      { projectId }
+    );
+    const totalBudget = Number(budRows[0]?.total_budget || 0);
+    const budgetConsumedPercent =
+      totalBudget > 0 ? Number(((totalExp / totalBudget) * 100).toFixed(2)) : null;
+
+    return res.json({
+      transaction_count: Number(r.transaction_count || 0),
+      expense_count: Number(r.expense_count || 0),
+      income_count: Number(r.income_count || 0),
+      total_expense: totalExp,
+      total_income: totalInc,
+      first_date: r.first_date,
+      last_date: r.last_date,
+      activity_span_days: Number(r.activity_span_days || 0),
+      avg_weekly_expense: Number(avgWeeklyExpense.toFixed(2)),
+      avg_weekly_income: Number(avgWeeklyIncome.toFixed(2)),
+      income_to_expense_ratio: incomeToExpenseRatio,
+      budget_consumed_percent: budgetConsumedPercent
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/audit-logs', async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(Number(req.query.limit || 50), 1), 200);
+    const [rows] = await pool.query(
+      `
+      SELECT id, action, entity, entity_id, actor_role, actor_ip, details_json, created_at
+      FROM audit_logs
+      ORDER BY id DESC
+      LIMIT :limit
+      `,
+      { limit }
+    );
+    return res.json({ logs: rows });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
 });
 
@@ -1710,6 +2335,7 @@ app.get('/api/wipe', async (req, res) => {
 });
 
 app.post('/api/transactions', async (req, res) => {
+  if (!ensureCanEdit(req, res)) return;
   const connection = await pool.getConnection();
   try {
     const { type, vendor, date, invoice_number, items, subtotal, sales_tax_paid, sales_tax_owed, total, category_id, category_name, payment_method, location, notes, project_id: projectIdRaw } = req.body;
@@ -1732,16 +2358,22 @@ app.post('/api/transactions', async (req, res) => {
       finalCategoryId = catRows[0].id;
     }
 
+    const amountNumber = Number(total || 0);
+    const normalizedType = normalizeType(type) || type;
+    const approvalThreshold = await getApprovalThreshold(connection);
+    const reviewStatus = normalizedType === 'Expense' && amountNumber >= approvalThreshold ? 'pending_approval' : 'approved';
+
     const [txResult] = await connection.query(
       `INSERT INTO transactions 
        (category_id, project_id, vendor, invoice_number, items, transaction_date, subtotal, sales_tax_paid, sales_tax_owed, amount, type, payment_method, location, notes, extraction_status, review_status)
-       VALUES (:categoryId, :projectId, :vendor, :invoice_number, :items, :date, :subtotal, :sales_tax_paid, :sales_tax_owed, :amount, :type, :payment_method, :location, :notes, 'manual', 'approved')`,
+       VALUES (:categoryId, :projectId, :vendor, :invoice_number, :items, :date, :subtotal, :sales_tax_paid, :sales_tax_owed, :amount, :type, :payment_method, :location, :notes, 'manual', :reviewStatus)`,
       { 
         categoryId: finalCategoryId || null, projectId, vendor, invoice_number: invoice_number || null, items: items || null, date, 
         subtotal: subtotal || 0, sales_tax_paid: sales_tax_paid || 0, sales_tax_owed: sales_tax_owed || 0, amount: total || 0, type, 
-        payment_method: payment_method || null, location: location || null, notes: notes || null 
+        payment_method: payment_method || null, location: location || null, notes: notes || null, reviewStatus
       }
     );
+    await logAudit(connection, req, 'CREATE', 'transaction', txResult.insertId, { projectId, type: normalizedType, amount: amountNumber, reviewStatus });
     
     await connection.commit();
     res.status(201).json({ success: true, id: txResult.insertId });
@@ -1765,6 +2397,7 @@ app.get('/api/transactions/:id', async (req, res) => {
 });
 
 app.put('/api/transactions/:id', async (req, res) => {
+  if (!ensureCanEdit(req, res)) return;
   const connection = await pool.getConnection();
   try {
     const { type, vendor, date, invoice_number, items, subtotal, sales_tax_paid, sales_tax_owed, total, category_id, category_name, payment_method, location, notes, project_id: projectIdRaw } = req.body;
@@ -1787,19 +2420,25 @@ app.put('/api/transactions/:id', async (req, res) => {
       finalCategoryId = catRows[0].id;
     }
 
+    const amountNumber = Number(total || 0);
+    const normalizedType = normalizeType(type) || type;
+    const approvalThreshold = await getApprovalThreshold(connection);
+    const reviewStatus = normalizedType === 'Expense' && amountNumber >= approvalThreshold ? 'pending_approval' : 'approved';
+
     await connection.query(
       `UPDATE transactions SET 
         category_id = :categoryId, project_id = :projectId, vendor = :vendor, invoice_number = :invoice_number, items = :items, 
         transaction_date = :date, subtotal = :subtotal, sales_tax_paid = :sales_tax_paid, 
         sales_tax_owed = :sales_tax_owed, amount = :amount, type = :type, 
-        payment_method = :payment_method, location = :location, notes = :notes
+        payment_method = :payment_method, location = :location, notes = :notes, review_status = :reviewStatus
        WHERE id = :id`,
       { 
         id: req.params.id, categoryId: finalCategoryId || null, projectId, vendor, invoice_number: invoice_number || null, items: items || null, date: date.slice(0, 10), 
         subtotal: subtotal || 0, sales_tax_paid: sales_tax_paid || 0, sales_tax_owed: sales_tax_owed || 0, amount: total || 0, type, 
-        payment_method: payment_method || null, location: location || null, notes: notes || null 
+        payment_method: payment_method || null, location: location || null, notes: notes || null, reviewStatus
       }
     );
+    await logAudit(connection, req, 'UPDATE', 'transaction', req.params.id, { projectId, type: normalizedType, amount: amountNumber, reviewStatus });
     
     await connection.commit();
     res.json({ success: true });
@@ -1813,12 +2452,17 @@ app.put('/api/transactions/:id', async (req, res) => {
 });
 
 app.delete('/api/transactions/:id', async (req, res) => {
+  if (!ensureCanEdit(req, res)) return;
+  const connection = await pool.getConnection();
   try {
-    await pool.query('DELETE FROM transactions WHERE id = :id', { id: req.params.id });
+    await connection.query('DELETE FROM transactions WHERE id = :id', { id: req.params.id });
+    await logAudit(connection, req, 'DELETE', 'transaction', req.params.id, null);
     res.json({ success: true });
   } catch (error) {
     console.error('Delete error:', error);
     res.status(500).json({ error: 'Failed to delete record' });
+  } finally {
+    connection.release();
   }
 });
 
@@ -1905,6 +2549,7 @@ app.post('/api/import/commit', async (req, res) => {
 
     let inserted = 0;
     let skipped = 0;
+    const approvalThreshold = await getApprovalThreshold(connection);
 
     for (const row of rows) {
       if (!row.date || !row.vendor) { skipped++; continue; }
@@ -1944,7 +2589,9 @@ app.post('/api/import/commit', async (req, res) => {
           amount: row.total || 0,
           type: row.type,
           notes: row.notes || null,
-          review_status: row.status === 'Needs Review' ? 'pending' : 'approved'
+          review_status: row.status === 'Needs Review'
+            ? 'pending'
+            : (row.type === 'Expense' && Number(row.total || 0) >= approvalThreshold ? 'pending_approval' : 'approved')
         }
       );
 
@@ -1972,6 +2619,134 @@ app.post('/api/import/commit', async (req, res) => {
     res.status(500).json({ error: 'Failed to commit import.' });
   } finally {
     connection.release();
+  }
+});
+
+app.post('/api/quote-requests', async (req, res) => {
+  try {
+    const payload = req.body || {};
+    const customer_name = String(payload.customer_name || '').trim();
+    if (!customer_name) {
+      return res.status(400).json({ error: 'customer_name is required.' });
+    }
+
+    const email = payload.email ? String(payload.email).trim() : null;
+    const phone = payload.phone ? String(payload.phone).trim() : null;
+    const service_type = payload.service_type ? String(payload.service_type).trim() : null;
+    const project_address = payload.project_address ? String(payload.project_address).trim() : null;
+    const preferred_contact = payload.preferred_contact ? String(payload.preferred_contact).trim() : null;
+    const estimated_budget = payload.estimated_budget ? String(payload.estimated_budget).trim() : null;
+    const message = payload.message ? String(payload.message).trim() : null;
+
+    const [result] = await pool.query(
+      `
+      INSERT INTO quote_requests
+        (customer_name, email, phone, service_type, project_address, preferred_contact, estimated_budget, message)
+      VALUES
+        (:customer_name, :email, :phone, :service_type, :project_address, :preferred_contact, :estimated_budget, :message)
+      `,
+      {
+        customer_name,
+        email: email || null,
+        phone: phone || null,
+        service_type: service_type || null,
+        project_address: project_address || null,
+        preferred_contact: preferred_contact || null,
+        estimated_budget: estimated_budget || null,
+        message: message || null
+      }
+    );
+
+    return res.json({ success: true, id: result.insertId });
+  } catch (error) {
+    console.error('Quote request error:', error);
+    return res.status(500).json({ error: 'Failed to submit quote request.' });
+  }
+});
+
+app.get('/api/quote-requests', async (req, res) => {
+  if (!ensureCanEdit(req, res)) return;
+
+  try {
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.max(1, Math.min(50, Number(req.query.limit || 10)));
+    const offset = (page - 1) * limit;
+
+    const [[countRow]] = await pool.query(`SELECT COUNT(*) as total FROM quote_requests`);
+    const total = Number(countRow?.total || 0);
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    const [rows] = await pool.query(
+      `
+      SELECT
+        id,
+        customer_name,
+        email,
+        phone,
+        service_type,
+        project_address,
+        preferred_contact,
+        estimated_budget,
+        message,
+        status,
+        internal_notes,
+        created_at
+      FROM quote_requests
+      ORDER BY created_at DESC, id DESC
+      LIMIT :limit OFFSET :offset
+      `,
+      { limit, offset }
+    );
+
+    return res.json({
+      quoteRequests: rows,
+      pagination: { page, limit, total, totalPages }
+    });
+  } catch (error) {
+    console.error('Quote requests list error:', error);
+    return res.status(500).json({ error: 'Failed to fetch quote requests.' });
+  }
+});
+
+app.patch('/api/quote-requests/:id', async (req, res) => {
+  if (!ensureCanEdit(req, res)) return;
+
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id.' });
+
+    const payload = req.body || {};
+    const allowed = new Set(['new', 'contacted', 'scheduled', 'won', 'lost']);
+    const status = payload.status ? String(payload.status).trim() : null;
+    const internal_notes = payload.internal_notes ? String(payload.internal_notes).trim() : null;
+
+    if (status && !allowed.has(status)) {
+      return res.status(400).json({ error: 'Invalid status.' });
+    }
+
+    if (status === null && internal_notes === null) {
+      return res.status(400).json({ error: 'Nothing to update.' });
+    }
+
+    const fields = [];
+    const params = { id };
+    if (status) {
+      fields.push('status = :status');
+      params.status = status;
+    }
+    if (internal_notes !== null) {
+      fields.push('internal_notes = :internal_notes');
+      params.internal_notes = internal_notes;
+    }
+
+    const sql = `UPDATE quote_requests SET ${fields.join(', ')} WHERE id = :id`;
+    const [result] = await pool.query(sql, params);
+
+    if (!result.affectedRows) return res.status(404).json({ error: 'Quote request not found.' });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('Quote request update error:', error);
+    return res.status(500).json({ error: 'Failed to update quote request.' });
   }
 });
 
@@ -2240,12 +3015,16 @@ app.get('/api/settings/public', (req, res) => {
 });
 
 app.get('/api/settings', (req, res) => {
+  if (!ensureAdmin(req, res)) return;
   res.json({ ...appSettings });
 });
 
 const settingsUpload = upload.fields([{ name: 'logo', maxCount: 1 }, { name: 'avatar', maxCount: 1 }]);
 
-app.post('/api/settings', settingsUpload, async (req, res) => {
+app.post('/api/settings', (req, res, next) => {
+  if (!ensureAdmin(req, res)) return;
+  next();
+}, settingsUpload, async (req, res) => {
   const { business_name, app_pin } = req.body;
   let logo_url = appSettings.logo_url;
   let avatar_url = appSettings.avatar_url;
