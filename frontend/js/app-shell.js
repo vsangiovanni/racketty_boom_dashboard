@@ -23,6 +23,15 @@
     });
   }
 
+  function injectUiPolish() {
+    if (document.querySelector('link[data-greg-ui-polish]')) return;
+    var l = document.createElement('link');
+    l.rel = 'stylesheet';
+    l.href = '/css/ui-polish.css';
+    l.setAttribute('data-greg-ui-polish', '');
+    document.head.appendChild(l);
+  }
+
   async function hydrateBusinessNames() {
     var business = '';
     try {
@@ -37,6 +46,7 @@
   }
 
   function init() {
+    injectUiPolish();
     mountFooters();
     hydrateBusinessNames();
   }

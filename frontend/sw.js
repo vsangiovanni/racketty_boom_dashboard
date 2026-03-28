@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gregtracker-v25';
+const CACHE_NAME = 'gregtracker-v27';
 const ASSETS = [
   './',
   './index.html',
@@ -11,7 +11,10 @@ const ASSETS = [
   './icon.svg',
   './assets/landing/logo-transparent.webp',
   './data/service-content.json',
-  './js/service-router.js'
+  './js/service-router.js',
+  './js/app-shell.js',
+  './js/app-nav.js',
+  './css/ui-polish.css'
 ];
 
 self.addEventListener('install', (event) => {

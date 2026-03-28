@@ -14,21 +14,73 @@
 </head>
 <body class="bg-[#f1f5f9] text-slate-800 h-screen flex overflow-hidden">
 
-  <!-- Sidebar included via script or manually (for simplicity repeating here or just simple navigation back) -->
+  <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/60 z-40 hidden md:hidden backdrop-blur-sm" onclick="toggleSidebar()"></div>
+
+  <aside id="sidebar" class="bg-slate-900 text-slate-300 w-64 flex-shrink-0 fixed inset-y-0 left-0 z-50 transition-transform -translate-x-full md:relative md:translate-x-0 flex flex-col shadow-2xl md:shadow-none">
+    <div class="h-16 flex items-center px-6 bg-slate-950 border-b border-slate-800/50 justify-between">
+      <div class="flex items-center gap-3">
+        <div id="sidebar-logo-container" class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-sm overflow-hidden">RB</div>
+        <span class="shell-business-name text-white font-bold tracking-wide truncate max-w-[130px]">Greg Tracker</span>
+      </div>
+      <button type="button" class="md:hidden text-slate-400 hover:text-white" onclick="toggleSidebar()"><span class="material-icons-round">close</span></button>
+    </div>
+    <div class="p-4 flex-1 overflow-y-auto">
+      <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 mt-2 px-2">Financials</div>
+      <nav class="space-y-1">
+        <a href="/dashboard.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">insights</span> Dashboard
+        </a>
+        <a href="/add-record.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">add_box</span> Manual Entry
+        </a>
+        <a href="/upload.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">document_scanner</span> AI Receipt Scan
+        </a>
+        <a href="/projects.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">construction</span> Projects
+        </a>
+        <a href="/quote-requests.html" id="nav-quote-requests" class="hidden flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">request_quote</span> Quote requests
+        </a>
+      </nav>
+      <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 mt-8 px-2">Reports &amp; Automation</div>
+      <nav class="space-y-1">
+        <a href="/export-report.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-emerald-400 hover:text-emerald-300">
+          <span class="material-icons-round text-[20px]">file_download</span> Export Excel Report
+        </a>
+        <a href="/import.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">table_view</span> Bulk Import Excel
+        </a>
+        <a href="/help.html?page=settings" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200 mt-4 border-t border-slate-800 pt-4">
+          <span class="material-icons-round text-[20px]">help_outline</span> Help
+        </a>
+        <a href="/settings.html" id="nav-settings" class="hidden flex items-center gap-3 px-3 py-2.5 bg-blue-600/10 text-blue-400 rounded-lg font-medium border border-blue-500/20 mt-2">
+          <span class="material-icons-round text-[20px]">settings</span> Settings
+        </a>
+        <a href="/users.html" id="nav-team-users" class="hidden flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">group</span> Team users
+        </a>
+      </nav>
+    </div>
+  </aside>
+
   <div class="flex-1 flex flex-col overflow-hidden min-w-0 relative">
-    
     <header class="h-16 bg-white/80 backdrop-blur-md shadow-sm flex items-center justify-between px-4 lg:px-8 z-10 flex-shrink-0 border-b border-slate-200/50">
       <div class="flex items-center gap-3 min-w-0">
-        <a href="/dashboard.html" class="text-slate-500 hover:bg-slate-100 p-2 rounded-lg transition-colors shrink-0" aria-label="Dashboard"><span class="material-icons-round">arrow_back</span></a>
+        <button type="button" class="md:hidden text-slate-500 hover:bg-slate-100 p-2 rounded-lg shrink-0" onclick="toggleSidebar()"><span class="material-icons-round">menu</span></button>
         <div class="flex flex-col min-w-0">
           <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide truncate shell-business-name">Greg Tracker</span>
           <h1 class="text-xl font-bold text-slate-800 tracking-tight leading-tight">Settings</h1>
         </div>
       </div>
-      <a href="/help.html?page=settings" class="inline-flex items-center justify-center p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shrink-0 mr-2 lg:mr-4" title="Help - User Manual" aria-label="Help"><span class="material-icons-round">help_outline</span></a>
+      <div class="flex items-center gap-2 shrink-0 mr-2 lg:mr-4">
+        <a href="/help.html?page=settings" class="inline-flex items-center justify-center p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Help" aria-label="Help"><span class="material-icons-round">help_outline</span></a>
+        <button type="button" onclick="logout()" class="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg" title="Logout"><span class="material-icons-round">lock_outline</span></button>
+      </div>
     </header>
 
-    <main class="flex-1 overflow-y-auto p-4 lg:p-8 scrollbar-hide flex flex-col" data-shell-footer>
+    <div class="flex-1 flex flex-col overflow-hidden min-w-0" data-shell-footer>
+    <main class="flex-1 overflow-y-auto p-4 lg:p-8 scrollbar-hide flex flex-col">
       
       <div class="max-w-2xl mx-auto w-full flex-1">
         <div id="settings-readonly-panel" class="hidden space-y-4">
@@ -116,6 +168,7 @@
       </div>
 
     </main>
+    </div>
   </div>
 
   <script>
@@ -237,6 +290,11 @@
     }
 
     initSettingsPage();
+  </script>
+  <script src="/js/app-nav.js"></script>
+  <script>
+    hydrateSidebarNav();
+    hydrateSidebarLogo();
   </script>
   <script src="/js/app-shell.js"></script>
 </body>

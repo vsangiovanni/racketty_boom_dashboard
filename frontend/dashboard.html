@@ -106,14 +106,14 @@
       <!-- Premium KPIs -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
         
-        <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden group hover:shadow-md transition-all">
+        <div class="glass-card p-6 rounded-2xl ui-surface-ring relative overflow-hidden group hover:shadow-md transition-all">
           <div class="kpi-title mb-2">Gross Income</div>
           <div class="text-3xl font-black text-slate-800 tracking-tight" id="dash-income">$0.00</div>
           <div class="text-xs font-semibold text-green-600 mt-2 flex items-center gap-1"><span class="material-icons-round text-[14px]">trending_up</span> Billed Revenue</div>
           <div class="absolute -right-4 -top-4 w-24 h-24 bg-green-500/10 rounded-full blur-2xl group-hover:bg-green-500/20 transition-all"></div>
         </div>
         
-        <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden group hover:shadow-md transition-all">
+        <div class="glass-card p-6 rounded-2xl ui-surface-ring relative overflow-hidden group hover:shadow-md transition-all">
           <div class="kpi-title mb-2">Total Expenses</div>
           <div class="text-3xl font-black text-slate-800 tracking-tight" id="dash-expense">$0.00</div>
           <div class="text-xs font-semibold text-rose-500 mt-2 flex items-center gap-1"><span class="material-icons-round text-[14px]">account_balance_wallet</span> Cost of Operations</div>
@@ -130,7 +130,7 @@
           <div class="absolute -right-4 -bottom-4 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-500/30 transition-all"></div>
         </div>
         
-        <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden group hover:shadow-md transition-all">
+        <div class="glass-card p-6 rounded-2xl ui-surface-ring relative overflow-hidden group hover:shadow-md transition-all">
           <div class="kpi-title mb-2">Tax Liability (Est)</div>
           <div class="text-3xl font-black text-amber-600 tracking-tight" id="dash-tax">$0.00</div>
           <div class="text-xs font-semibold text-amber-700/70 mt-2 flex items-center gap-1"><span class="material-icons-round text-[14px]">account_balance</span> Owed vs Paid Difference</div>
@@ -143,7 +143,7 @@
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
         
         <!-- Cash Flow Area Chart -->
-        <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200/60 lg:col-span-8">
+        <div class="glass-card p-6 rounded-2xl ui-surface-ring lg:col-span-8">
           <div class="flex items-center justify-between mb-6">
             <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Cash Flow Trend</h3>
             <span class="text-xs font-bold bg-blue-50 text-blue-600 px-2 py-1 rounded">Monthly</span>
@@ -154,7 +154,7 @@
         </div>
         
         <!-- Top Categories Doughnut -->
-        <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200/60 lg:col-span-4 flex flex-col">
+        <div class="glass-card p-6 rounded-2xl ui-surface-ring lg:col-span-4 flex flex-col">
           <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-6">Expense Breakdown</h3>
           <div class="relative flex-1 w-full flex items-center justify-center min-h-[200px]">
             <canvas id="categoryChart"></canvas>
@@ -167,7 +167,7 @@
       <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 mb-10">
         
         <!-- Top Vendors Bar -->
-        <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200/60 xl:col-span-4">
+        <div class="glass-card p-6 rounded-2xl ui-surface-ring xl:col-span-4">
           <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-6">Top Payees / Vendors</h3>
           <div class="relative h-[250px] w-full">
             <canvas id="vendorChart"></canvas>
@@ -175,7 +175,7 @@
         </div>
 
         <!-- Records Table -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden flex flex-col xl:col-span-8">
+        <div class="bg-white rounded-2xl ui-surface-ring overflow-hidden flex flex-col xl:col-span-8">
           <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
             <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Recent Ledger</h2>
             <div class="flex gap-2">

@@ -1,0 +1,66 @@
+/**
+ * Sidebar compartido: toggle movil, logo publico, enlaces Admin / Quote requests.
+ */
+(function (global) {
+  function escapeHtml(text) {
+    return String(text || '').replace(/[&<>"']/g, function (m) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+    });
+  }
+
+  function toggleSidebar() {
+    var sb = document.getElementById('sidebar');
+    var ov = document.getElementById('sidebar-overlay');
+    if (sb) sb.classList.toggle('-translate-x-full');
+    if (ov) ov.classList.toggle('hidden');
+  }
+
+  async function hydrateSidebarLogo() {
+    try {
+      var res = await fetch('/api/settings/public');
+      if (!res.ok) return;
+      var data = await res.json();
+      if (data.logo_url) {
+        var el = document.getElementById('sidebar-logo-container');
+        if (!el) return;
+        el.innerHTML =
+          '<img src="' +
+          escapeHtml(data.logo_url) +
+          '" class="w-full h-full object-contain bg-white" alt="" />';
+        el.classList.remove('bg-gradient-to-br', 'from-blue-500', 'to-indigo-600', 'text-white', 'font-bold');
+      }
+    } catch (e) {}
+  }
+
+  async function hydrateSidebarNav() {
+    try {
+      var res = await fetch('/api/session/me', { credentials: 'same-origin' });
+      if (!res.ok) return;
+      var me = await res.json();
+      var role = me.role || '';
+      if (role === 'Manager' || role === 'Admin') {
+        var qr = document.getElementById('nav-quote-requests');
+        if (qr) qr.classList.remove('hidden');
+      }
+      if (role === 'Admin') {
+        var team = document.getElementById('nav-team-users');
+        if (team) team.classList.remove('hidden');
+        var sn = document.getElementById('nav-settings');
+        if (sn) sn.classList.remove('hidden');
+      }
+    } catch (e) {}
+  }
+
+  async function logout() {
+    try {
+      await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
+    } catch (e) {}
+    window.location.href = '/login.html';
+  }
+
+  global.toggleSidebar = toggleSidebar;
+  global.hydrateSidebarLogo = hydrateSidebarLogo;
+  global.hydrateSidebarNav = hydrateSidebarNav;
+  global.escapeHtml = escapeHtml;
+  global.logout = logout;
+})(typeof window !== 'undefined' ? window : this);

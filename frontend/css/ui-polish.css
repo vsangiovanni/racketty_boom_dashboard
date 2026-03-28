@@ -1,0 +1,60 @@
+/**
+ * Greg Tracker — capa ligera junto a Tailwind CDN.
+ * Enfoque teclado, movimiento reducido y superficies algo más limpias.
+ */
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Enlaces y botones: anillo solo con teclado */
+a:focus-visible,
+button:focus-visible,
+[role='button']:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+/* Fondos oscuros (sidebar, login): anillo más claro */
+.bg-slate-900 a:focus-visible,
+.bg-slate-900 button:focus-visible,
+.bg-slate-950 a:focus-visible,
+.bg-slate-950 button:focus-visible {
+  outline-color: #93c5fd;
+}
+
+body.bg-slate-900 a:focus-visible,
+body.bg-slate-900 button:focus-visible {
+  outline-color: #93c5fd;
+}
+
+/* Tarjetas reutilizables (clase opt-in) */
+.ui-surface-ring {
+  box-shadow:
+    0 0 0 1px rgb(15 23 42 / 0.06),
+    0 1px 2px rgb(15 23 42 / 0.05),
+    0 8px 24px rgb(15 23 42 / 0.04);
+}
