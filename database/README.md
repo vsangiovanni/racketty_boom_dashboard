@@ -14,7 +14,7 @@ This folder stores SQL references and migration helpers for Greg Tracker.
 
 ## Recent Data Model Highlights
 
-- Transactions support optional `project_id`.
+- Transactions support optional `project_id` (manual entry, AI scan, bulk import, and export filters all respect it).
 - Settings include nullable access code field (`app_pin`) and branding fields.
 - Receipt extraction and review flow writes to dedicated upload/draft tables.
 - Import flow uses staging/metadata tables for batch operations.

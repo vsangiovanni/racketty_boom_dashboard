@@ -27,6 +27,20 @@
       color: var(--ink);
       background: var(--cream);
       line-height: 1.6;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: -15% -10% auto -10%;
+      height: 70vh;
+      pointer-events: none;
+      z-index: -1;
+      background:
+        radial-gradient(circle at 12% 25%, rgba(196, 92, 38, 0.22), transparent 44%),
+        radial-gradient(circle at 82% 18%, rgba(30, 58, 47, 0.22), transparent 48%),
+        linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0));
+      filter: blur(6px);
     }
     .font-display { font-family: 'Fraunces', Georgia, serif; }
     .nav-blur {
@@ -120,6 +134,8 @@
       display: grid;
       align-items: end;
       padding: 5.5rem 1.25rem 3rem;
+      overflow: hidden;
+      --parY: 0px;
     }
     .hero-bg {
       position: absolute;
@@ -127,6 +143,8 @@
       background-size: cover;
       background-position: center;
       z-index: 0;
+      transform: translate3d(0, var(--parY), 0) scale(1.06);
+      will-change: transform;
     }
     .hero-bg::after {
       content: '';
@@ -134,7 +152,33 @@
       inset: 0;
       background: linear-gradient(105deg, rgba(12, 18, 34, 0.9) 0%, rgba(12, 18, 34, 0.5) 48%, rgba(12, 18, 34, 0.3) 100%);
     }
+    .hero-bg::before {
+      content: '';
+      position: absolute;
+      inset: -20% -10% auto -10%;
+      height: 90%;
+      background:
+        radial-gradient(circle at 70% 8%, rgba(196, 92, 38, 0.5), transparent 46%),
+        radial-gradient(circle at 24% 14%, rgba(110, 201, 174, 0.28), transparent 44%);
+      mix-blend-mode: screen;
+      opacity: 0.65;
+      transform: translate3d(0, calc(var(--parY) * 0.35), 0) scale(1.08);
+      will-change: transform;
+    }
     .hero-content { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; width: 100%; }
+    .hero-content::after {
+      content: '';
+      position: absolute;
+      right: clamp(-4rem, -2vw, -1rem);
+      bottom: -5rem;
+      width: clamp(260px, 38vw, 520px);
+      height: clamp(260px, 38vw, 520px);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(196, 92, 38, 0.34) 0%, rgba(196, 92, 38, 0) 68%);
+      pointer-events: none;
+      z-index: -1;
+      filter: blur(2px);
+    }
     .hero-badge {
       display: inline-block;
       font-size: 0.68rem;
@@ -180,8 +224,13 @@
       max-width: 1240px;
       margin: 0 auto;
       padding: 3.5rem 1.25rem;
+      position: relative;
     }
-    .section.alt { background: linear-gradient(180deg, rgba(30, 58, 47, 0.04), transparent); }
+    .section.alt {
+      background:
+        radial-gradient(circle at 86% 6%, rgba(196, 92, 38, 0.07), transparent 42%),
+        linear-gradient(180deg, rgba(30, 58, 47, 0.05), transparent);
+    }
     .section-title {
       font-size: clamp(1.65rem, 3vw, 2.15rem);
       font-weight: 700;
@@ -215,6 +264,17 @@
       padding: 1.15rem 1.25rem;
       border: 1px solid rgba(12, 18, 34, 0.07);
       box-shadow: 0 4px 20px rgba(12, 18, 34, 0.04);
+      transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+    }
+    .svc-card-link {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .svc-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(196, 92, 38, 0.32);
+      box-shadow: 0 16px 30px rgba(12, 18, 34, 0.1);
     }
     .svc-card h3 { margin: 0 0 0.4rem; font-size: 1rem; color: var(--forest); }
     .svc-card p { margin: 0; font-size: 0.88rem; color: var(--muted); }
@@ -231,6 +291,11 @@
       border: 1px solid rgba(12, 18, 34, 0.07);
       position: relative;
       overflow: hidden;
+      transition: transform 0.28s ease, box-shadow 0.28s ease;
+    }
+    .step:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 14px 28px rgba(12, 18, 34, 0.1);
     }
     .step::before {
       content: attr(data-n);
@@ -258,9 +323,11 @@
       overflow: hidden;
       position: relative;
       box-shadow: 0 8px 28px rgba(12, 18, 34, 0.1);
+      transition: transform 0.35s ease, box-shadow 0.35s ease;
     }
     .bento-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.5s ease; }
-    .bento-item:hover img { transform: scale(1.04); }
+    .bento-item:hover { transform: translateY(-4px); box-shadow: 0 18px 38px rgba(12, 18, 34, 0.16); }
+    .bento-item:hover img { transform: scale(1.06); }
     .bento-a { grid-column: span 3; grid-row: span 2; }
     .bento-b { grid-column: span 3; grid-row: span 1; }
     .bento-c { grid-column: span 2; grid-row: span 1; }
@@ -278,7 +345,9 @@
       padding: 1.25rem;
       border: 1px solid rgba(12, 18, 34, 0.07);
       box-shadow: 0 4px 20px rgba(12, 18, 34, 0.04);
+      transition: transform 0.24s ease, box-shadow 0.24s ease;
     }
+    .review-card:hover { transform: translateY(-4px); box-shadow: 0 14px 28px rgba(12, 18, 34, 0.09); }
     .stars { color: #d4a017; font-size: 0.9rem; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
     .review-quote { font-size: 0.88rem; color: var(--ink); margin: 0 0 0.75rem; font-style: italic; }
     .review-meta { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
@@ -313,7 +382,32 @@
       color: #fff;
       padding: 3rem 1.25rem;
       text-align: center;
+      position: relative;
+      overflow: hidden;
     }
+    .cta-band::before,
+    .cta-band::after {
+      content: '';
+      position: absolute;
+      border-radius: 999px;
+      pointer-events: none;
+      opacity: 0.28;
+    }
+    .cta-band::before {
+      width: 360px;
+      height: 360px;
+      right: -120px;
+      top: -140px;
+      background: radial-gradient(circle, rgba(196, 92, 38, 0.75), rgba(196, 92, 38, 0));
+    }
+    .cta-band::after {
+      width: 320px;
+      height: 320px;
+      left: -120px;
+      bottom: -170px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0));
+    }
+    .cta-band-inner { position: relative; z-index: 1; }
     .cta-band-inner { max-width: 720px; margin: 0 auto; }
     .cta-band h2 { margin: 0 0 0.5rem; font-size: 1.75rem; }
     .cta-band p { margin: 0 0 1.25rem; opacity: 0.88; font-size: 0.95rem; }
@@ -350,19 +444,39 @@
       opacity: 0.6;
       line-height: 1.5;
     }
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hero-bg::before,
+      .reveal,
+      .svc-card,
+      .step,
+      .bento-item,
+      .review-card {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+      }
+    }
   </style>
 </head>
 <body>
   <nav class="nav-blur" aria-label="Primary">
     <div class="nav-inner">
       <a class="brand" href="#top" aria-label="Top of page">
-        <img src="/assets/landing/logo.webp" width="348" height="348" alt="Racketty Boom logo">
+        <img src="/assets/landing/logo-transparent.webp" width="348" height="348" alt="Racketty Boom logo">
         <span>Racketty Boom</span>
       </a>
       <div class="nav-anchors">
         <a href="#about">About</a>
         <a href="#services">Services</a>
-        <a href="#quote">Get a quote</a>
         <a href="#work">Our work</a>
         <a href="#reviews">Reviews</a>
         <a href="#faq">FAQ</a>
@@ -370,6 +484,7 @@
       </div>
       <div class="nav-links">
         <a href="/quote.html" class="btn btn-primary">Free quote</a>
+        <a href="/login.html" class="btn btn-ghost-dark">Admin / Team</a>
       </div>
     </div>
   </nav>
@@ -395,7 +510,7 @@
     </div>
   </header>
 
-  <section class="section" id="about" aria-labelledby="about-h">
+  <section class="section reveal" id="about" aria-labelledby="about-h">
     <h2 id="about-h" class="section-title font-display">About us</h2>
     <p class="section-sub">Trusted construction and remodeling in Centralia, WA and the surrounding areas. We combine experience, attention to detail, and clear communication from first estimate to final walkthrough.</p>
     <p style="margin:0; max-width:58ch; color:var(--muted); font-size:0.95rem;">We work closely with homeowners to bring their vision to life while protecting schedule and budget. Whether it is a full renovation, a kitchen or bath, exterior upgrades, or focused repairs, you get craftsmanship you can inspect and a team that respects your home.</p>
@@ -408,65 +523,65 @@
     </div>
   </section>
 
-  <section class="section alt" id="services" aria-labelledby="svc-h">
+  <section class="section alt reveal" id="services" aria-labelledby="svc-h">
     <h2 id="svc-h" class="section-title font-display">Our services</h2>
     <p class="section-sub">Full-service remodeling and construction — everything most homeowners need, in one place.</p>
     <div class="svc-grid">
-      <div class="svc-card">
+      <a class="svc-card svc-card-link" href="/service-Total-Home-Renovation">
         <h3>Total home renovation</h3>
         <p>End-to-end remodeling and construction to transform your entire home into a cohesive, comfortable space.</p>
-      </div>
-      <div class="svc-card">
+      </a>
+      <a class="svc-card svc-card-link" href="/service-Kitchen-Renovation">
         <h3>Kitchen renovation</h3>
         <p>Functional, stylish kitchens with careful planning, durable materials, and meticulous installation.</p>
-      </div>
-      <div class="svc-card">
+      </a>
+      <a class="svc-card svc-card-link" href="/service-Bathroom-Renovation">
         <h3>Bathroom renovation</h3>
         <p>Modernize baths with quality fixtures, waterproofing, tile, and accessibility options where needed.</p>
-      </div>
-      <div class="svc-card">
+      </a>
+      <a class="svc-card svc-card-link" href="/service-Painting-and-Staining">
         <h3>Painting &amp; staining</h3>
         <p>Interior and exterior finishes that protect surfaces and elevate curb appeal and indoor atmosphere.</p>
-      </div>
-      <div class="svc-card">
+      </a>
+      <a class="svc-card svc-card-link" href="/service-Interior-Remodeling">
         <h3>Interior remodeling</h3>
         <p>Room refreshes, layout improvements, and finish upgrades tailored to how you live day to day.</p>
-      </div>
-      <div class="svc-card">
+      </a>
+      <a class="svc-card svc-card-link" href="/service-Deck---Patio-Installation">
         <h3>Deck &amp; patio installation</h3>
         <p>Outdoor living spaces built for safety, drainage, and long life — composite, wood, and railings done right.</p>
-      </div>
-      <div class="svc-card">
+      </a>
+      <a class="svc-card svc-card-link" href="/service-General-Contractor-">
         <h3>General contractor</h3>
         <p>Single point of accountability, coordinated trades, and a schedule you can actually track.</p>
-      </div>
-      <div class="svc-card">
+      </a>
+      <a class="svc-card svc-card-link" href="/service-Flooring">
         <h3>Flooring</h3>
         <p>Quality materials and professional installation to improve comfort, acoustics, and resale value.</p>
-      </div>
-      <div class="svc-card">
+      </a>
+      <a class="svc-card svc-card-link" href="/service-Concrete">
         <h3>Concrete</h3>
         <p>Repairs, flatwork, and new pours for driveways, patios, walkways, and structural needs.</p>
-      </div>
-      <div class="svc-card">
+      </a>
+      <a class="svc-card svc-card-link" href="/service-Masonry">
         <h3>Masonry</h3>
         <p>Brick, stone, and related work for durability, drainage, and lasting curb appeal.</p>
-      </div>
-      <div class="svc-card">
+      </a>
+      <a class="svc-card svc-card-link" href="/service-SheetRock">
         <h3>SheetRock / drywall</h3>
         <p>Installation and repair for smooth walls and ceilings ready for paint and trim.</p>
-      </div>
-      <div class="svc-card">
+      </a>
+      <a class="svc-card svc-card-link" href="/service-Other-Repair-Services">
         <h3>Other repair services</h3>
         <p>Maintenance and smaller repairs that keep your property healthy between larger projects.</p>
-      </div>
+      </a>
     </div>
     <p style="margin-top:1.25rem;">
       <a href="#work" class="btn btn-ghost-dark">Full service list &amp; photo galleries</a>
     </p>
   </section>
 
-  <section class="section" id="quote" aria-labelledby="quote-h">
+  <section class="section reveal" id="quote" aria-labelledby="quote-h">
     <h2 id="quote-h" class="section-title font-display">Ready to get started</h2>
     <p class="section-sub">Getting a quote is simple — same three-step story our customers know, without clutter.</p>
     <div class="steps">
@@ -488,7 +603,7 @@
     </p>
   </section>
 
-  <section class="section alt" id="work" aria-labelledby="work-h">
+  <section class="section alt reveal" id="work" aria-labelledby="work-h">
     <h2 id="work-h" class="section-title font-display">Our best work</h2>
     <p class="section-sub">Real project photography — kitchens, baths, exteriors, decks, and whole-home renovations.</p>
     <div class="bento">
@@ -504,7 +619,7 @@
     </p>
   </section>
 
-  <section class="section" id="reviews" aria-labelledby="rev-h">
+  <section class="section reveal" id="reviews" aria-labelledby="rev-h">
     <h2 id="rev-h" class="section-title font-display">Reviews</h2>
     <p class="section-sub">Highlights from homeowners who hired Racketty Boom for remodels, storm recovery, and full renovations.</p>
     <div class="review-grid">
@@ -542,7 +657,7 @@
     <p style="margin-top:1rem;"><a href="#reviews" class="btn btn-ghost-dark">Read all reviews</a></p>
   </section>
 
-  <section class="section alt" id="faq" aria-labelledby="faq-h">
+  <section class="section alt reveal" id="faq" aria-labelledby="faq-h">
     <h2 id="faq-h" class="section-title font-display">Frequently asked questions</h2>
     <p class="section-sub">Straight answers — aligned with what we publish for new clients.</p>
     <details class="faq-it">
@@ -563,7 +678,7 @@
     </details>
   </section>
 
-  <section class="section" id="contact" aria-labelledby="contact-h">
+  <section class="section reveal" id="contact" aria-labelledby="contact-h">
     <h2 id="contact-h" class="section-title font-display">Service area &amp; hours</h2>
     <p class="section-sub">Proudly serving <strong>Centralia, WA</strong> and surrounding communities. Exact dispatch and emergency availability may vary — confirm on our public site or by message.</p>
     <table class="hours-table" aria-label="Business hours">
@@ -609,10 +724,26 @@
         <ul>
           <li><a href="#services">All services</a></li>
           <li><a href="#quote">Get a quote</a></li>
-          <li>Total renovation · Kitchen · Bath</li>
-          <li>Painting · Interior · Deck/patio</li>
-          <li>GC · Flooring · Concrete</li>
-          <li>Masonry · Drywall · Repairs</li>
+          <li>
+            <a href="/service-Total-Home-Renovation">Total renovation</a> ·
+            <a href="/service-Kitchen-Renovation">Kitchen</a> ·
+            <a href="/service-Bathroom-Renovation">Bath</a>
+          </li>
+          <li>
+            <a href="/service-Painting-and-Staining">Painting</a> ·
+            <a href="/service-Interior-Remodeling">Interior</a> ·
+            <a href="/service-Deck---Patio-Installation">Deck/patio</a>
+          </li>
+          <li>
+            <a href="/service-General-Contractor-">GC</a> ·
+            <a href="/service-Flooring">Flooring</a> ·
+            <a href="/service-Concrete">Concrete</a>
+          </li>
+          <li>
+            <a href="/service-Masonry">Masonry</a> ·
+            <a href="/service-SheetRock">Drywall</a> ·
+            <a href="/service-Other-Repair-Services">Repairs</a>
+          </li>
         </ul>
       </div>
       <div class="footer-col">
@@ -629,6 +760,39 @@
     </p>
   </footer>
 
+  <script>
+    (function () {
+      var hero = document.querySelector('.hero');
+      var revealItems = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
+      var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      if (!prefersReduced && hero) {
+        function updateParallax() {
+          var y = Math.min(window.scrollY * 0.28, 150);
+          hero.style.setProperty('--parY', y.toFixed(2) + 'px');
+        }
+        updateParallax();
+
+        window.addEventListener('scroll', function () {
+          updateParallax();
+        }, { passive: true });
+      }
+
+      if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              io.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+        revealItems.forEach(function (el) { io.observe(el); });
+      } else {
+        revealItems.forEach(function (el) { el.classList.add('is-visible'); });
+      }
+    })();
+  </script>
   <script src="/js/app-shell.js"></script>
 </body>
 </html>

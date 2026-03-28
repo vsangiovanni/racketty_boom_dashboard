@@ -29,7 +29,8 @@ These endpoints power `frontend/project-details.html`.
 
 - `/api/transactions` -> list, create, update, delete, pagination.
 - `/api/transactions/review-confirm` -> creates transaction from reviewed AI draft.
-- `/api/import/preview` and `/api/import/commit` -> Excel import flow.
+- `/api/import/preview` and `/api/import/commit` -> Excel import flow. **Commit** accepts optional `project_id` in the JSON body; all inserted transactions get that `project_id` (or `NULL` if omitted). Duplicate detection includes `project_id` so the same line can exist on different projects.
+- `GET /api/export` -> accountant Excel download. Query: `filter` (`year` | `month` | `all`), `value` (year number or `YYYY-M` for month), optional `project_id` to restrict rows to one project. Filename adds `_project{id}` when a project filter is used.
 - `/api/quote-requests`:
   - `POST /api/quote-requests` -> submit a free estimate request (public).
   - `GET /api/quote-requests` -> list requests for managers/admins.

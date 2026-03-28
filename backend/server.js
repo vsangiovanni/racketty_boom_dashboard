@@ -9,11 +9,15 @@ const xlsx = require('xlsx');
 const mysql = require('mysql2/promise');
 const ExcelImportService = require('./services/excelImportService');
 
-dotenv.config();
+const productionEnvPath = path.resolve(__dirname, '.env.production');
+const defaultEnvPath = path.resolve(__dirname, '.env');
+const selectedEnvPath = fs.existsSync(productionEnvPath) ? productionEnvPath : defaultEnvPath;
+dotenv.config({ path: selectedEnvPath });
 
 const app = express();
 const PORT = Number(process.env.PORT || 4000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || 'uploads';
+const UPLOAD_FS_DIR = path.resolve(process.cwd(), process.env.UPLOAD_FS_DIR || UPLOAD_DIR);
 const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB || 10);
 const APP_BASE_URL = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
 const DEFAULT_COMPANY_NAME = process.env.DEFAULT_COMPANY_NAME || 'Racketty Boom Enterprises';
@@ -30,7 +34,7 @@ const pool = mysql.createPool({
   namedPlaceholders: true
 });
 
-fs.mkdirSync(path.resolve(process.cwd(), UPLOAD_DIR), { recursive: true });
+fs.mkdirSync(UPLOAD_FS_DIR, { recursive: true });
 
 app.use(cors());
 app.use(express.json());
@@ -152,10 +156,13 @@ app.use(async (req, res, next) => {
     req.path === '/' ||
     req.path === '/index.html' ||
     req.path === '/quote.html' ||
+    req.path === '/service.html' ||
     req.path === '/login.html' ||
     req.path === '/help.html' ||
     req.path.startsWith('/js/') ||
     req.path.startsWith('/assets/') ||
+    req.path.startsWith('/data/') ||
+    req.path.startsWith('/service-') ||
     (req.path === '/api/quote-requests' && req.method === 'POST') ||
     req.path === '/api/auth' ||
     req.path === '/api/auth/options' ||
@@ -208,12 +215,17 @@ app.use(async (req, res, next) => {
   return res.redirect('/login.html');
 });
 
+// Public service pages (mirror official /service-* routes locally).
+app.get(/^\/service-/, (_req, res) => {
+  return res.sendFile(path.join(__dirname, '../frontend/service.html'));
+});
+
 app.use(express.static(path.join(__dirname, '../frontend')));
-app.use(`/${UPLOAD_DIR}`, express.static(path.resolve(process.cwd(), UPLOAD_DIR)));
+app.use(`/${UPLOAD_DIR}`, express.static(UPLOAD_FS_DIR));
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, path.resolve(process.cwd(), UPLOAD_DIR));
+    cb(null, UPLOAD_FS_DIR);
   },
   filename: (_req, file, cb) => {
     const safeOriginal = file.originalname.replace(/\s+/g, '_');
@@ -1488,40 +1500,48 @@ app.get('/api/projects/:id/transactions', async (req, res) => {
 
 app.get('/api/projects/:id/breakdown', async (req, res) => {
   try {
-    const projectId = req.params.id;
+    const projectId = Number(req.params.id);
+    if (!Number.isFinite(projectId) || projectId <= 0) {
+      return res.status(400).json({ error: 'Invalid project id' });
+    }
     const limit = Math.min(Math.max(Number(req.query.limit || 6), 1), 25);
+
+    // MariaDB: no usar alias de agregados en WHERE exterior (error "Reference 'income' not supported").
+    // HAVING / ORDER BY con las mismas expresiones SUM que en SELECT.
+    const sumIncome = 'COALESCE(SUM(CASE WHEN t.type = \'Income\' THEN t.amount ELSE 0 END), 0)';
+    const sumExpense = 'COALESCE(SUM(CASE WHEN t.type = \'Expense\' THEN t.amount ELSE 0 END), 0)';
 
     const [cats] = await pool.query(
       `
       SELECT
         COALESCE(c.name, 'General') AS category,
-        COALESCE(SUM(CASE WHEN t.type = 'Income' THEN t.amount ELSE 0 END), 0) AS income,
-        COALESCE(SUM(CASE WHEN t.type = 'Expense' THEN t.amount ELSE 0 END), 0) AS expenses
+        ${sumIncome} AS income,
+        ${sumExpense} AS expenses
       FROM transactions t
       LEFT JOIN categories c ON c.id = t.category_id
-      WHERE t.project_id = :projectId
+      WHERE t.project_id = ?
       GROUP BY COALESCE(c.name, 'General')
-      HAVING income <> 0 OR expenses <> 0
-      ORDER BY (income + expenses) DESC
-      LIMIT :limit
+      HAVING (${sumIncome}) <> 0 OR (${sumExpense}) <> 0
+      ORDER BY (${sumIncome} + ${sumExpense}) DESC
+      LIMIT ?
       `,
-      { projectId, limit }
+      [projectId, limit]
     );
 
     const [vendors] = await pool.query(
       `
       SELECT
         t.vendor AS vendor,
-        COALESCE(SUM(CASE WHEN t.type = 'Income' THEN t.amount ELSE 0 END), 0) AS income,
-        COALESCE(SUM(CASE WHEN t.type = 'Expense' THEN t.amount ELSE 0 END), 0) AS expenses
+        ${sumIncome} AS income,
+        ${sumExpense} AS expenses
       FROM transactions t
-      WHERE t.project_id = :projectId
+      WHERE t.project_id = ?
       GROUP BY t.vendor
-      HAVING income <> 0 OR expenses <> 0
-      ORDER BY (income + expenses) DESC
-      LIMIT :limit
+      HAVING (${sumIncome}) <> 0 OR (${sumExpense}) <> 0
+      ORDER BY (${sumIncome} + ${sumExpense}) DESC
+      LIMIT ?
       `,
-      { projectId, limit }
+      [projectId, limit]
     );
 
     return res.json({ categories: cats, vendors });
@@ -2528,11 +2548,23 @@ app.get('/api/cleanup', async (req, res) => {
 });
 
 app.post('/api/import/commit', async (req, res) => {
-  const connection = await pool.getConnection();
   try {
-    const { filename, rows } = req.body;
+    const { filename, rows, project_id: projectIdRaw } = req.body;
     if (!rows || !rows.length) return res.status(400).json({ error: 'No rows to import.' });
 
+    let resolvedProjectId = null;
+    if (projectIdRaw !== undefined && projectIdRaw !== null && String(projectIdRaw).trim() !== '') {
+      const n = Number(projectIdRaw);
+      if (!Number.isFinite(n) || n <= 0) {
+        return res.status(400).json({ error: 'Invalid project_id.' });
+      }
+      const [prows] = await pool.query('SELECT id FROM projects WHERE id = ? LIMIT 1', [n]);
+      if (!prows.length) return res.status(400).json({ error: 'Project not found.' });
+      resolvedProjectId = n;
+    }
+
+    const connection = await pool.getConnection();
+    try {
     await connection.beginTransaction();
 
     const [batchResult] = await connection.query(
@@ -2555,8 +2587,17 @@ app.post('/api/import/commit', async (req, res) => {
       if (!row.date || !row.vendor) { skipped++; continue; }
 
       const [dups] = await connection.query(
-        'SELECT id FROM transactions WHERE vendor = :vendor AND transaction_date = :date AND ABS(amount - :amount) < 0.01 AND type = :type LIMIT 1',
-        { vendor: row.vendor, date: row.date.slice(0, 10), amount: row.total || 0, type: row.type }
+        `SELECT id FROM transactions
+         WHERE vendor = :vendor AND transaction_date = :date AND ABS(amount - :amount) < 0.01 AND type = :type
+           AND (project_id <=> :projectId)
+         LIMIT 1`,
+        {
+          vendor: row.vendor,
+          date: row.date.slice(0, 10),
+          amount: row.total || 0,
+          type: row.type,
+          projectId: resolvedProjectId
+        }
       );
       
       if (dups.length > 0) {
@@ -2573,12 +2614,13 @@ app.post('/api/import/commit', async (req, res) => {
 
       const [txResult] = await connection.query(
         `INSERT INTO transactions
-         (import_batch_id, source_row_number, category_id, vendor, invoice_number, items, transaction_date, subtotal, sales_tax_paid, sales_tax_owed, amount, type, notes, review_status)
-         VALUES (:batchId, :source_row_number, :categoryId, :vendor, :invoice_number, :items, :transaction_date, :subtotal, :sales_tax_paid, :sales_tax_owed, :amount, :type, :notes, :review_status)`,
+         (import_batch_id, source_row_number, category_id, project_id, vendor, invoice_number, items, transaction_date, subtotal, sales_tax_paid, sales_tax_owed, amount, type, notes, review_status)
+         VALUES (:batchId, :source_row_number, :categoryId, :projectId, :vendor, :invoice_number, :items, :transaction_date, :subtotal, :sales_tax_paid, :sales_tax_owed, :amount, :type, :notes, :review_status)`,
         {
           batchId,
           source_row_number: row.source_row_number,
           categoryId,
+          projectId: resolvedProjectId,
           vendor: row.vendor,
           invoice_number: row.invoice_number || null,
           items: row.items || null,
@@ -2612,13 +2654,16 @@ app.post('/api/import/commit', async (req, res) => {
     );
 
     await connection.commit();
-    res.json({ success: true, batchId, inserted, skipped });
+    res.json({ success: true, batchId, inserted, skipped, project_id: resolvedProjectId });
+    } catch (innerErr) {
+      await connection.rollback();
+      throw innerErr;
+    } finally {
+      connection.release();
+    }
   } catch (error) {
-    await connection.rollback();
     console.error('Commit error:', error);
     res.status(500).json({ error: 'Failed to commit import.' });
-  } finally {
-    connection.release();
   }
 });
 
@@ -2899,6 +2944,22 @@ app.get('/api/export', async (req, res) => {
       sheetTitle = 'Racketty Boom Enterprises  All Time';
     }
 
+    let projectFilterSql = '';
+    let exportProjectId = null;
+    const projectIdRaw = req.query.project_id;
+    if (
+      projectIdRaw != null &&
+      String(projectIdRaw).trim() !== '' &&
+      String(projectIdRaw).toLowerCase() !== 'all'
+    ) {
+      const pid = Number(projectIdRaw);
+      if (Number.isFinite(pid) && pid > 0) {
+        projectFilterSql = ' AND t.project_id = ?';
+        sqlParams = sqlParams.concat([pid]);
+        exportProjectId = pid;
+      }
+    }
+
     const [rows] = await pool.query(`
       SELECT 
         DATE_FORMAT(t.transaction_date, '%m/%d/%Y') AS date,
@@ -2913,7 +2974,7 @@ app.get('/api/export', async (req, res) => {
         t.items,
         t.notes
       FROM transactions t
-      WHERE ${dateFilterSql}
+      WHERE ${dateFilterSql}${projectFilterSql}
       ORDER BY t.transaction_date ASC, t.id ASC
     `, sqlParams);
 
@@ -3000,8 +3061,12 @@ app.get('/api/export', async (req, res) => {
     sheet.getColumn(10).width = 30; // Notes
 
     const buffer = await workbook.xlsx.writeBuffer();
-    
-    res.setHeader('Content-Disposition', `attachment; filename="RackettyBoom_Accountant_${filterValue}.xlsx"`);
+
+    const fileSuffix = exportProjectId ? `_project${exportProjectId}` : '';
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="RackettyBoom_Accountant_${filterValue}${fileSuffix}.xlsx"`
+    );
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.send(buffer);
   } catch (error) {
@@ -3061,15 +3126,16 @@ app.use((err, _req, res, _next) => {
   return res.status(500).json({ error: 'Unknown server error.' });
 });
 
+app.listen(PORT, () => {
+  console.log(`Greg Tracker backend running on http://localhost:${PORT}`);
+});
+
 (async () => {
   try {
     await ensureSchema();
     await reloadSettings();
-    app.listen(PORT, () => {
-      console.log(`Greg Tracker backend running on http://localhost:${PORT}`);
-    });
+    console.log('Backend schema and settings initialized.');
   } catch (error) {
-    console.error('Failed to initialize backend:', error);
-    process.exit(1);
+    console.error('Failed to initialize backend resources:', error);
   }
 })();

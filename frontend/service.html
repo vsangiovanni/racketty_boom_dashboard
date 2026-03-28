@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Racketty Boom Services — Free Quote</title>
+  <meta name="description" content="Request a free estimate for your remodeling or construction project in Centralia, WA.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --ink:#0c1222; --muted:#5c6578; --cream:#f6f3ee; --paper:#fffffe;
+      --accent:#c45c26; --accent-dark:#9a4218; --forest:#1e3a2f; --forest-light:#2d4a3e;
+    }
+    *{ box-sizing:border-box; }
+    html{ scroll-behavior:smooth; }
+    body{
+      margin:0;
+      font-family:'DM Sans',system-ui,sans-serif;
+      color:var(--ink);
+      background:var(--cream);
+      line-height:1.6;
+      overflow-x:hidden;
+    }
+    .font-display{ font-family:'Fraunces',Georgia,serif; }
+    .nav-blur{
+      position:fixed; top:0; left:0; right:0; z-index:50;
+      background:rgba(246,243,238,.88);
+      backdrop-filter:blur(14px);
+      border-bottom:1px solid rgba(12,18,34,.06);
+    }
+    .nav-inner{
+      max-width:1240px; margin:0 auto; padding:.75rem 1.25rem;
+      display:flex; align-items:center; justify-content:space-between; gap:.75rem; flex-wrap:wrap;
+    }
+    .brand{ display:flex; align-items:center; gap:.65rem; text-decoration:none; color:inherit; }
+    .brand img{ height:44px; width:auto; display:block; }
+    .nav-links{ display:flex; align-items:center; gap:.5rem; }
+    .nav-anchors{ display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:.15rem .1rem; flex:1; min-width:min(100%,420px); }
+    .nav-anchors a{
+      text-decoration:none; color:var(--muted); font-size:.78rem; font-weight:600;
+      padding:.4rem .55rem; border-radius:.4rem; white-space:nowrap;
+    }
+    .nav-anchors a:hover{ color:var(--forest); background:rgba(30,58,47,.07); }
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center; gap:.4rem;
+      padding:.65rem 1.1rem; border-radius:.65rem; font-weight:700; font-size:.82rem;
+      text-decoration:none; border:none; cursor:pointer;
+      transition:transform .15s, box-shadow .15s, background .15s;
+      white-space:nowrap;
+    }
+    .btn:active{ transform:scale(.98); }
+    .btn-primary{
+      background:linear-gradient(135deg,var(--accent) 0%,var(--accent-dark) 100%);
+      color:#fff; box-shadow:0 4px 20px rgba(196,92,38,.35);
+    }
+    .btn-primary:hover{ box-shadow:0 6px 28px rgba(196,92,38,.45); }
+    .btn-ghost-dark{
+      background:transparent; color:var(--forest);
+      border:1.5px solid rgba(30,58,47,.28);
+    }
+    .btn-ghost-dark:hover{ background:rgba(30,58,47,.06); }
+
+    .page{ padding:6.5rem 1.25rem 3rem; max-width:1240px; margin:0 auto; }
+    .hero{
+      border-radius:1.2rem;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(196,92,38,.18), transparent 45%),
+        radial-gradient(circle at 85% 15%, rgba(45,74,62,.16), transparent 50%),
+        linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,255,255,.35));
+      border:1px solid rgba(12,18,34,.06);
+      box-shadow:0 12px 40px rgba(12,18,34,.06);
+      padding:2.2rem 1.8rem;
+      overflow:hidden;
+      position:relative;
+    }
+    .hero h1{ margin:.1rem 0 .75rem; font-size:clamp(1.6rem,3vw,2.2rem); font-weight:800; color:var(--forest); }
+    .hero p{ margin:0 0 .85rem; color:var(--muted); max-width:75ch; font-size:.98rem; }
+    .content{ display:grid; grid-template-columns: 1fr; gap:1.2rem; margin-top:1.4rem; }
+    .card{
+      background:var(--paper);
+      border:1px solid rgba(12,18,34,.07);
+      border-radius:1rem;
+      padding:1.3rem 1.2rem;
+      box-shadow:0 4px 20px rgba(12,18,34,.04);
+    }
+    .card h2{ margin:0 0 .7rem; font-size:1.1rem; color:var(--forest); }
+    .card p{ margin:.65rem 0; color:var(--muted); font-size:.95rem; }
+    .reviews{ display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:1rem; }
+    .gallery{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+      gap:.85rem;
+    }
+    .gallery-item{
+      border-radius:.85rem;
+      overflow:hidden;
+      border:1px solid rgba(12,18,34,.08);
+      box-shadow:0 6px 18px rgba(12,18,34,.06);
+      background:#fff;
+      aspect-ratio:1/1;
+    }
+    .gallery-item img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+      transition:transform .35s ease;
+    }
+    .gallery-item:hover img{ transform:scale(1.05); }
+    .review-card{
+      background:var(--paper);
+      border:1px solid rgba(12,18,34,.07);
+      border-radius:1rem;
+      padding:1.25rem;
+      box-shadow:0 4px 20px rgba(12,18,34,.04);
+    }
+    .stars{ color:#d4a017; font-size:.9rem; letter-spacing:.05em; margin-bottom:.5rem; }
+    .review-quote{ font-size:.88rem; color:var(--ink); margin:0 0 .75rem; font-style:italic; }
+    .review-meta{ font-size:.78rem; color:var(--muted); font-weight:600; }
+    footer{
+      background:#152822; color:rgba(255,255,255,.86);
+      padding:2.75rem 1.25rem 2rem;
+      margin-top:2rem;
+    }
+    .footer-cols{
+      max-width:1240px; margin:0 auto;
+      display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:2rem;
+    }
+    .footer-col h3{
+      font-size:.72rem; text-transform:uppercase; letter-spacing:.1em; opacity:.75; margin:0 0 .75rem;
+    }
+    .footer-col ul{ list-style:none; margin:0; padding:0; }
+    .footer-col li{ margin-bottom:.35rem; }
+    .footer-col a{ color:#fff; text-decoration:none; font-size:.86rem; font-weight:500; }
+    .footer-col a:hover{ text-decoration:underline; text-underline-offset:3px; }
+    .fine-print{
+      max-width:1240px; margin:2rem auto 0; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,.1);
+      font-size:.72rem; opacity:.6; line-height:1.5;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav-blur" aria-label="Primary">
+    <div class="nav-inner">
+      <a class="brand" href="/" aria-label="Home">
+        <img src="/assets/landing/logo-transparent.webp" width="348" height="348" alt="Racketty Boom logo">
+        <span style="font-weight:700;font-size:.92rem;letter-spacing:-.02em;">Racketty Boom</span>
+      </a>
+      <div class="nav-anchors">
+        <a href="/">Home</a>
+        <a href="/#services">Services</a>
+        <a href="/#reviews">Reviews</a>
+      </div>
+      <div class="nav-links">
+        <a href="/quote.html" class="btn btn-primary">Get a free quote</a>
+        <a href="/login.html" class="btn btn-ghost-dark">Admin / Team</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="page">
+    <section class="hero">
+      <div class="font-display" id="service-badge" style="letter-spacing:.14em;text-transform:uppercase;font-size:.68rem;color:rgba(30,58,47,.7);font-weight:800;">
+        Service
+      </div>
+      <h1 id="service-title">Loading…</h1>
+      <p id="service-lead"> </p>
+      <div style="display:flex; flex-wrap:wrap; gap:.7rem; align-items:center; margin-top:.9rem;">
+        <a href="/quote.html" class="btn btn-primary">Request a free estimate</a>
+        <a href="/#work" class="btn btn-ghost-dark">See our work</a>
+      </div>
+    </section>
+
+    <section class="content">
+      <div class="card">
+        <h2>Why homeowners book this service</h2>
+        <div id="service-body"></div>
+      </div>
+
+      <div class="card">
+        <h2>Project photos for this service</h2>
+        <div class="gallery" id="service-gallery"></div>
+      </div>
+
+      <div class="card">
+        <h2>Customer reviews</h2>
+        <div class="reviews" id="service-reviews"></div>
+        <p style="margin:.85rem 0 0; color:var(--muted); font-size:.9rem;">
+          Want to see more? Continue from our landing page reviews section.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-cols">
+      <div class="footer-col">
+        <h3>Company</h3>
+        <ul>
+          <li><a href="/">Home</a></li>
+          <li><a href="/#work">Our work</a></li>
+          <li><a href="/#reviews">Reviews</a></li>
+          <li><a href="/quote.html">Get a free quote</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3>Services</h3>
+        <ul>
+          <li><a href="/#services">Service overview</a></li>
+          <li><a href="/quote.html">Request an estimate</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3>Service area</h3>
+        <ul>
+          <li>Centralia, WA &amp; surrounding communities</li>
+          <li>Mon–Sat 8:00am–6:00pm</li>
+          <li>Sunday: Closed</li>
+        </ul>
+      </div>
+    </div>
+    <p class="fine-print">
+      Project photos and assets on this page are bundled for fast loading. For scheduling, SMS, and phone options, continue with our internal quote form.
+    </p>
+  </footer>
+
+  <script src="/js/service-router.js"></script>
+</body>
+</html>
+

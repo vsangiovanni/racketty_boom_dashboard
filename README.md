@@ -9,6 +9,8 @@ It combines manual data entry, AI-assisted receipt extraction, and Excel import/
 - Dedicated project details screen at `frontend/project-details.html` (no modal).
 - Client lead-capture: `frontend/quote.html` replaces outbound “Free quote” links and submits requests to the internal app.
 - Dashboard lead inbox: managers/admin can see and update submitted quote requests.
+- **Export Excel report** (`frontend/export-report.html`): choose time period and optional project before downloading the accountant workbook (`GET /api/export` with `filter`, `value`, optional `project_id`).
+- **Bulk Excel import** (`frontend/import.html`): assign all imported rows to a project (or leave unassigned); `POST /api/import/commit` accepts optional `project_id`.
 - Project analytics endpoints:
   - `GET /api/projects/:id/stats`
   - `GET /api/projects/:id/transactions`
@@ -25,10 +27,11 @@ It combines manual data entry, AI-assisted receipt extraction, and Excel import/
 3. Add records using:
    - `add-record.html` (manual entry/edit)
    - `upload.html` (AI receipt extraction + review)
-   - `import.html` (Excel preview + commit)
-4. Manage projects in `projects.html` and open project analytics in `project-details.html` (including AI insights and recommendations).
-5. Update company profile and access code in `settings.html`.
-6. Open context-aware help from any screen via `help.html?page=...`.
+   - `import.html` (Excel preview + commit; pick target project before importing)
+4. Export the accountant Excel file from `export-report.html` (period + optional project), or jump there from the dashboard **Export** action.
+5. Manage projects in `projects.html` and open project analytics in `project-details.html` (including AI insights and recommendations).
+6. Update company profile and access code in `settings.html`.
+7. Open context-aware help from any screen via `help.html?page=...` (includes **export-excel** for the export screen).
 
 ## Architecture
 

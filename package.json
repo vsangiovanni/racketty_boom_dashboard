@@ -1,9 +1,13 @@
 {
   "name": "greg-tracker-deploy-root",
   "private": true,
+  "main": "backend/server.js",
+  "engines": {
+    "node": "18.x"
+  },
   "scripts": {
-    "postinstall": "npm --prefix backend install",
-    "start": "npm --prefix backend start",
-    "dev": "npm --prefix backend run dev"
+    "postinstall": "cd backend && npm install",
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js"
   }
 }

@@ -1,5 +1,17 @@
-const CACHE_NAME = 'gregtracker-v9';
-const ASSETS = ['./', './index.html', './quote.html', './dashboard.html', './manifest.webmanifest', './icon.svg'];
+const CACHE_NAME = 'gregtracker-v22';
+const ASSETS = [
+  './',
+  './index.html',
+  './quote.html',
+  './dashboard.html',
+  './export-report.html',
+  './service.html',
+  './manifest.webmanifest',
+  './icon.svg',
+  './assets/landing/logo-transparent.webp',
+  './data/service-content.json',
+  './js/service-router.js'
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));

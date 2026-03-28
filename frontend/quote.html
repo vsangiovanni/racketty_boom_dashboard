@@ -25,6 +25,59 @@
       color: var(--ink);
       background: var(--cream);
       line-height: 1.6;
+      overflow-x: hidden;
+      --scrollShift: 0px;
+    }
+    .quote-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+      background: #0f1d19;
+    }
+    .quote-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 15%, rgba(196, 92, 38, 0.26), transparent 42%),
+        radial-gradient(circle at 85% 10%, rgba(52, 88, 74, 0.35), transparent 45%),
+        linear-gradient(180deg, rgba(10, 20, 17, 0.75), rgba(10, 20, 17, 0.86));
+    }
+    .quote-bg-grid {
+      position: absolute;
+      inset: -7%;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 0.65rem;
+      transform: translate3d(0, calc(var(--scrollShift) * 0.16), 0) scale(1.04);
+      will-change: transform;
+    }
+    .quote-bg-tile {
+      border-radius: 0.8rem;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+      transform: translateY(var(--floatOffset, 0px));
+      animation: quoteFloat var(--dur, 9s) ease-in-out infinite alternate;
+    }
+    .quote-bg-tile img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      filter: saturate(1.08) contrast(1.03);
+    }
+    @keyframes quoteFloat {
+      from { transform: translateY(calc(var(--floatOffset, 0px) - 9px)); }
+      to { transform: translateY(calc(var(--floatOffset, 0px) + 9px)); }
+    }
+    @media (max-width: 900px) {
+      .quote-bg-grid { grid-template-columns: repeat(3, minmax(130px, 1fr)); }
+    }
+    @media (max-width: 620px) {
+      .quote-bg-grid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
     }
     .font-display { font-family: 'Fraunces', Georgia, serif; }
     .nav-blur {
@@ -87,13 +140,16 @@
       padding: 7.5rem 1.25rem 3rem;
       max-width: 920px;
       margin: 0 auto;
+      position: relative;
+      z-index: 2;
     }
     .card {
-      background: var(--paper);
+      background: rgba(255, 255, 254, 0.93);
       border-radius: 1.1rem;
       padding: 1.6rem 1.35rem;
       border: 1px solid rgba(12, 18, 34, 0.07);
       box-shadow: 0 10px 30px rgba(12, 18, 34, 0.04);
+      backdrop-filter: blur(6px);
     }
     h1 {
       margin: 0 0 0.35rem;
@@ -164,10 +220,27 @@
   </style>
 </head>
 <body>
+  <div class="quote-bg" aria-hidden="true">
+    <div class="quote-bg-grid">
+      <div class="quote-bg-tile" style="--dur:8.5s;--floatOffset:-6px;"><img src="/assets/services/service-Kitchen-Renovation/01.png" alt=""></div>
+      <div class="quote-bg-tile" style="--dur:10.2s;--floatOffset:4px;"><img src="/assets/services/service-Bathroom-Renovation/03.jpeg" alt=""></div>
+      <div class="quote-bg-tile" style="--dur:9.3s;--floatOffset:-3px;"><img src="/assets/services/service-Interior-Remodeling/02.png" alt=""></div>
+      <div class="quote-bg-tile" style="--dur:11.1s;--floatOffset:7px;"><img src="/assets/services/service-Concrete/02.jpeg" alt=""></div>
+      <div class="quote-bg-tile" style="--dur:9.8s;--floatOffset:-8px;"><img src="/assets/services/service-Deck---Patio-Installation/03.jpeg" alt=""></div>
+      <div class="quote-bg-tile" style="--dur:8.9s;--floatOffset:2px;"><img src="/assets/services/service-Flooring/01.png" alt=""></div>
+      <div class="quote-bg-tile" style="--dur:10.7s;--floatOffset:5px;"><img src="/assets/services/service-Masonry/01.jpeg" alt=""></div>
+      <div class="quote-bg-tile" style="--dur:9.5s;--floatOffset:-4px;"><img src="/assets/services/service-Total-Home-Renovation/02.png" alt=""></div>
+      <div class="quote-bg-tile" style="--dur:10s;--floatOffset:6px;"><img src="/assets/services/service-General-Contractor-/02.jpg" alt=""></div>
+      <div class="quote-bg-tile" style="--dur:8.4s;--floatOffset:-7px;"><img src="/assets/services/service-Other-Repair-Services/03.jpg" alt=""></div>
+      <div class="quote-bg-tile" style="--dur:11.4s;--floatOffset:3px;"><img src="/assets/services/service-SheetRock/04.jpeg" alt=""></div>
+      <div class="quote-bg-tile" style="--dur:9.1s;--floatOffset:-5px;"><img src="/assets/services/service-Painting-and-Staining/04.jpeg" alt=""></div>
+    </div>
+  </div>
+
   <nav class="nav-blur" aria-label="Primary">
     <div class="nav-inner">
       <a class="brand" href="/" aria-label="Go to home">
-        <img src="/assets/landing/logo.webp" width="348" height="348" alt="Racketty Boom logo">
+        <img src="/assets/landing/logo-transparent.webp" width="348" height="348" alt="Racketty Boom logo">
         <span>Racketty Boom</span>
       </a>
       <div style="display:flex; gap:0.6rem; align-items:center;">
@@ -300,6 +373,14 @@
             setStatus('Network error. Please try again.', true);
           });
       });
+
+      var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!prefersReduced) {
+        window.addEventListener('scroll', function () {
+          var y = Math.min(window.scrollY * 0.35, 180);
+          document.body.style.setProperty('--scrollShift', y.toFixed(2) + 'px');
+        }, { passive: true });
+      }
     })();
   </script>
 </body>

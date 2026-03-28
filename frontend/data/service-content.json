@@ -1,0 +1,539 @@
+{
+  "default": {
+    "seoTitle": "Racketty Boom — Free Quote",
+    "title": "Service",
+    "lead": "Request a free estimate and we will follow up with clear next steps.",
+    "paragraphs": [
+      "Tell us what you are planning and we will help you choose the right scope and timeline for your project."
+    ],
+    "reviews": []
+  },
+  "service-Concrete": {
+    "seoTitle": "Concrete | Racketty Boom — Free Quote",
+    "title": "Concrete",
+    "lead": "Reliable concrete repairs and installations, done right for long-lasting results.",
+    "paragraphs": [
+      "Our Concrete service offers professional and reliable solutions for your concrete needs—whether it is repairing a cracked driveway or installing a new patio.",
+      "We use proven equipment and quality control practices, and we tailor each job to your specific project needs—foundation pouring, concrete repairs, and installations included.",
+      "Book a free quote and we will walk you through scope, timing, and budget so there are no surprises along the way."
+    ],
+    "reviews": [
+      {
+        "quote": "Estimates were spot on and the job was done on time and on budget.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Professional, careful work with clear communication from start to finish.",
+        "meta": "Homeowner · Yelp"
+      },
+      {
+        "quote": "Very responsive and respectful of our space during the entire project.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Work completed efficiently with quality you can see.",
+        "meta": "Homeowner · Facebook"
+      },
+      {
+        "quote": "Options were explained clearly—helping us make confident decisions.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Friendly team, great craftsmanship, and no surprises with the bid.",
+        "meta": "Homeowner · Yelp"
+      }
+    ],
+    "images": [
+      "/assets/services/service-Concrete/01.jpeg",
+      "/assets/services/service-Concrete/02.jpeg",
+      "/assets/services/service-Concrete/03.jpeg",
+      "/assets/services/service-Concrete/04.jpeg",
+      "/assets/services/service-Concrete/05.jpeg",
+      "/assets/services/service-Concrete/06.jpeg"
+    ]
+  },
+  "service-Kitchen-Renovation": {
+    "seoTitle": "Kitchen Renovation | Racketty Boom — Free Quote",
+    "title": "Kitchen Renovation",
+    "lead": "Transform your kitchen into a functional, stylish space built to last.",
+    "paragraphs": [
+      "Our Kitchen Renovation service offers homeowners a comprehensive solution for turning kitchens into functional, stylish spaces with expert craftsmanship and attention to detail.",
+      "From countertops and cabinets to appliances and lighting, we manage the renovation process end-to-end—planning, sourcing, scheduling, and clean completion.",
+      "Book your free quote today and we will help you bring your vision to life with a clear scope and timeline."
+    ],
+    "reviews": [
+      {
+        "quote": "They were on time, very detail oriented, and estimates were spot on—no surprises.",
+        "meta": "Bathroom & remodeling · Google"
+      },
+      {
+        "quote": "A great experience with professional communication throughout the project.",
+        "meta": "Renovation · Yelp"
+      },
+      {
+        "quote": "High-quality work and helpful options when decisions came up.",
+        "meta": "Kitchen improvement · Google"
+      },
+      {
+        "quote": "Completed in the time frame and dollars provided—exactly as discussed.",
+        "meta": "Homeowner · Facebook"
+      },
+      {
+        "quote": "Careful, respectful, and organized from start to finish.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "We would recommend them again and again.",
+        "meta": "Homeowner · Yelp"
+      }
+    ],
+    "images": [
+      "/assets/services/service-Kitchen-Renovation/01.png",
+      "/assets/services/service-Kitchen-Renovation/02.png",
+      "/assets/services/service-Kitchen-Renovation/03.png",
+      "/assets/services/service-Kitchen-Renovation/04.png",
+      "/assets/services/service-Kitchen-Renovation/05.png",
+      "/assets/services/service-Kitchen-Renovation/06.jpeg"
+    ]
+  },
+  "service-Bathroom-Renovation": {
+    "seoTitle": "Bathroom Renovation | Racketty Boom — Free Quote",
+    "title": "Bathroom Renovation",
+    "lead": "Modernize your bathroom with skilled craftsmanship and thoughtful planning.",
+    "paragraphs": [
+      "Transform your outdated bathroom into a modern sanctuary with top-quality materials and skilled craftsmanship tailored to your vision.",
+      "We manage every step—from demolition to installation—so the end result feels solid, clean, and built to last.",
+      "When you request a free quote, we evaluate your scope and provide clear next steps with no upfront obligation."
+    ],
+    "reviews": [
+      {
+        "quote": "Immediately upon inquiry, they came over and gave an honest estimate and timeline.",
+        "meta": "Bathroom renovation · Google"
+      },
+      {
+        "quote": "On-time, careful work and detail oriented results at the end.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Professional team that stayed in constant contact as the schedule got closer.",
+        "meta": "Remodel · Yelp"
+      },
+      {
+        "quote": "Quality craftsmanship even on small details.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Completed within the time frame and the $ amount provided.",
+        "meta": "Homeowner · Facebook"
+      },
+      {
+        "quote": "We appreciated the input and options throughout the project.",
+        "meta": "Homeowner · Google"
+      }
+    ],
+    "images": [
+      "/assets/services/service-Bathroom-Renovation/01.png",
+      "/assets/services/service-Bathroom-Renovation/02.png",
+      "/assets/services/service-Bathroom-Renovation/03.jpeg",
+      "/assets/services/service-Bathroom-Renovation/04.jpeg",
+      "/assets/services/service-Bathroom-Renovation/05.jpeg",
+      "/assets/services/service-Bathroom-Renovation/06.jpeg"
+    ]
+  },
+  "service-Interior-Remodeling": {
+    "seoTitle": "Interior Remodeling | Racketty Boom — Free Quote",
+    "title": "Interior Remodeling",
+    "lead": "Refresh your home with modern design, better functionality, and lasting results.",
+    "paragraphs": [
+      "Interior remodeling is the perfect solution if you want a fresh look without breaking the bank—whether you are upgrading a room, improving a layout, or updating finishes.",
+      "We bring design knowledge, access to quality materials, and professional installation—so you get durable, long-lasting results.",
+      "Request a free quote and we will guide you through decisions with clear communication and reliable scheduling."
+    ],
+    "reviews": [
+      {
+        "quote": "Excellent quality work—jobs were done on time and on budget.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Responsive communication and attention to detail were consistent throughout.",
+        "meta": "Homeowner · Yelp"
+      },
+      {
+        "quote": "They gave clear estimates and offered options to reduce cost.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Professional, organized team and careful respect for our space.",
+        "meta": "Homeowner · Facebook"
+      },
+      {
+        "quote": "Great outcomes with modern upgrades and solid craftsmanship.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Highly recommend their interior remodeling services.",
+        "meta": "Homeowner · Yelp"
+      }
+    ],
+    "images": [
+      "/assets/services/service-Interior-Remodeling/01.png",
+      "/assets/services/service-Interior-Remodeling/02.png",
+      "/assets/services/service-Interior-Remodeling/03.jpeg",
+      "/assets/services/service-Interior-Remodeling/04.jpeg",
+      "/assets/services/service-Interior-Remodeling/05.jpeg",
+      "/assets/services/service-Interior-Remodeling/06.jpeg"
+    ]
+  },
+  "service-Painting-and-Staining": {
+    "seoTitle": "Painting and Staining | Racketty Boom — Free Quote",
+    "title": "Painting & Staining",
+    "lead": "Fresh paint and stain that protects surfaces and boosts curb appeal.",
+    "paragraphs": [
+      "Our Painting & Staining service helps homeowners enhance their home’s interiors and exteriors with skilled application and dependable results.",
+      "We use high-quality paints and stains and focus on preparation, coverage, and finish quality so your surfaces look great and hold up over time.",
+      "Request a free quote and we will help you choose the right approach for your project."
+    ],
+    "reviews": [
+      {
+        "quote": "They cared about every inch of detail and delivered a clean, professional finish.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Quality materials, great communication, and reliable scheduling.",
+        "meta": "Homeowner · Yelp"
+      },
+      {
+        "quote": "The results look impressive and the work was done efficiently.",
+        "meta": "Homeowner · Facebook"
+      },
+      {
+        "quote": "No surprise costs—clear estimates and honest numbers.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Professional team and respectful of the home during the project.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "We would recommend them for future projects.",
+        "meta": "Homeowner · Yelp"
+      }
+    ],
+    "images": [
+      "/assets/services/service-Painting-and-Staining/01.png",
+      "/assets/services/service-Painting-and-Staining/02.png",
+      "/assets/services/service-Painting-and-Staining/03.jpeg",
+      "/assets/services/service-Painting-and-Staining/04.jpeg",
+      "/assets/services/service-Painting-and-Staining/05.jpeg",
+      "/assets/services/service-Painting-and-Staining/06.jpeg"
+    ]
+  },
+  "service-Deck---Patio-Installation": {
+    "seoTitle": "Deck & Patio Installation | Racketty Boom — Free Quote",
+    "title": "Deck & Patio Installation",
+    "lead": "Outdoor spaces built for safety, drainage, and long life.",
+    "paragraphs": [
+      "Our Deck & Patio Installation service helps homeowners add value and functionality to outdoor living spaces—decks, patios, and more.",
+      "You get expert craftsmanship, quality materials, and proper permit handling with local code compliance in mind.",
+      "Request a free quote and we will help you plan a safe, structurally sound outdoor upgrade."
+    ],
+    "reviews": [
+      {
+        "quote": "Great craftsmanship with a clear plan and honest estimates.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Professional, on-time, and respectful of our property.",
+        "meta": "Homeowner · Yelp"
+      },
+      {
+        "quote": "Communication was excellent throughout the project.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Completed within the agreed timeline and budget.",
+        "meta": "Homeowner · Facebook"
+      },
+      {
+        "quote": "Outdoor installation looks amazing—exactly what we wanted.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Highly recommend their outdoor work.",
+        "meta": "Homeowner · Yelp"
+      }
+    ],
+    "images": [
+      "/assets/services/service-Deck---Patio-Installation/01.jpeg",
+      "/assets/services/service-Deck---Patio-Installation/02.jpeg",
+      "/assets/services/service-Deck---Patio-Installation/03.jpeg",
+      "/assets/services/service-Deck---Patio-Installation/04.jpeg",
+      "/assets/services/service-Deck---Patio-Installation/05.jpeg",
+      "/assets/services/service-Deck---Patio-Installation/06.jpeg"
+    ]
+  },
+  "service-General-Contractor-": {
+    "seoTitle": "General Contractor | Racketty Boom — Free Quote",
+    "title": "General Contractor",
+    "lead": "A single point of accountability with coordinated trades and clear schedules.",
+    "paragraphs": [
+      "Our General Contractor service offers homeowners comprehensive construction and remodeling solutions with quality workmanship and timely project completion.",
+      "We save you time and energy by handling permits, coordinating subcontractors, and organizing each phase to prevent delays.",
+      "Request a free quote and let us manage the details—so you get peace of mind from start to finish."
+    ],
+    "reviews": [
+      {
+        "quote": "Professional general contractor—fixed our house after storm damage.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Highly responsive and organized, with clear project management.",
+        "meta": "Homeowner · Yelp"
+      },
+      {
+        "quote": "On time, detail oriented, and very careful with our spaces.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Estimates were spot on and there were no surprises.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "We would hire them again and again.",
+        "meta": "Homeowner · Yelp"
+      },
+      {
+        "quote": "Great communication and reliable completion.",
+        "meta": "Homeowner · Facebook"
+      }
+    ],
+    "images": [
+      "/assets/services/service-General-Contractor-/01.jpg",
+      "/assets/services/service-General-Contractor-/02.jpg",
+      "/assets/services/service-General-Contractor-/03.jpg",
+      "/assets/services/service-General-Contractor-/04.jpg",
+      "/assets/services/service-General-Contractor-/05.jpg",
+      "/assets/services/service-General-Contractor-/06.jpg"
+    ]
+  },
+  "service-Flooring": {
+    "seoTitle": "Flooring | Racketty Boom — Free Quote",
+    "title": "Flooring",
+    "lead": "High-quality flooring options installed with precision and care.",
+    "paragraphs": [
+      "Our Flooring service provides flooring options with professional installation to improve comfort, aesthetics, and long-term durability.",
+      "We guide you through selecting the right materials and handle the work end-to-end—from subfloor preparation to careful install and clean-up.",
+      "Request a free quote and we will help you choose an approach that fits your needs and timeline."
+    ],
+    "reviews": [
+      {
+        "quote": "Excellent workmanship with fair pricing and no surprises.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Punctual, professional, and attentive to detail during installation.",
+        "meta": "Homeowner · Yelp"
+      },
+      {
+        "quote": "Guided us through the process and handled the job cleanly.",
+        "meta": "Homeowner · Facebook"
+      },
+      {
+        "quote": "The end result looks great and feels solid.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Clear communication and organized project execution.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "We highly recommend their flooring services.",
+        "meta": "Homeowner · Yelp"
+      }
+    ],
+    "images": [
+      "/assets/services/service-Flooring/01.png",
+      "/assets/services/service-Flooring/02.png",
+      "/assets/services/service-Flooring/03.jpeg",
+      "/assets/services/service-Flooring/04.jpeg",
+      "/assets/services/service-Flooring/05.jpeg",
+      "/assets/services/service-Flooring/06.jpeg"
+    ]
+  },
+  "service-Masonry": {
+    "seoTitle": "Masonry | Racketty Boom — Free Quote",
+    "title": "Masonry",
+    "lead": "Brick and stone work done with craftsmanship, safety, and durability in mind.",
+    "paragraphs": [
+      "Our Masonry service offers top-quality brickwork, stonework, and concrete-related solutions to enhance value and curb appeal.",
+      "Masonry work requires specialized techniques and safety planning—our team brings the experience, equipment, and attention to detail to get it right.",
+      "Request a free quote and we will help you plan a durable masonry upgrade with clear expectations."
+    ],
+    "reviews": [
+      {
+        "quote": "Professional work with great attention to detail and respect for our property.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "On-time completion and accurate estimates with no surprises.",
+        "meta": "Homeowner · Yelp"
+      },
+      {
+        "quote": "Quality workmanship and solid results that last.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Reliable team, careful process, and clear communication.",
+        "meta": "Homeowner · Facebook"
+      },
+      {
+        "quote": "Highly recommend for masonry and related projects.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Safe, organized execution from start to finish.",
+        "meta": "Homeowner · Yelp"
+      }
+    ],
+    "images": [
+      "/assets/services/service-Masonry/01.jpeg",
+      "/assets/services/service-Masonry/02.jpeg",
+      "/assets/services/service-Masonry/03.jpeg",
+      "/assets/services/service-Masonry/04.jpeg",
+      "/assets/services/service-Masonry/05.jpeg",
+      "/assets/services/service-Masonry/06.jpeg"
+    ]
+  },
+  "service-SheetRock": {
+    "seoTitle": "SheetRock | Racketty Boom — Free Quote",
+    "title": "SheetRock / Drywall",
+    "lead": "Smooth walls and ceilings with professional installation and repair.",
+    "paragraphs": [
+      "Our SheetRock service offers professional installation and repair of drywall—helping you achieve smooth, flawless finishes for walls and ceilings.",
+      "We focus on careful work and clean results so drywall is ready for paint and trim with a professional look.",
+      "Request a free quote and we will discuss scope and timing for your project."
+    ],
+    "reviews": [
+      {
+        "quote": "Careful, detail oriented work and clean results.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Professional team and reliable scheduling.",
+        "meta": "Homeowner · Yelp"
+      },
+      {
+        "quote": "Great craftsmanship and no surprise issues.",
+        "meta": "Homeowner · Facebook"
+      },
+      {
+        "quote": "Clear communication and accurate estimates.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Highly recommend for drywall installation and repairs.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Work completed carefully and respectfully in our home.",
+        "meta": "Homeowner · Yelp"
+      }
+    ],
+    "images": [
+      "/assets/services/service-SheetRock/01.png",
+      "/assets/services/service-SheetRock/02.png",
+      "/assets/services/service-SheetRock/03.jpeg",
+      "/assets/services/service-SheetRock/04.jpeg",
+      "/assets/services/service-SheetRock/05.jpeg",
+      "/assets/services/service-SheetRock/06.jpeg"
+    ]
+  },
+  "service-Other-Repair-Services": {
+    "seoTitle": "Other Repair Services | Racketty Boom — Free Quote",
+    "title": "Other Repair Services",
+    "lead": "Expert home repairs that protect your property and keep things healthy.",
+    "paragraphs": [
+      "In addition to construction and remodeling, we offer other repair services that support home maintenance needs.",
+      "Whether it is fixing a leaky roof, repairing damaged drywall, or restoring worn-out flooring, our team brings skilled craftsmanship and quality materials.",
+      "Request a free quote and we will help you handle repairs the right way the first time."
+    ],
+    "reviews": [
+      {
+        "quote": "They were our first call for every problem—and always did a great job.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Professional repair work with thorough craftsmanship.",
+        "meta": "Homeowner · Yelp"
+      },
+      {
+        "quote": "Clear estimates, responsive communication, and reliable completion.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Respectful team and careful work in our home.",
+        "meta": "Homeowner · Facebook"
+      },
+      {
+        "quote": "Quality results and no surprise costs.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Highly recommend for repair services.",
+        "meta": "Homeowner · Yelp"
+      }
+    ],
+    "images": [
+      "/assets/services/service-Other-Repair-Services/01.jpg",
+      "/assets/services/service-Other-Repair-Services/02.jpg",
+      "/assets/services/service-Other-Repair-Services/03.jpg",
+      "/assets/services/service-Other-Repair-Services/04.jpg",
+      "/assets/services/service-Other-Repair-Services/05.jpg",
+      "/assets/services/service-Other-Repair-Services/06.jpg"
+    ]
+  },
+  "service-Total-Home-Renovation": {
+    "seoTitle": "Total Home Renovation | Racketty Boom — Free Quote",
+    "title": "Total Home Renovation",
+    "lead": "Complete remodeling and construction to transform your entire home.",
+    "paragraphs": [
+      "Our Total Home Renovation service delivers an end-to-end solution for homeowners who want a complete overhaul.",
+      "We cover every aspect—from floor to ceiling—so no corner is left untouched: walls, windows, plumbing, electrical systems, and more.",
+      "Book your free quote today and we will help you transform your home into your dream living space."
+    ],
+    "reviews": [
+      {
+        "quote": "On time, very detail oriented, and estimates were spot on with no surprises.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "Professional and organized—done in the time frame and budget provided.",
+        "meta": "Homeowner · Facebook"
+      },
+      {
+        "quote": "Quality craftsmanship and clear communication throughout the renovation.",
+        "meta": "Homeowner · Yelp"
+      },
+      {
+        "quote": "They provided options to reduce cost and still deliver excellent results.",
+        "meta": "Homeowner · Google"
+      },
+      {
+        "quote": "We would recommend and hire them again.",
+        "meta": "Homeowner · Yelp"
+      },
+      {
+        "quote": "Reliable team and excellent outcomes from start to finish.",
+        "meta": "Homeowner · Google"
+      }
+    ],
+    "images": [
+      "/assets/services/service-Total-Home-Renovation/01.png",
+      "/assets/services/service-Total-Home-Renovation/02.png",
+      "/assets/services/service-Total-Home-Renovation/03.png",
+      "/assets/services/service-Total-Home-Renovation/04.jpeg",
+      "/assets/services/service-Total-Home-Renovation/05.png",
+      "/assets/services/service-Total-Home-Renovation/06.jpeg"
+    ]
+  }
+}

@@ -404,15 +404,23 @@
 
     async function loadProject() {
       try {
+        const fetchOpts = { credentials: 'same-origin' };
         const [statsRes, txRes, breakdownRes] = await Promise.all([
-          fetch('/api/projects/' + projectId + '/stats'),
-          fetch('/api/projects/' + projectId + '/transactions?limit=10'),
-          fetch('/api/projects/' + projectId + '/breakdown?limit=6')
+          fetch('/api/projects/' + projectId + '/stats', fetchOpts),
+          fetch('/api/projects/' + projectId + '/transactions?limit=10', fetchOpts),
+          fetch('/api/projects/' + projectId + '/breakdown?limit=6', fetchOpts)
         ]);
 
         if (!statsRes.ok) throw new Error('Failed to load project stats');
         if (!txRes.ok) throw new Error('Failed to load project transactions');
-        if (!breakdownRes.ok) throw new Error('Failed to load project breakdown');
+        if (!breakdownRes.ok) {
+          let detail = '';
+          try {
+            const errBody = await breakdownRes.json();
+            if (errBody && errBody.error) detail = ': ' + errBody.error;
+          } catch (_e) {}
+          throw new Error('Failed to load project breakdown' + detail);
+        }
 
         const statsPayload = await statsRes.json();
         const txPayload = await txRes.json();
