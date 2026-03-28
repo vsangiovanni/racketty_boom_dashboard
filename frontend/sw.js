@@ -1,9 +1,10 @@
-const CACHE_NAME = 'gregtracker-v22';
+const CACHE_NAME = 'gregtracker-v25';
 const ASSETS = [
   './',
   './index.html',
   './quote.html',
   './dashboard.html',
+  './quote-requests.html',
   './export-report.html',
   './service.html',
   './manifest.webmanifest',

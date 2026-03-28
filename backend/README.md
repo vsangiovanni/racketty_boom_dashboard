@@ -11,9 +11,9 @@ This module contains the main API and runtime schema management for Greg Tracker
 - MySQL schema bootstrap/update through `ensureSchema()` during startup.
 - Static serving support for frontend screens and uploads (`/` and `index.html` are public landing; app dashboard is `dashboard.html`).
 
-## Key File
+## Key file
 
-- `server.js` -> primary application entry point and route definitions.
+- `server.js` — primary application entry and route definitions. In production (e.g. Hostinger), the repo root `server.js` runs `require('./backend/server.js')` so the platform can use a single `npm install` at the zip root.
 
 ## Project Analytics Endpoints
 
@@ -32,9 +32,10 @@ These endpoints power `frontend/project-details.html`.
 - `/api/import/preview` and `/api/import/commit` -> Excel import flow. **Commit** accepts optional `project_id` in the JSON body; all inserted transactions get that `project_id` (or `NULL` if omitted). Duplicate detection includes `project_id` so the same line can exist on different projects.
 - `GET /api/export` -> accountant Excel download. Query: `filter` (`year` | `month` | `all`), `value` (year number or `YYYY-M` for month), optional `project_id` to restrict rows to one project. Filename adds `_project{id}` when a project filter is used.
 - `/api/quote-requests`:
-  - `POST /api/quote-requests` -> submit a free estimate request (public).
-  - `GET /api/quote-requests` -> list requests for managers/admins.
-  - `PATCH /api/quote-requests/:id` -> update lead status/notes (managers/admins).
+  - `POST /api/quote-requests` — submit a free estimate request (public).
+  - `GET /api/quote-requests` — list for managers/admins; optional query `status`, `page`, `limit`.
+  - `GET /api/quote-requests/:id` — single request (managers/admins).
+  - `PATCH /api/quote-requests/:id` — update `status` and/or `internal_notes` (managers/admins).
 - `/api/settings` (GET/POST, **Admin only**) and `/api/settings/public` -> full settings vs public branding metadata.
 - `/api/auth` -> sign in (`pin` for company mode, or `user_id` + `pin` when team users exist); sets `auth_pin` or `gt_uid`/`gt_pin` cookies.
 - `/api/auth/options` -> public; whether multi-user login is required and the list of active users for the login screen.

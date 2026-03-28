@@ -32,6 +32,8 @@
   </header>
 
   <div class="flex-1 flex flex-col w-full" data-shell-footer>
+    <div id="pd-status-bar" class="max-w-6xl mx-auto px-4 pt-4 w-full flex flex-wrap items-center gap-3"></div>
+
     <main class="max-w-6xl mx-auto px-4 py-6 w-full flex-1">
 
       <!-- Metrics -->
@@ -200,6 +202,45 @@
     if (!projectId) {
       document.getElementById('pd-title').textContent = 'Project Details';
       alert('Missing project id.');
+    }
+
+    let currentProjectMeta = null;
+
+    async function updateProjectStatus(newStatus) {
+      if (!projectId || !currentProjectMeta) return;
+      const msg = newStatus === 'Completed'
+        ? 'Close this project? It will appear under Completed on the Projects page. You can reopen it anytime.'
+        : 'Reopen this project as active?';
+      if (!confirm(msg)) return;
+      try {
+        const res = await fetch('/api/projects/' + projectId, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: currentProjectMeta.name, status: newStatus })
+        });
+        if (!res.ok) throw new Error('Could not update status');
+        await loadProject();
+      } catch (e) {
+        alert(e.message || 'Error');
+      }
+    }
+
+    function renderStatusBar(project) {
+      currentProjectMeta = { name: project.name, status: project.status };
+      const bar = document.getElementById('pd-status-bar');
+      const done = project.status === 'Completed';
+      bar.innerHTML =
+        '<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ' +
+        (done ? 'bg-slate-200 text-slate-700' : 'bg-blue-100 text-blue-800') + '">' + (project.status || '') + '</span>' +
+        (done
+          ? '<p class="text-sm text-slate-600 flex-1 min-w-[200px]">Closed project — financials below are historical. You can still edit budget or review transactions.</p>' +
+            '<button type="button" id="pd-reopen-btn" class="px-4 py-2 rounded-xl bg-amber-100 text-amber-900 text-sm font-bold border border-amber-200 hover:bg-amber-200">Reopen project</button>'
+          : '<p class="text-sm text-slate-600 flex-1 min-w-[200px]">When the job is finished, mark it completed to keep active lists clean.</p>' +
+            '<button type="button" id="pd-complete-btn" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700">Mark as completed</button>');
+      const c = document.getElementById('pd-complete-btn');
+      const r = document.getElementById('pd-reopen-btn');
+      if (c) c.addEventListener('click', () => updateProjectStatus('Completed'));
+      if (r) r.addEventListener('click', () => updateProjectStatus('Active'));
     }
 
     function fmtMoney(n) {
@@ -431,6 +472,7 @@
 
         document.getElementById('pd-title').textContent = project.name || 'Project Details';
         document.getElementById('pd-subtitle').textContent = (project.status || '') + ' • ' + (metrics.transactionCount || 0) + ' transactions';
+        renderStatusBar(project);
 
         document.getElementById('pd-total-income').textContent = fmtMoney(metrics.totalIncome);
         document.getElementById('pd-total-expenses').textContent = fmtMoney(metrics.totalExpenses);

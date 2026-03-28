@@ -5,6 +5,10 @@ uploads/
 deploy_*.zip
 deploy_*.tgz
 frontend_static_*.zip
+deployapp.zip
+hostinger-deploy.zip
+staticweb.zip
+deploy_full_*.zip
 *.log
 .DS_Store
 *.rar

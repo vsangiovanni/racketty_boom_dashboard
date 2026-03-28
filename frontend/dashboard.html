@@ -42,6 +42,9 @@
         <a href="/projects.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
           <span class="material-icons-round text-[20px]">construction</span> Projects
         </a>
+        <a href="/quote-requests.html" id="nav-quote-requests" class="hidden flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">request_quote</span> Quote requests
+        </a>
       </nav>
 
       <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 mt-8 px-2">Reports & Automation</div>
@@ -206,33 +209,6 @@
           </div>
         </div>
 
-        <!-- Quote Requests -->
-        <div id="quote-requests-card" class="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden flex flex-col xl:col-span-12 hidden">
-          <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
-            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Quote Requests</h2>
-            <div class="text-xs font-bold text-slate-500">Managers &amp; Admin</div>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm whitespace-nowrap">
-              <thead class="bg-slate-50 text-slate-500 font-semibold text-xs uppercase tracking-wider border-b border-slate-200">
-                <tr>
-                  <th class="py-3 px-5">Submitted</th>
-                  <th class="py-3 px-5">Customer</th>
-                  <th class="py-3 px-5">Service</th>
-                  <th class="py-3 px-5">Contact</th>
-                  <th class="py-3 px-5">Status</th>
-                  <th class="py-3 px-5">Message</th>
-                  <th class="py-3 px-5">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="quotes-tbody" class="divide-y divide-slate-100/80">
-                <tr><td colspan="8" class="py-10 text-center text-slate-400">Loading quote requests...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
       </div>
       
     </main>
@@ -357,7 +333,12 @@
         const res = await fetch('/api/session/me', { credentials: 'same-origin' });
         if (!res.ok) return;
         const me = await res.json();
-        if (me.role === 'Admin') {
+        const role = me.role || '';
+        if (role === 'Manager' || role === 'Admin') {
+          const qr = document.getElementById('nav-quote-requests');
+          if (qr) qr.classList.remove('hidden');
+        }
+        if (role === 'Admin') {
           const team = document.getElementById('nav-team-users');
           if (team) team.classList.remove('hidden');
           const settingsNav = document.getElementById('nav-settings');
@@ -394,93 +375,6 @@
         
         renderCharts(data.monthly, data.categories, data.vendors || []);
       } catch (err) { console.error('Stats Error:', err); }
-    }
-
-    function escapeHtml(text) {
-      return String(text || '').replace(/[&<>"']/g, function (m) {
-        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
-      });
-    }
-
-    function statusBadge(status) {
-      const s = String(status || '').toLowerCase();
-      if (s === 'new') return 'bg-blue-50 text-blue-700 border-blue-200';
-      if (s === 'contacted') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      if (s === 'scheduled') return 'bg-amber-50 text-amber-700 border-amber-200';
-      if (s === 'won') return 'bg-emerald-100 text-emerald-800 border-emerald-300';
-      if (s === 'lost') return 'bg-rose-50 text-rose-700 border-rose-200';
-      return 'bg-slate-100 text-slate-700 border-slate-200';
-    }
-
-    async function loadQuoteRequests() {
-      try {
-        const res = await fetch('/api/quote-requests?limit=25');
-        if (res.status === 403) {
-          return; // hide card for viewers
-        }
-        if (!res.ok) throw new Error('Failed to fetch quote requests.');
-
-        const data = await res.json();
-        const card = document.getElementById('quote-requests-card');
-        if (card) card.classList.remove('hidden');
-
-        const tbody = document.getElementById('quotes-tbody');
-        tbody.innerHTML = '';
-
-        const requests = data.quoteRequests || [];
-        if (!requests.length) {
-          tbody.innerHTML = '<tr><td colspan="8" class="py-10 text-center text-slate-400">No quote requests yet.</td></tr>';
-          return;
-        }
-
-        requests.forEach(r => {
-          const contact = [r.phone ? `Phone: ${r.phone}` : null, r.email ? `Email: ${r.email}` : null].filter(Boolean).join('<br>');
-          const message = r.message ? escapeHtml(r.message).slice(0, 120) : '';
-          const statusClass = statusBadge(r.status);
-
-          const tr = document.createElement('tr');
-          tr.className = 'hover:bg-slate-50 transition-colors group';
-          tr.innerHTML = `
-            <td class="py-3 px-4 lg:px-5 text-slate-500 text-xs font-medium">${new Date(r.created_at).toLocaleString()}</td>
-            <td class="py-3 px-4 lg:px-5 font-bold text-slate-800 text-xs max-w-[160px] truncate" title="${escapeHtml(r.customer_name)}">${escapeHtml(r.customer_name)}</td>
-            <td class="py-3 px-4 lg:px-5 text-slate-500 text-xs max-w-[180px] truncate">${escapeHtml(r.service_type || '-')}</td>
-            <td class="py-3 px-4 lg:px-5 text-slate-500 text-xs max-w-[170px]">${contact ? contact : '<span class="text-slate-300">-</span>'}</td>
-            <td class="py-3 px-4 lg:px-5 text-xs">
-              <span class="inline-flex items-center px-2 py-1 rounded border ${statusClass}">${escapeHtml(r.status)}</span>
-            </td>
-            <td class="py-3 px-4 lg:px-5 text-slate-500 text-xs max-w-[260px] truncate" title="${escapeHtml(r.message || '')}">${message || '<span class="text-slate-300">-</span>'}</td>
-            <td class="py-3 px-4 lg:px-5 text-xs">
-              <div class="flex items-center gap-2">
-                <select id="quote-status-${r.id}" class="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700">
-                  <option value="new" ${r.status === 'new' ? 'selected' : ''}>New</option>
-                  <option value="contacted" ${r.status === 'contacted' ? 'selected' : ''}>Contacted</option>
-                  <option value="scheduled" ${r.status === 'scheduled' ? 'selected' : ''}>Scheduled</option>
-                  <option value="won" ${r.status === 'won' ? 'selected' : ''}>Won</option>
-                  <option value="lost" ${r.status === 'lost' ? 'selected' : ''}>Lost</option>
-                </select>
-                <button onclick="updateQuoteStatus(${r.id})" class="text-slate-600 hover:text-blue-600 font-bold bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg transition-colors">Update</button>
-              </div>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
-      } catch (err) {}
-    }
-
-    async function updateQuoteStatus(id) {
-      try {
-        const sel = document.getElementById(`quote-status-${id}`);
-        const status = sel ? sel.value : null;
-        if (!status) return;
-
-        const res = await fetch(`/api/quote-requests/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status })
-        });
-        if (!res.ok) throw new Error('Failed to update quote status.');
-        await loadQuoteRequests();
-      } catch (e) {}
     }
 
     let currentPage = 1;
@@ -557,7 +451,6 @@
     hydrateAdminNav();
     loadStats();
     loadRecords(1);
-    loadQuoteRequests();
   </script>
   <script src="/js/app-shell.js"></script>
 </body>

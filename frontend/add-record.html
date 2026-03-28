@@ -335,14 +335,23 @@
         const select = document.getElementById('project_id');
         const current = select.value;
         select.innerHTML = '<option value="">No Project (General)</option>';
-        projects.forEach(p => {
-          const opt = document.createElement('option');
-          opt.value = p.id;
-          opt.textContent = p.name;
-          if(p.status === 'Completed') opt.disabled = true;
-          select.appendChild(opt);
-        });
-        if(current) select.value = current;
+        const active = projects.filter(p => p.status === 'Active').sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        const done = projects.filter(p => p.status === 'Completed').sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        function appendGroup(label, list) {
+          if (!list.length) return;
+          const og = document.createElement('optgroup');
+          og.label = label;
+          list.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.name + (p.status === 'Completed' ? ' (completed)' : '');
+            og.appendChild(opt);
+          });
+          select.appendChild(og);
+        }
+        appendGroup('Active projects', active);
+        appendGroup('Completed projects', done);
+        if (current) select.value = current;
       } catch(e) { console.error('Failed to load projects', e); }
     }
 

@@ -285,12 +285,23 @@
         const first = sel.options[0];
         sel.innerHTML = '';
         sel.appendChild(first);
-        rows.forEach((p) => {
-          const o = document.createElement('option');
-          o.value = String(p.id);
-          o.textContent = p.name ? p.name : 'Project #' + p.id;
-          sel.appendChild(o);
-        });
+        const active = rows.filter(p => p.status === 'Active').sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+        const done = rows.filter(p => p.status === 'Completed').sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+        function addGroup(label, list) {
+          if (!list.length) return;
+          const og = document.createElement('optgroup');
+          og.label = label;
+          list.forEach((p) => {
+            const o = document.createElement('option');
+            o.value = String(p.id);
+            const base = p.name ? p.name : 'Project #' + p.id;
+            o.textContent = p.status === 'Completed' ? base + ' (completed)' : base;
+            og.appendChild(o);
+          });
+          sel.appendChild(og);
+        }
+        addGroup('Active projects', active);
+        addGroup('Completed projects', done);
         const qp = new URLSearchParams(window.location.search).get('project_id');
         if (qp) {
           for (let i = 0; i < sel.options.length; i++) {

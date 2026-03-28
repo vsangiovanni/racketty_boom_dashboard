@@ -41,6 +41,9 @@
         <a href="/projects.html" class="flex items-center gap-3 px-3 py-2.5 bg-blue-600/10 text-blue-400 rounded-lg font-medium border border-blue-500/20">
           <span class="material-icons-round text-[20px]">construction</span> Projects
         </a>
+        <a href="/quote-requests.html" id="nav-quote-requests" class="hidden flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">request_quote</span> Quote requests
+        </a>
       </nav>
 
       <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 mt-8 px-2">Reports & Automation</div>
@@ -56,6 +59,9 @@
         </a>
         <a href="/settings.html" id="nav-settings" class="hidden flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200 mt-2">
           <span class="material-icons-round text-[20px]">settings</span> Settings
+        </a>
+        <a href="/users.html" id="nav-team-users" class="hidden flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">group</span> Team users
         </a>
       </nav>
     </div>
@@ -87,38 +93,51 @@
         <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
           <div class="flex items-center gap-3 mb-2">
             <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600"><span class="material-icons-round">construction</span></div>
-            <h3 class="text-sm font-semibold text-slate-500">Active Projects</h3>
+            <h3 class="text-sm font-semibold text-slate-500">Active projects</h3>
           </div>
           <div class="text-2xl font-bold text-slate-800" id="kpi-active">0</div>
+          <p class="text-xs text-slate-500 mt-2">Completed: <span id="kpi-completed" class="font-bold text-slate-700">0</span></p>
         </div>
         <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
           <div class="flex items-center gap-3 mb-2">
             <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600"><span class="material-icons-round">payments</span></div>
-            <h3 class="text-sm font-semibold text-slate-500">Total Income</h3>
+            <h3 class="text-sm font-semibold text-slate-500">Total income</h3>
           </div>
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1" id="kpi-money-scope">Active projects</p>
           <div class="text-2xl font-bold text-slate-800" id="kpi-income">$0.00</div>
         </div>
         <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
           <div class="flex items-center gap-3 mb-2">
             <div class="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600"><span class="material-icons-round">receipt_long</span></div>
-            <h3 class="text-sm font-semibold text-slate-500">Total Expenses</h3>
+            <h3 class="text-sm font-semibold text-slate-500">Total expenses</h3>
           </div>
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">&nbsp;</p>
           <div class="text-2xl font-bold text-slate-800" id="kpi-expenses">$0.00</div>
         </div>
         <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
           <div class="flex items-center gap-3 mb-2">
             <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600"><span class="material-icons-round">account_balance_wallet</span></div>
-            <h3 class="text-sm font-semibold text-slate-500">Net Profit</h3>
+            <h3 class="text-sm font-semibold text-slate-500">Net profit</h3>
           </div>
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">&nbsp;</p>
           <div class="text-2xl font-bold text-slate-800" id="kpi-profit">$0.00</div>
         </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 mb-6">
+        <span class="text-xs font-bold text-slate-500 uppercase tracking-wide mr-2">View</span>
+        <button type="button" data-proj-tab="active" class="proj-tab px-4 py-2 rounded-xl text-sm font-bold border transition-colors bg-slate-900 text-white border-slate-800">Active</button>
+        <button type="button" data-proj-tab="completed" class="proj-tab px-4 py-2 rounded-xl text-sm font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50">Completed</button>
+        <button type="button" data-proj-tab="all" class="proj-tab px-4 py-2 rounded-xl text-sm font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50">All</button>
+        <p class="text-xs text-slate-500 ml-2 max-w-xl">Use <strong>Completed</strong> to review closed jobs. Edit a project or use the checkmark to change status.</p>
       </div>
 
       <!-- Charts & Tables -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <!-- Chart -->
         <div class="lg:col-span-1 bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-          <h3 class="text-lg font-bold text-slate-800 mb-4">Project Margins</h3>
+          <h3 class="text-lg font-bold text-slate-800 mb-1">Project margins</h3>
+          <p id="chart-scope-hint" class="text-xs text-slate-500 mb-4">Top projects in current view</p>
           <div class="relative h-64 w-full">
             <canvas id="projectsChart"></canvas>
           </div>
@@ -166,9 +185,10 @@
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-1">Status</label>
           <select id="project-status" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none">
-            <option value="Active" selected>Active</option>
-            <option value="Completed">Completed</option>
+            <option value="Active" selected>Active (in progress)</option>
+            <option value="Completed">Completed (closed)</option>
           </select>
+          <p class="text-xs text-slate-500 mt-1">Completed projects appear under the Completed tab; you can reopen them anytime.</p>
         </div>
         <div class="pt-4 flex gap-3">
           <button type="button" onclick="closeProjectModal()" class="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200">Cancel</button>
@@ -193,8 +213,8 @@
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-1">Status</label>
           <select id="edit-project-status" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none">
-            <option value="Active" selected>Active</option>
-            <option value="Completed">Completed</option>
+            <option value="Active" selected>Active (in progress)</option>
+            <option value="Completed">Completed (closed)</option>
           </select>
         </div>
         <div class="pt-4 flex gap-3">
@@ -266,6 +286,46 @@
     let projectsCache = [];
     let editProjectId = null;
     let currentProjectId = null;
+    /** @type {'active'|'completed'|'all'} */
+    let projectTab = 'active';
+
+    function setProjectTab(tab) {
+      projectTab = tab;
+      document.querySelectorAll('.proj-tab').forEach(btn => {
+        const on = btn.getAttribute('data-proj-tab') === tab;
+        btn.classList.toggle('bg-slate-900', on);
+        btn.classList.toggle('text-white', on);
+        btn.classList.toggle('border-slate-800', on);
+        btn.classList.toggle('bg-white', !on);
+        btn.classList.toggle('text-slate-600', !on);
+        btn.classList.toggle('border-slate-200', !on);
+      });
+      loadDashboard();
+    }
+
+    document.querySelectorAll('.proj-tab').forEach(btn => {
+      btn.addEventListener('click', () => setProjectTab(btn.getAttribute('data-proj-tab')));
+    });
+
+    async function setProjectStatusQuick(id, status) {
+      const p = (projectsCache || []).find(x => x.id === id);
+      if (!p) return;
+      const msg = status === 'Completed'
+        ? 'Mark this project as completed? It will move to the Completed tab.'
+        : 'Reopen this project as active?';
+      if (!confirm(msg)) return;
+      try {
+        const res = await fetch('/api/projects/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: p.name, status })
+        });
+        if (res.ok) loadDashboard();
+        else alert('Could not update project status.');
+      } catch (e) {
+        alert(e.message || 'Error');
+      }
+    }
 
     function toggleSidebar() {
       const sidebar = document.getElementById('sidebar');
@@ -303,50 +363,85 @@
         const projectsList = Array.isArray(projects) ? projects : [];
         projectsCache = projectsList;
         
-        // Calcular estadisticas
         let activeCount = 0;
-        let totalIncome = 0;
-        let totalExpenses = 0;
-        
-        // Mapear transacciones por proyecto
+        let completedCount = 0;
         const projStats = {};
         projectsList.forEach(p => {
-          if(p.status === 'Active') activeCount++;
+          if (p.status === 'Active') activeCount++;
+          if (p.status === 'Completed') completedCount++;
           projStats[p.id] = { ...p, income: 0, expenses: 0 };
         });
 
         transactions.forEach(t => {
-          if(t.project_id && projStats[t.project_id]) {
+          if (t.project_id && projStats[t.project_id]) {
             const amount = parseFloat(t.amount);
-            if(t.type === 'Income') {
+            if (t.type === 'Income') {
               projStats[t.project_id].income += amount;
-              totalIncome += amount;
             } else {
               projStats[t.project_id].expenses += amount;
-              totalExpenses += amount;
             }
           }
         });
 
-        // Actualizar KPIs
+        const allStats = Object.values(projStats);
+        let visible = allStats;
+        if (projectTab === 'active') visible = allStats.filter(p => p.status === 'Active');
+        else if (projectTab === 'completed') visible = allStats.filter(p => p.status === 'Completed');
+
+        let totalIncome = 0;
+        let totalExpenses = 0;
+        visible.forEach(p => {
+          totalIncome += p.income;
+          totalExpenses += p.expenses;
+        });
+
         document.getElementById('kpi-active').textContent = activeCount;
-        document.getElementById('kpi-income').textContent = '$' + totalIncome.toLocaleString('en-US', {minimumFractionDigits: 2});
-        document.getElementById('kpi-expenses').textContent = '$' + totalExpenses.toLocaleString('en-US', {minimumFractionDigits: 2});
+        document.getElementById('kpi-completed').textContent = completedCount;
+
+        const scopeEl = document.getElementById('kpi-money-scope');
+        const chartHint = document.getElementById('chart-scope-hint');
+        const secTitle = document.getElementById('projects-section-title');
+        const secSub = document.getElementById('projects-section-sub');
+        if (projectTab === 'active') {
+          scopeEl.textContent = 'Active projects only';
+          chartHint.textContent = 'Top active projects by income in this view';
+          secTitle.textContent = 'Active projects';
+          secSub.textContent = 'Jobs in progress. Mark complete when the work is closed.';
+        } else if (projectTab === 'completed') {
+          scopeEl.textContent = 'Completed projects only';
+          chartHint.textContent = 'Top completed projects by income (historical)';
+          secTitle.textContent = 'Completed projects';
+          secSub.textContent = 'Closed jobs — open a row to review numbers or reopen if needed.';
+        } else {
+          scopeEl.textContent = 'All projects';
+          chartHint.textContent = 'Top projects by income (all statuses)';
+          secTitle.textContent = 'All projects';
+          secSub.textContent = 'Active and completed together.';
+        }
+
+        document.getElementById('kpi-income').textContent = '$' + totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 });
+        document.getElementById('kpi-expenses').textContent = '$' + totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 });
         
         const profit = totalIncome - totalExpenses;
         const profitEl = document.getElementById('kpi-profit');
-        profitEl.textContent = '$' + profit.toLocaleString('en-US', {minimumFractionDigits: 2});
+        profitEl.textContent = '$' + profit.toLocaleString('en-US', { minimumFractionDigits: 2 });
         profitEl.className = `text-2xl font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
 
-        // Llenar tabla
         const tbody = document.getElementById('projects-table-body');
-        if(projectsList.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-500">No projects found. Create one to start!</td></tr>';
+        if (visible.length === 0) {
+          const emptyMsg = projectsList.length === 0
+            ? 'No projects yet. Create one with New Project.'
+            : (projectTab === 'active' ? 'No active projects. Switch to Completed or All, or create a new one.'
+              : projectTab === 'completed' ? 'No completed projects yet. Close a job from the Active tab or edit status.'
+                : 'No projects to show.');
+          tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-500">' + emptyMsg + '</td></tr>';
         } else {
-          tbody.innerHTML = Object.values(projStats).map(p => {
+          tbody.innerHTML = visible.map(p => {
             const pProfit = p.income - p.expenses;
             const margin = p.income > 0 ? ((pProfit / p.income) * 100).toFixed(1) + '%' : '0%';
-            
+            const completeBtn = p.status === 'Active'
+              ? `<button type="button" onclick="event.stopPropagation(); setProjectStatusQuick(${p.id}, 'Completed')" class="text-emerald-500 hover:text-emerald-700 p-1 rounded" title="Mark completed"><span class="material-icons-round text-[18px]">task_alt</span></button>`
+              : `<button type="button" onclick="event.stopPropagation(); setProjectStatusQuick(${p.id}, 'Active')" class="text-amber-500 hover:text-amber-700 p-1 rounded" title="Reopen project"><span class="material-icons-round text-[18px]">undo</span></button>`;
             return `
               <tr onclick="window.location.href='/project-details.html?id=${p.id}'" class="border-b border-slate-50 hover:bg-slate-50/50 cursor-pointer">
                 <td class="py-3 px-4 font-semibold text-slate-800">${p.name}</td>
@@ -356,8 +451,9 @@
                 <td class="py-3 px-4 text-right text-emerald-600 font-medium">$${p.income.toLocaleString()}</td>
                 <td class="py-3 px-4 text-right text-rose-600 font-medium">$${p.expenses.toLocaleString()}</td>
                 <td class="py-3 px-4 text-right text-slate-600 font-medium">${margin}</td>
-                <td class="py-3 px-4 text-center">
-                  <button onclick="event.stopPropagation(); editProject(${p.id})" class="text-slate-400 hover:text-blue-600 mr-1"><span class="material-icons-round text-[18px]">edit</span></button>
+                <td class="py-3 px-4 text-center whitespace-nowrap">
+                  ${completeBtn}
+                  <button onclick="event.stopPropagation(); editProject(${p.id})" class="text-slate-400 hover:text-blue-600 mx-0.5"><span class="material-icons-round text-[18px]">edit</span></button>
                   <button onclick="event.stopPropagation(); deleteProject(${p.id})" class="text-rose-400 hover:text-rose-600"><span class="material-icons-round text-[18px]">delete</span></button>
                 </td>
               </tr>
@@ -365,8 +461,8 @@
           }).join('');
         }
 
-        // Dibujar grafico (Top 5 por ingresos)
-        renderChart(Object.values(projStats).sort((a,b) => b.income - a.income).slice(0,5));
+        const chartSource = visible.slice().sort((a, b) => b.income - a.income).slice(0, 5);
+        renderChart(chartSource);
 
       } catch (err) {
         console.error(err);
@@ -375,25 +471,20 @@
 
     function renderChart(topProjects) {
       const ctx = document.getElementById('projectsChart').getContext('2d');
-      if(chartInstance) chartInstance.destroy();
-      
+      if (chartInstance) chartInstance.destroy();
+
+      const hasData = topProjects.some(p => (p.income || 0) > 0 || (p.expenses || 0) > 0);
+      const labels = hasData ? topProjects.map(p => p.name) : ['No data'];
+      const inc = hasData ? topProjects.map(p => p.income) : [0];
+      const exp = hasData ? topProjects.map(p => p.expenses) : [0];
+
       chartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: topProjects.map(p => p.name),
+          labels,
           datasets: [
-            {
-              label: 'Income',
-              data: topProjects.map(p => p.income),
-              backgroundColor: '#10b981',
-              borderRadius: 4
-            },
-            {
-              label: 'Expenses',
-              data: topProjects.map(p => p.expenses),
-              backgroundColor: '#f43f5e',
-              borderRadius: 4
-            }
+            { label: 'Income', data: inc, backgroundColor: '#10b981', borderRadius: 4 },
+            { label: 'Expenses', data: exp, backgroundColor: '#f43f5e', borderRadius: 4 }
           ]
         },
         options: {
@@ -488,9 +579,16 @@
         const res = await fetch('/api/session/me', { credentials: 'same-origin' });
         if (!res.ok) return;
         const me = await res.json();
-        if (me.role === 'Admin') {
+        const role = me.role || '';
+        if (role === 'Manager' || role === 'Admin') {
+          const qr = document.getElementById('nav-quote-requests');
+          if (qr) qr.classList.remove('hidden');
+        }
+        if (role === 'Admin') {
           const el = document.getElementById('nav-settings');
           if (el) el.classList.remove('hidden');
+          const team = document.getElementById('nav-team-users');
+          if (team) team.classList.remove('hidden');
         }
       } catch (e) {}
     })();

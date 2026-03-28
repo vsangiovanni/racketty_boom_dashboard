@@ -17,7 +17,11 @@ dotenv.config({ path: selectedEnvPath });
 const app = express();
 const PORT = Number(process.env.PORT || 4000);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || 'uploads';
-const UPLOAD_FS_DIR = path.resolve(process.cwd(), process.env.UPLOAD_FS_DIR || UPLOAD_DIR);
+const UPLOAD_FS_DIR = process.env.UPLOAD_FS_DIR
+  ? (path.isAbsolute(process.env.UPLOAD_FS_DIR)
+      ? process.env.UPLOAD_FS_DIR
+      : path.resolve(process.cwd(), process.env.UPLOAD_FS_DIR))
+  : path.join(__dirname, '..', UPLOAD_DIR);
 const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB || 10);
 const APP_BASE_URL = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
 const DEFAULT_COMPANY_NAME = process.env.DEFAULT_COMPANY_NAME || 'Racketty Boom Enterprises';
@@ -31,10 +35,24 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: Number(process.env.DB_CONNECTION_LIMIT || 10),
   queueLimit: 0,
-  namedPlaceholders: true
+  namedPlaceholders: true,
+  connectTimeout: Number(process.env.DB_CONNECT_TIMEOUT_MS || 10000)
 });
 
-fs.mkdirSync(UPLOAD_FS_DIR, { recursive: true });
+let effectiveUploadDir = UPLOAD_FS_DIR;
+try {
+  fs.mkdirSync(effectiveUploadDir, { recursive: true });
+} catch (err) {
+  const fallback = path.join(require('os').tmpdir(), 'greg-tracker-uploads');
+  console.warn('Upload dir not writable, using tmp:', effectiveUploadDir, err && err.message);
+  try {
+    fs.mkdirSync(fallback, { recursive: true });
+    effectiveUploadDir = fallback;
+  } catch (err2) {
+    console.error('Could not create upload directory:', err2);
+    throw err2;
+  }
+}
 
 app.use(cors());
 app.use(express.json());
@@ -221,11 +239,11 @@ app.get(/^\/service-/, (_req, res) => {
 });
 
 app.use(express.static(path.join(__dirname, '../frontend')));
-app.use(`/${UPLOAD_DIR}`, express.static(UPLOAD_FS_DIR));
+app.use(`/${UPLOAD_DIR}`, express.static(effectiveUploadDir));
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, UPLOAD_FS_DIR);
+    cb(null, effectiveUploadDir);
   },
   filename: (_req, file, cb) => {
     const safeOriginal = file.originalname.replace(/\s+/g, '_');
@@ -2716,10 +2734,59 @@ app.get('/api/quote-requests', async (req, res) => {
     const page = Math.max(1, Number(req.query.page || 1));
     const limit = Math.max(1, Math.min(50, Number(req.query.limit || 10)));
     const offset = (page - 1) * limit;
+    const allowed = new Set(['new', 'contacted', 'scheduled', 'won', 'lost']);
+    const statusFilterRaw = req.query.status != null ? String(req.query.status).trim() : '';
+    const statusFilter = statusFilterRaw && allowed.has(statusFilterRaw) ? statusFilterRaw : null;
 
-    const [[countRow]] = await pool.query(`SELECT COUNT(*) as total FROM quote_requests`);
+    const whereClause = statusFilter ? 'WHERE status = :statusFilter' : '';
+    const countParams = statusFilter ? { statusFilter } : {};
+    const [[countRow]] = await pool.query(
+      `SELECT COUNT(*) as total FROM quote_requests ${whereClause}`,
+      countParams
+    );
     const total = Number(countRow?.total || 0);
     const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    const listParams = { limit, offset, ...(statusFilter ? { statusFilter } : {}) };
+    const [rows] = await pool.query(
+      `
+      SELECT
+        id,
+        customer_name,
+        email,
+        phone,
+        service_type,
+        project_address,
+        preferred_contact,
+        estimated_budget,
+        message,
+        status,
+        internal_notes,
+        created_at
+      FROM quote_requests
+      ${whereClause}
+      ORDER BY created_at DESC, id DESC
+      LIMIT :limit OFFSET :offset
+      `,
+      listParams
+    );
+
+    return res.json({
+      quoteRequests: rows,
+      pagination: { page, limit, total, totalPages }
+    });
+  } catch (error) {
+    console.error('Quote requests list error:', error);
+    return res.status(500).json({ error: 'Failed to fetch quote requests.' });
+  }
+});
+
+app.get('/api/quote-requests/:id', async (req, res) => {
+  if (!ensureCanEdit(req, res)) return;
+
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id.' });
 
     const [rows] = await pool.query(
       `
@@ -2737,19 +2804,17 @@ app.get('/api/quote-requests', async (req, res) => {
         internal_notes,
         created_at
       FROM quote_requests
-      ORDER BY created_at DESC, id DESC
-      LIMIT :limit OFFSET :offset
+      WHERE id = ?
+      LIMIT 1
       `,
-      { limit, offset }
+      [id]
     );
 
-    return res.json({
-      quoteRequests: rows,
-      pagination: { page, limit, total, totalPages }
-    });
+    if (!rows.length) return res.status(404).json({ error: 'Quote request not found.' });
+    return res.json({ quoteRequest: rows[0] });
   } catch (error) {
-    console.error('Quote requests list error:', error);
-    return res.status(500).json({ error: 'Failed to fetch quote requests.' });
+    console.error('Quote request get error:', error);
+    return res.status(500).json({ error: 'Failed to fetch quote request.' });
   }
 });
 
@@ -2762,14 +2827,23 @@ app.patch('/api/quote-requests/:id', async (req, res) => {
 
     const payload = req.body || {};
     const allowed = new Set(['new', 'contacted', 'scheduled', 'won', 'lost']);
-    const status = payload.status ? String(payload.status).trim() : null;
-    const internal_notes = payload.internal_notes ? String(payload.internal_notes).trim() : null;
+    let status = null;
+    if (Object.prototype.hasOwnProperty.call(payload, 'status') && payload.status != null) {
+      const s = String(payload.status).trim();
+      if (s) status = s;
+    }
+    const hasNotes = Object.prototype.hasOwnProperty.call(payload, 'internal_notes');
+    const internal_notes = hasNotes
+      ? payload.internal_notes == null
+        ? null
+        : String(payload.internal_notes)
+      : undefined;
 
     if (status && !allowed.has(status)) {
       return res.status(400).json({ error: 'Invalid status.' });
     }
 
-    if (status === null && internal_notes === null) {
+    if (!status && !hasNotes) {
       return res.status(400).json({ error: 'Nothing to update.' });
     }
 
@@ -2779,7 +2853,7 @@ app.patch('/api/quote-requests/:id', async (req, res) => {
       fields.push('status = :status');
       params.status = status;
     }
-    if (internal_notes !== null) {
+    if (hasNotes) {
       fields.push('internal_notes = :internal_notes');
       params.internal_notes = internal_notes;
     }
@@ -3126,8 +3200,9 @@ app.use((err, _req, res, _next) => {
   return res.status(500).json({ error: 'Unknown server error.' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Greg Tracker backend running on http://localhost:${PORT}`);
+const listenHost = process.env.HOST || '0.0.0.0';
+app.listen(PORT, listenHost, () => {
+  console.log(`Greg Tracker backend running on http://${listenHost}:${PORT}`);
 });
 
 (async () => {

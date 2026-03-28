@@ -116,12 +116,23 @@
           if (!res.ok) throw new Error('Could not load projects.');
           var rows = await res.json();
           if (!Array.isArray(rows)) return;
-          rows.forEach(function (p) {
-            var o = document.createElement('option');
-            o.value = String(p.id);
-            o.textContent = p.name ? p.name : 'Project #' + p.id;
-            sel.appendChild(o);
-          });
+          var active = rows.filter(function (p) { return p.status === 'Active'; }).sort(function (a, b) { return String(a.name || '').localeCompare(String(b.name || '')); });
+          var done = rows.filter(function (p) { return p.status === 'Completed'; }).sort(function (a, b) { return String(a.name || '').localeCompare(String(b.name || '')); });
+          function addGroup(label, list) {
+            if (!list.length) return;
+            var og = document.createElement('optgroup');
+            og.label = label;
+            list.forEach(function (p) {
+              var o = document.createElement('option');
+              o.value = String(p.id);
+              var base = p.name ? p.name : 'Project #' + p.id;
+              o.textContent = p.status === 'Completed' ? base + ' (completed)' : base;
+              og.appendChild(o);
+            });
+            sel.appendChild(og);
+          }
+          addGroup('Active projects', active);
+          addGroup('Completed projects', done);
           var urlPid = new URLSearchParams(window.location.search).get('project_id');
           if (urlPid) {
             for (var j = 0; j < sel.options.length; j++) {

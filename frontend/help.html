@@ -69,9 +69,10 @@
           <li><strong>Charts:</strong> cash flow trend, expense breakdown by category and top suppliers or payers.</li>
           <li><strong>Records:</strong> paginated list; you can delete a record or open it to edit it in Manual Entry.</li>
           <li><strong>Export:</strong> open <strong>Export Excel report</strong> to pick the time period and optional project; the same accountant workbook format is downloaded with the matching rows.</li>
+          <li><strong>Quote requests:</strong> managers and admins use the sidebar link <strong>Quote requests</strong> (<code class="bg-slate-100 px-1 rounded text-sm">/quote-requests.html</code>) for the full lead pipeline (filters, detail panel, internal notes). The public form stays on <strong>/quote.html</strong>.</li>
           <li><strong>Lock:</strong> logs out and returns to the Access screen.</li>
         </ul>
-        <p class="text-sm text-slate-500">Use the side menu to go to manual entry, AI scan, projects, import or settings.</p>
+        <p class="text-sm text-slate-500">Use the side menu for manual entry, AI scan, projects, quote requests (managers/admins), import, settings, and help.</p>
       </article>
 
       <article id="doc-manual-entry" class="doc-section scroll-mt-24 bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm" tabindex="-1">
@@ -82,7 +83,7 @@
         <ul class="list-disc pl-5 text-slate-600 space-y-2 mb-4">
           <li><strong>Type:</strong> Expense or Income. Depending on the type you will see <em>Sales Tax Paid</em> (expense) or <em>Sales Tax Owed</em> (income).</li>
           <li><strong>Key fields:</strong> supplier or client, date, total amount, category, project, line item detail, notes.</li>
-          <li><strong>Project:</strong> lists active jobs; completed ones appear disabled. You can create a new one with <em>New</em>.</li>
+          <li><strong>Project:</strong> two groups — <em>Active projects</em> and <em>Completed projects</em> (suffix “(completed)”); you can still assign a closed job if you need a late correction. Create a new active project with <em>New</em>.</li>
           <li><strong>Total:</strong> if you fill in subtotal and taxes, the total can be calculated automatically as you type.</li>
           <li><strong>Edit:</strong> if you open the page with <code class="bg-slate-100 px-1 rounded text-sm">?id=number</code>, the data for that record will load; when saved it will update.</li>
         </ul>
@@ -98,7 +99,7 @@
           <li><strong>Format:</strong> images only (for example JPG or PNG). PDF is not supported on the server.</li>
           <li><strong>Step 1:</strong> choose a file; it is sent to the server and an AI-extracted draft is shown.</li>
           <li><strong>Step 2:</strong> review and correct the fields before confirming.</li>
-          <li><strong>Project and category:</strong> you can assign them before saving; the category may match by name with what was detected.</li>
+          <li><strong>Project and category:</strong> you can assign them before saving; projects use the same active/completed groups as Manual Entry. The category may match by name with what was detected.</li>
           <li><strong>API keys:</strong> if extraction fails, check that OpenAI or Gemini credentials exist on the server in the configuration.</li>
         </ul>
       </article>
@@ -110,13 +111,29 @@
         <p class="text-slate-600 mb-4">Group income and expenses by job or work.</p>
         <ul class="list-disc pl-5 text-slate-600 space-y-2 mb-4">
           <li><strong>Table and KPIs:</strong> only transactions that have a <em>project</em> assigned count; you will see income, expenses and margin per project.</li>
-          <li><strong>New project:</strong> name and status (Active or Completed). Completed ones are usually not selected in new forms.</li>
+          <li><strong>New project:</strong> name and status (Active or Completed). On <strong>Projects</strong>, use tabs <em>Active</em> / <em>Completed</em> / <em>All</em>; completed jobs stay available for reports and can be reopened. In Manual Entry and Receipt Scan, completed projects appear in a separate group if you need to post to a closed job.</li>
           <li><strong>Project details page:</strong> click a project row to open a dedicated details screen with metrics, budget vs actual, <strong>ledger-based activity signals</strong> (averages and ratios computed from your Income/Expense lines), top categories, top vendors, and recent transactions. Revenue is tracked through <strong>Income</strong> transactions in the ledger (no separate invoicing module).</li>
           <li><strong>AI Insights & Recommendations:</strong> the details page includes an AI-driven card that summarizes project performance and suggests actions in plain English.</li>
           <li><strong>AI fallback:</strong> if AI is not available (for example missing provider key), the app shows local analytical recommendations automatically.</li>
           <li><strong>Delete:</strong> deletes the project; linked transactions may remain without a project depending on the database.</li>
-          <li><strong>Chart:</strong> shows a comparison of the projects with the highest income.</li>
+          <li><strong>Chart:</strong> top projects by income within the current tab (active, completed, or all).</li>
+          <li><strong>Quick close / reopen:</strong> checkmark icon marks a project <em>Completed</em>; undo icon sets it back to <em>Active</em>. The project details page has the same actions in the status bar.</li>
         </ul>
+      </article>
+
+      <article id="doc-quote-requests" class="doc-section scroll-mt-24 bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm" tabindex="-1">
+        <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2 mb-4">
+          <span class="material-icons-round text-blue-600">request_quote</span> Quote requests (leads)
+        </h2>
+        <p class="text-slate-600 mb-4">For <strong>Managers</strong> and <strong>Admins</strong> only. Open <strong>/quote-requests.html</strong> from the sidebar after signing in.</p>
+        <ul class="list-disc pl-5 text-slate-600 space-y-2 mb-4">
+          <li><strong>Source:</strong> visitors submit the public form at <code class="bg-slate-100 px-1 rounded text-sm">/quote.html</code>; each submission appears in this module.</li>
+          <li><strong>Tabs / filters:</strong> narrow the list by pipeline status (New, Contacted, Scheduled, Won, Lost).</li>
+          <li><strong>Detail:</strong> click a row to see the full message, contact details, and project fields; add <strong>internal notes</strong> visible only to your team.</li>
+          <li><strong>Save:</strong> update status and notes together; use <strong>Refresh</strong> to reload the list.</li>
+          <li><strong>Deep link:</strong> <code class="bg-slate-100 px-1 rounded text-sm">/quote-requests.html?id=</code> opens a specific request after load.</li>
+        </ul>
+        <p class="text-sm text-slate-500">Viewers do not see the sidebar link or the API list.</p>
       </article>
 
       <article id="doc-import" class="doc-section scroll-mt-24 bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm" tabindex="-1">
@@ -181,6 +198,7 @@
     { id: 'manual-entry', slug: 'manual-entry', label: 'Manual Entry', el: 'doc-manual-entry' },
     { id: 'upload', slug: 'upload', label: 'AI Scan', el: 'doc-upload' },
     { id: 'projects', slug: 'projects', label: 'Projects', el: 'doc-projects' },
+    { id: 'quote-requests', slug: 'quote-requests', label: 'Quote requests', el: 'doc-quote-requests' },
     { id: 'import', slug: 'import', label: 'Import Excel', el: 'doc-import' },
     { id: 'export-excel', slug: 'export-excel', label: 'Export Excel', el: 'doc-export' },
     { id: 'settings', slug: 'settings', label: 'Settings', el: 'doc-settings' }
@@ -192,6 +210,7 @@
     'manual-entry': { href: '/add-record.html', label: 'Manual Entry' },
     upload: { href: '/upload.html', label: 'AI Scan' },
     projects: { href: '/projects.html', label: 'Projects' },
+    'quote-requests': { href: '/quote-requests.html', label: 'Quote requests' },
     import: { href: '/import.html', label: 'Import Excel' },
     'export-excel': { href: '/export-report.html', label: 'Export Excel' },
     settings: { href: '/settings.html', label: 'Settings' }
