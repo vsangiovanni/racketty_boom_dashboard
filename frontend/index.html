@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Racketty Boom Construction — Remodeling &amp; Construction · Centralia, WA</title>
-  <meta name="description" content="Racketty Boom Construction — remodeling and new construction in Centralia, WA. Free estimates, insured & bonded. Kitchens, baths, whole-home renovations, decks, and more.">
+  <meta name="description" content="Racketty Boom Construction — remodeling and new construction in Centralia, WA. Craftsmanship you can see, estimates you can trust. Free estimates, insured & bonded. Kitchens, baths, whole-home renovations, decks, and more.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,600&display=swap" rel="stylesheet">
@@ -16,8 +16,12 @@
       --paper: #fffffe;
       --accent: #c45c26;
       --accent-dark: #9a4218;
+      --accent-glow: #e8753a;
       --forest: #1e3a2f;
       --forest-light: #2d4a3e;
+      --deep: #080d18;
+      --teal-mid: #3d7a6a;
+      --gold-soft: #c9a227;
     }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
@@ -25,23 +29,45 @@
       margin: 0;
       font-family: 'DM Sans', system-ui, sans-serif;
       color: var(--ink);
-      background: var(--cream);
+      background: linear-gradient(165deg, #fdfbf7 0%, var(--cream) 38%, #eef4f1 72%, #f8f1ea 100%);
       line-height: 1.6;
       overflow-x: hidden;
     }
     body::before {
       content: '';
       position: fixed;
-      inset: -15% -10% auto -10%;
-      height: 70vh;
+      inset: -22% -18% auto -18%;
+      height: 90vh;
       pointer-events: none;
-      z-index: -1;
+      z-index: 0;
       background:
-        radial-gradient(circle at 12% 25%, rgba(196, 92, 38, 0.22), transparent 44%),
-        radial-gradient(circle at 82% 18%, rgba(30, 58, 47, 0.22), transparent 48%),
-        linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0));
-      filter: blur(6px);
+        radial-gradient(ellipse 85% 65% at 6% 18%, rgba(196, 92, 38, 0.26), transparent 58%),
+        radial-gradient(ellipse 75% 55% at 94% 8%, rgba(30, 58, 47, 0.22), transparent 52%),
+        radial-gradient(ellipse 55% 45% at 48% 95%, rgba(61, 122, 106, 0.14), transparent 62%),
+        linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0));
+      filter: blur(12px);
+      animation: mesh-breathe 20s ease-in-out infinite;
     }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.35;
+      background-image:
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+      mix-blend-mode: multiply;
+    }
+    @keyframes mesh-breathe {
+      0%, 100% { opacity: 1; transform: scale(1) translateY(0); }
+      50% { opacity: 0.9; transform: scale(1.03) translateY(-10px); }
+    }
+    body > nav,
+    body > header,
+    body > section,
+    body > div.cta-band,
+    body > footer { position: relative; z-index: 1; }
     .font-display { font-family: 'Fraunces', Georgia, serif; }
     .nav-blur {
       position: fixed;
@@ -49,9 +75,10 @@
       left: 0;
       right: 0;
       z-index: 50;
-      background: rgba(246, 243, 238, 0.88);
-      backdrop-filter: blur(14px);
-      border-bottom: 1px solid rgba(12, 18, 34, 0.06);
+      background: linear-gradient(180deg, rgba(253, 251, 247, 0.94) 0%, rgba(246, 243, 238, 0.82) 100%);
+      backdrop-filter: blur(16px) saturate(1.15);
+      border-bottom: 1px solid rgba(30, 58, 47, 0.1);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) inset, 0 10px 40px rgba(12, 18, 34, 0.07);
     }
     .nav-inner {
       max-width: 1240px;
@@ -111,11 +138,14 @@
     }
     .btn:active { transform: scale(0.98); }
     .btn-primary {
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+      background: linear-gradient(135deg, var(--accent-glow) 0%, var(--accent) 42%, var(--accent-dark) 100%);
       color: #fff;
-      box-shadow: 0 4px 20px rgba(196, 92, 38, 0.35);
+      box-shadow: 0 4px 24px rgba(196, 92, 38, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
     }
-    .btn-primary:hover { box-shadow: 0 6px 28px rgba(196, 92, 38, 0.45); }
+    .btn-primary:hover {
+      box-shadow: 0 8px 36px rgba(196, 92, 38, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.18) inset;
+      transform: translateY(-1px);
+    }
     .btn-ghost-dark {
       background: transparent;
       color: var(--forest);
@@ -130,12 +160,13 @@
     .btn-ghost-light:hover { background: rgba(255,255,255,0.2); }
     .hero {
       position: relative;
-      min-height: min(92vh, 920px);
+      min-height: min(94vh, 960px);
       display: grid;
       align-items: end;
-      padding: 5.5rem 1.25rem 3rem;
+      padding: 5.75rem 1.25rem 3.25rem;
       overflow: hidden;
       --parY: 0px;
+      --parY2: 0px;
     }
     .hero-bg {
       position: absolute;
@@ -143,27 +174,59 @@
       background-size: cover;
       background-position: center;
       z-index: 0;
-      transform: translate3d(0, var(--parY), 0) scale(1.06);
+      transform: translate3d(0, var(--parY), 0) scale(1.08);
       will-change: transform;
     }
     .hero-bg::after {
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(105deg, rgba(12, 18, 34, 0.9) 0%, rgba(12, 18, 34, 0.5) 48%, rgba(12, 18, 34, 0.3) 100%);
+      background:
+        linear-gradient(115deg, rgba(8, 13, 24, 0.92) 0%, rgba(12, 18, 34, 0.72) 38%, rgba(30, 58, 47, 0.45) 62%, rgba(12, 18, 34, 0.25) 100%),
+        radial-gradient(ellipse 90% 70% at 0% 100%, rgba(196, 92, 38, 0.35), transparent 55%);
     }
     .hero-bg::before {
       content: '';
       position: absolute;
-      inset: -20% -10% auto -10%;
-      height: 90%;
+      inset: -25% -12% auto -12%;
+      height: 95%;
       background:
-        radial-gradient(circle at 70% 8%, rgba(196, 92, 38, 0.5), transparent 46%),
-        radial-gradient(circle at 24% 14%, rgba(110, 201, 174, 0.28), transparent 44%);
+        radial-gradient(circle at 72% 6%, rgba(196, 92, 38, 0.55), transparent 42%),
+        radial-gradient(circle at 18% 18%, rgba(110, 201, 174, 0.35), transparent 46%),
+        radial-gradient(circle at 88% 70%, rgba(201, 162, 39, 0.15), transparent 40%);
       mix-blend-mode: screen;
-      opacity: 0.65;
-      transform: translate3d(0, calc(var(--parY) * 0.35), 0) scale(1.08);
+      opacity: 0.72;
+      transform: translate3d(0, calc(var(--parY) * 0.42), 0) scale(1.1);
       will-change: transform;
+    }
+    .hero-orbs {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .hero-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.5;
+      transform: translate3d(0, var(--parY2), 0);
+      will-change: transform;
+    }
+    .hero-orb--1 {
+      width: min(55vw, 420px);
+      height: min(55vw, 420px);
+      top: 8%;
+      right: -8%;
+      background: radial-gradient(circle, rgba(196, 92, 38, 0.45), transparent 70%);
+    }
+    .hero-orb--2 {
+      width: min(40vw, 300px);
+      height: min(40vw, 300px);
+      bottom: 18%;
+      left: -5%;
+      background: radial-gradient(circle, rgba(61, 122, 106, 0.4), transparent 70%);
     }
     .hero-content { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; width: 100%; }
     .hero-content::after {
@@ -189,12 +252,14 @@
       margin-bottom: 0.75rem;
     }
     .hero h1 {
-      font-size: clamp(2rem, 4.5vw, 3.35rem);
+      font-size: clamp(2.15rem, 5vw, 3.55rem);
       font-weight: 700;
       color: #fff;
-      line-height: 1.05;
+      line-height: 1.04;
       margin: 0 0 0.75rem;
-      max-width: 22ch;
+      max-width: 20ch;
+      text-shadow: 0 2px 28px rgba(0, 0, 0, 0.35), 0 0 60px rgba(196, 92, 38, 0.2);
+      letter-spacing: -0.02em;
     }
     .hero .hook {
       color: rgba(255,255,255,0.92);
@@ -214,11 +279,71 @@
     .pill {
       padding: 0.4rem 0.85rem;
       border-radius: 999px;
-      background: rgba(255,255,255,0.95);
-      border: 1px solid rgba(12, 18, 34, 0.06);
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.88));
+      border: 1px solid rgba(255, 255, 255, 0.35);
       font-size: 0.72rem;
       font-weight: 700;
       color: var(--forest);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+    }
+    .trust-strip {
+      position: relative;
+      padding: 2rem 1.25rem;
+      background: linear-gradient(135deg, var(--deep) 0%, #122a22 42%, var(--forest) 100%);
+      color: rgba(255, 255, 255, 0.92);
+      overflow: hidden;
+    }
+    .trust-strip::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 120% at 100% 0%, rgba(196, 92, 38, 0.25), transparent 50%),
+        radial-gradient(ellipse 60% 80% at 0% 100%, rgba(61, 122, 106, 0.2), transparent 45%);
+      pointer-events: none;
+    }
+    .trust-strip-inner {
+      position: relative;
+      z-index: 1;
+      max-width: 1240px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 768px) {
+      .trust-strip-inner { grid-template-columns: 1fr; gap: 1.5rem; }
+    }
+    .trust-item {
+      display: flex;
+      gap: 0.85rem;
+      align-items: flex-start;
+    }
+    .trust-icon {
+      flex-shrink: 0;
+      width: 2.35rem;
+      height: 2.35rem;
+      border-radius: 0.65rem;
+      background: linear-gradient(145deg, rgba(196, 92, 38, 0.9), var(--accent-dark));
+      color: #fff;
+      font-weight: 800;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    }
+    .trust-item strong {
+      display: block;
+      font-size: 0.95rem;
+      margin-bottom: 0.2rem;
+      color: #fff;
+    }
+    .trust-item span.desc {
+      font-size: 0.82rem;
+      opacity: 0.82;
+      line-height: 1.45;
     }
     .section {
       max-width: 1240px;
@@ -228,14 +353,27 @@
     }
     .section.alt {
       background:
-        radial-gradient(circle at 86% 6%, rgba(196, 92, 38, 0.07), transparent 42%),
-        linear-gradient(180deg, rgba(30, 58, 47, 0.05), transparent);
+        radial-gradient(ellipse 70% 50% at 90% 0%, rgba(196, 92, 38, 0.09), transparent 50%),
+        radial-gradient(ellipse 55% 45% at 5% 80%, rgba(61, 122, 106, 0.08), transparent 50%),
+        linear-gradient(180deg, rgba(30, 58, 47, 0.06), rgba(255, 255, 255, 0.4));
     }
     .section-title {
       font-size: clamp(1.65rem, 3vw, 2.15rem);
       font-weight: 700;
       margin: 0 0 0.4rem;
       color: var(--forest);
+      position: relative;
+      display: inline-block;
+    }
+    .section-title::after {
+      content: '';
+      display: block;
+      height: 3px;
+      width: min(100%, 3.5rem);
+      margin-top: 0.35rem;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--teal-mid));
+      opacity: 0.85;
     }
     .section-sub { color: var(--muted); margin: 0 0 1.75rem; max-width: 58ch; }
     .social-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
@@ -259,22 +397,39 @@
       gap: 1rem;
     }
     .svc-card {
+      position: relative;
       background: var(--paper);
       border-radius: 1rem;
-      padding: 1.15rem 1.25rem;
+      padding: 1.2rem 1.3rem;
       border: 1px solid rgba(12, 18, 34, 0.07);
-      box-shadow: 0 4px 20px rgba(12, 18, 34, 0.04);
-      transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+      box-shadow: 0 4px 24px rgba(12, 18, 34, 0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
     }
+    .svc-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(196, 92, 38, 0.35), rgba(30, 58, 47, 0.15), transparent 60%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+    .svc-card:hover::before { opacity: 1; }
     .svc-card-link {
       text-decoration: none;
       color: inherit;
       display: block;
     }
     .svc-card:hover {
-      transform: translateY(-6px);
-      border-color: rgba(196, 92, 38, 0.32);
-      box-shadow: 0 16px 30px rgba(12, 18, 34, 0.1);
+      transform: translateY(-8px);
+      border-color: rgba(196, 92, 38, 0.28);
+      box-shadow: 0 20px 44px rgba(12, 18, 34, 0.12), 0 0 0 1px rgba(196, 92, 38, 0.08);
     }
     .svc-card h3 { margin: 0 0 0.4rem; font-size: 1rem; color: var(--forest); }
     .svc-card p { margin: 0; font-size: 0.88rem; color: var(--muted); }
@@ -309,6 +464,42 @@
     }
     .step h3 { margin: 0 0 0.35rem; font-size: 1rem; color: var(--forest); }
     .step p { margin: 0; font-size: 0.88rem; color: var(--muted); }
+    .section-work-wrap {
+      position: relative;
+      overflow: hidden;
+    }
+    .section-work-wrap .section-sub { position: relative; z-index: 1; }
+    .section-work-wrap .section-title { position: relative; z-index: 1; }
+    .work-parallax-bg {
+      position: absolute;
+      inset: -12% -5%;
+      background-image: url('/assets/landing/work-2.webp');
+      background-size: cover;
+      background-position: center;
+      opacity: 0.14;
+      filter: saturate(1.1) contrast(1.05);
+      transform: translate3d(0, var(--workParallax, 0px), 0) scale(1.05);
+      will-change: transform;
+      pointer-events: none;
+    }
+    .work-parallax-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(246, 243, 238, 0.92) 0%, rgba(246, 243, 238, 0.75) 45%, rgba(246, 243, 238, 0.95) 100%);
+    }
+    .section-work-wrap .bento { position: relative; z-index: 1; }
+    .section-work-wrap > p { position: relative; z-index: 1; }
+    .wave-top {
+      display: block;
+      width: 100%;
+      height: clamp(44px, 7vw, 64px);
+      margin: 0;
+      margin-top: -1px;
+      line-height: 0;
+      color: var(--deep);
+    }
+    .wave-top svg { display: block; width: 100%; height: 100%; }
     .bento {
       display: grid;
       grid-template-columns: repeat(6, 1fr);
@@ -378,12 +569,18 @@
     .hours-table td { padding: 0.35rem 0; border-bottom: 1px solid rgba(12,18,34,0.08); }
     .hours-table td:first-child { font-weight: 600; color: var(--forest); width: 42%; }
     .cta-band {
-      background: linear-gradient(135deg, var(--forest) 0%, var(--forest-light) 100%);
+      background: linear-gradient(125deg, var(--deep) 0%, var(--forest) 28%, var(--teal-mid) 55%, var(--forest-light) 100%);
+      background-size: 200% 200%;
+      animation: cta-gradient 14s ease infinite;
       color: #fff;
-      padding: 3rem 1.25rem;
+      padding: 3.5rem 1.25rem;
       text-align: center;
       position: relative;
       overflow: hidden;
+    }
+    @keyframes cta-gradient {
+      0%, 100% { background-position: 0% 40%; }
+      50% { background-position: 100% 60%; }
     }
     .cta-band::before,
     .cta-band::after {
@@ -454,7 +651,12 @@
       transform: translateY(0);
     }
     @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      body::before { animation: none !important; }
+      .cta-band { animation: none !important; background-size: 100% 100%; }
       .hero-bg::before,
+      .hero-orb,
+      .work-parallax-bg,
       .reveal,
       .svc-card,
       .step,
@@ -491,14 +693,18 @@
 
   <header class="hero" id="top">
     <div class="hero-bg" style="background-image: url('/assets/landing/hero.webp');" role="img" aria-label="Racketty Boom construction project"></div>
+    <div class="hero-orbs" aria-hidden="true">
+      <div class="hero-orb hero-orb--1"></div>
+      <div class="hero-orb hero-orb--2"></div>
+    </div>
     <div class="hero-content">
       <p class="hero-badge">Construction &amp; remodeling · Centralia, WA &amp; surrounding areas</p>
-      <h1 class="font-display">Racketty Boom Construction</h1>
-      <p class="hook">Reputable construction and remodeling with high-quality workmanship and a focus on customer satisfaction — from whole-home renovations to targeted repairs.</p>
-      <p class="hook-follow">Free estimates · Insured &amp; bonded · Family-owned and local. Tell us about your project and get a clear, honest bid — no surprises on what matters.</p>
+      <h1 class="font-display">Build the home you cannot wait to show off</h1>
+      <p class="hook">Premium remodeling and construction with the kind of workmanship you notice in every detail — from full renovations to the repairs that protect your investment.</p>
+      <p class="hook-follow">Free estimates · Insured &amp; bonded · Family-owned and local. Prefer a crew that shows up, communicates, and finishes strong? Tell us your vision — we will earn your trust on the first walkthrough.</p>
       <div class="hero-cta">
-        <a href="/quote.html" class="btn btn-primary" id="hero-primary">Get a free quote</a>
-        <a href="#work" class="btn btn-ghost-light">See our work</a>
+        <a href="/quote.html" class="btn btn-primary" id="hero-primary">Get your free quote</a>
+        <a href="#work" class="btn btn-ghost-light">Explore our portfolio</a>
       </div>
       <div class="pill-row" aria-label="Company highlights">
         <span class="pill">Insured</span>
@@ -510,10 +716,42 @@
     </div>
   </header>
 
+  <div class="wave-top" aria-hidden="true">
+    <svg viewBox="0 0 1440 56" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+      <path fill="currentColor" d="M0,32 Q360,8 720,28 T1440,24 L1440,56 L0,56 Z" opacity="0.97"/>
+    </svg>
+  </div>
+
+  <section class="trust-strip reveal" aria-label="Why homeowners choose Racketty Boom">
+    <div class="trust-strip-inner">
+      <div class="trust-item">
+        <span class="trust-icon" aria-hidden="true">&#10003;</span>
+        <div>
+          <strong>Proven craftsmanship</strong>
+          <span class="desc">Clean job sites, sharp lines, and materials chosen to last — the work speaks for itself.</span>
+        </div>
+      </div>
+      <div class="trust-item">
+        <span class="trust-icon" aria-hidden="true">&#10003;</span>
+        <div>
+          <strong>Estimates you can trust</strong>
+          <span class="desc">Clear scope and honest numbers up front so you can decide with confidence — no mystery line items.</span>
+        </div>
+      </div>
+      <div class="trust-item">
+        <span class="trust-icon" aria-hidden="true">&#10003;</span>
+        <div>
+          <strong>We want your repeat business</strong>
+          <span class="desc">Most of our growth is referrals. We treat your home like our reputation depends on it — because it does.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="section reveal" id="about" aria-labelledby="about-h">
     <h2 id="about-h" class="section-title font-display">About us</h2>
-    <p class="section-sub">Trusted construction and remodeling in Centralia, WA and the surrounding areas. We combine experience, attention to detail, and clear communication from first estimate to final walkthrough.</p>
-    <p style="margin:0; max-width:58ch; color:var(--muted); font-size:0.95rem;">We work closely with homeowners to bring their vision to life while protecting schedule and budget. Whether it is a full renovation, a kitchen or bath, exterior upgrades, or focused repairs, you get craftsmanship you can inspect and a team that respects your home.</p>
+    <p class="section-sub">We are the local team homeowners call when they want remodeling done right — not just &ldquo;done.&rdquo; Based in Centralia, WA, we bring decades of combined experience, obsessive detail, and straight talk from the first estimate to the final walkthrough.</p>
+    <p style="margin:0; max-width:58ch; color:var(--muted); font-size:0.95rem;">Your home is your biggest investment. We protect that with schedules you can plan around, budgets we discuss openly, and finishes you will be proud to show friends and family. Whole-home transformations, kitchens and baths, exteriors, decks — when you are ready to level up your space, we are ready to deliver.</p>
     <p class="section-sub" style="margin-bottom:0.5rem;"><strong>Connect</strong></p>
     <div class="social-row">
       <a href="https://maps.google.com/maps?cid=18001669086686799493" target="_blank" rel="noopener noreferrer">Google Maps</a>
@@ -525,7 +763,7 @@
 
   <section class="section alt reveal" id="services" aria-labelledby="svc-h">
     <h2 id="svc-h" class="section-title font-display">Our services</h2>
-    <p class="section-sub">Full-service remodeling and construction — everything most homeowners need, in one place.</p>
+    <p class="section-sub">One team for almost everything on your punch list — design-aware remodeling, structural know-how, and the finishing trades that make a house feel like <em>your</em> home.</p>
     <div class="svc-grid">
       <a class="svc-card svc-card-link" href="/service-Total-Home-Renovation">
         <h3>Total home renovation</h3>
@@ -582,8 +820,8 @@
   </section>
 
   <section class="section reveal" id="quote" aria-labelledby="quote-h">
-    <h2 id="quote-h" class="section-title font-display">Ready to get started</h2>
-    <p class="section-sub">Getting a quote is simple — same three-step story our customers know, without clutter.</p>
+    <h2 id="quote-h" class="section-title font-display">Ready when you are</h2>
+    <p class="section-sub">Three quick steps — the same path our happiest clients took before their first hammer swung. No pressure, just clarity.</p>
     <div class="steps">
       <div class="step" data-n="1">
         <h3>Send us a text</h3>
@@ -603,9 +841,10 @@
     </p>
   </section>
 
-  <section class="section alt reveal" id="work" aria-labelledby="work-h">
-    <h2 id="work-h" class="section-title font-display">Our best work</h2>
-    <p class="section-sub">Real project photography — kitchens, baths, exteriors, decks, and whole-home renovations.</p>
+  <section class="section alt reveal section-work-wrap" id="work" aria-labelledby="work-h">
+    <div class="work-parallax-bg" aria-hidden="true"></div>
+    <h2 id="work-h" class="section-title font-display">Work that wins referrals</h2>
+    <p class="section-sub">Real jobs, real photos — kitchens, baths, exteriors, decks, and whole-home transformations. This is the standard we hold every new project to.</p>
     <div class="bento">
       <div class="bento-item bento-a"><img src="/assets/landing/work-1.webp" alt="Racketty Boom renovation" loading="lazy" width="1500" height="1500"></div>
       <div class="bento-item bento-b"><img src="/assets/landing/work-2.webp" alt="Racketty Boom interior" loading="lazy" width="1500" height="1500"></div>
@@ -621,7 +860,7 @@
 
   <section class="section reveal" id="reviews" aria-labelledby="rev-h">
     <h2 id="rev-h" class="section-title font-display">Reviews</h2>
-    <p class="section-sub">Highlights from homeowners who hired Racketty Boom for remodels, storm recovery, and full renovations.</p>
+    <p class="section-sub">Five-star moments from real clients — bathrooms, full rehabs, rentals, and repeat customers who would hire us again without hesitation.</p>
     <div class="review-grid">
       <div class="review-card">
         <div class="stars" aria-hidden="true">★★★★★</div>
@@ -697,11 +936,11 @@
 
   <div class="cta-band" aria-labelledby="cta-band-h">
     <div class="cta-band-inner">
-      <h2 id="cta-band-h" class="font-display">Ready to start your project?</h2>
-      <p>Send a message with a few photos if you have them. We will walk through scope, timing, and budget — <strong>free estimates</strong>, clear communication, and workmanship you can be proud to show off.</p>
+      <h2 id="cta-band-h" class="font-display">Make Racketty Boom your first call</h2>
+      <p>Whether you are dreaming big or fixing what cannot wait — send a quick note and photos if you have them. We will map scope, timing, and budget together. <strong>Free estimates</strong>, responsive communication, and a finished product you will want to show the neighbors.</p>
       <div class="row">
-        <a href="/quote.html" class="btn btn-primary">Get a free quote</a>
-        <a href="#reviews" class="btn btn-ghost-light">Read homeowner reviews</a>
+        <a href="/quote.html" class="btn btn-primary">Request your free quote</a>
+        <a href="#reviews" class="btn btn-ghost-light">See why homeowners choose us</a>
       </div>
     </div>
   </div>
@@ -763,13 +1002,24 @@
   <script>
     (function () {
       var hero = document.querySelector('.hero');
+      var workWrap = document.querySelector('.section-work-wrap');
       var revealItems = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
       var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       if (!prefersReduced && hero) {
         function updateParallax() {
-          var y = Math.min(window.scrollY * 0.28, 150);
+          var sy = window.scrollY || 0;
+          var y = Math.min(sy * 0.3, 160);
           hero.style.setProperty('--parY', y.toFixed(2) + 'px');
+          var y2 = Math.min(sy * 0.14, 90);
+          hero.style.setProperty('--parY2', y2.toFixed(2) + 'px');
+          if (workWrap) {
+            var rect = workWrap.getBoundingClientRect();
+            var vh = window.innerHeight || 1;
+            var centerOffset = rect.top + rect.height * 0.4 - vh * 0.5;
+            var wY = Math.max(-48, Math.min(48, centerOffset * -0.06));
+            workWrap.style.setProperty('--workParallax', wY.toFixed(2) + 'px');
+          }
         }
         updateParallax();
 
