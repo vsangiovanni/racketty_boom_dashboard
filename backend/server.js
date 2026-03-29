@@ -37,7 +37,23 @@ const UPLOAD_FS_DIR = process.env.UPLOAD_FS_DIR
 const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB || 10);
 const APP_BASE_URL = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
 const DEFAULT_COMPANY_NAME = process.env.DEFAULT_COMPANY_NAME || 'Racketty Boom Enterprises';
-const QUOTE_NOTIFY_TO_DEFAULT = 'victorsangiovanni@gmail.com';
+const QUOTE_NOTIFY_TO_DEFAULT =
+  'victorsangiovanni@gmail.com,gregorybarneswatson@gmail.com';
+
+/** Comas o punto y coma; devuelve lista de emails validos (sin duplicados). */
+function parseQuoteNotifyRecipients(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return [];
+  const seen = new Set();
+  const out = [];
+  for (const part of s.split(/[,;]+/)) {
+    const e = normalizeCustomerEmail(part);
+    if (!e || !isValidCustomerEmail(e) || seen.has(e)) continue;
+    seen.add(e);
+    out.push(e);
+  }
+  return out;
+}
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
@@ -199,9 +215,11 @@ function createQuoteMailTransporter() {
 }
 
 async function sendQuoteRequestNotificationEmail(detail) {
-  const teamTo = String(process.env.QUOTE_NOTIFY_TO || QUOTE_NOTIFY_TO_DEFAULT).trim();
-  if (!teamTo) {
-    console.warn('[quote-requests] QUOTE_NOTIFY_TO empty; notification email skipped.');
+  const teamRecipients = parseQuoteNotifyRecipients(
+    process.env.QUOTE_NOTIFY_TO || QUOTE_NOTIFY_TO_DEFAULT
+  );
+  if (!teamRecipients.length) {
+    console.warn('[quote-requests] QUOTE_NOTIFY_TO empty or invalid; notification email skipped.');
     return;
   }
   const transporter = createQuoteMailTransporter();
@@ -287,12 +305,16 @@ ${row('Estimated budget', budgetFormatted)}
 
   const teamInfo = await transporter.sendMail({
     from,
-    to: teamTo,
+    to: teamRecipients,
     subject: teamSubject,
     text: teamText,
     html: teamHtml
   });
-  console.log('[quote-requests] team notification sent to', teamTo, teamInfo.messageId ? `(id ${teamInfo.messageId})` : '');
+  console.log(
+    '[quote-requests] team notification sent to',
+    teamRecipients.join(', '),
+    teamInfo.messageId ? `(id ${teamInfo.messageId})` : ''
+  );
 
   const custEmailRaw = detail.email ? String(detail.email) : '';
   const custEmail = normalizeCustomerEmail(custEmailRaw);
@@ -365,7 +387,7 @@ ${row('Estimated budget', budgetFormatted)}
     const customerInfo = await transporter.sendMail({
       from,
       to: custEmail,
-      replyTo: teamTo,
+      replyTo: teamRecipients.length === 1 ? teamRecipients[0] : teamRecipients,
       subject: customerSubject,
       text: customerText,
       html: customerHtml,

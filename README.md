@@ -72,7 +72,7 @@ To run only from `backend/` (optional): `cd backend && npm install && npm start`
 
 2. Upload **`hostinger-deploy.zip`**. Zip root must include **`package.json`**, **`server.js`**, **`backend/`**, **`frontend/`**, etc. (no `node_modules`; do not commit secrets — the script skips `backend/.env` and production env files; configure variables in hPanel or place `backend/.env.production` on the server only there).
 
-3. In hPanel (**Websites → your site → Node.js**): **Application startup file** `server.js`, install command `npm install`, start `npm start` (or Hostinger’s Express preset). Set **environment variables** to match `backend/.env.example` (especially `DB_*`, `APP_BASE_URL`, `NODE_ENV=production`, and SMTP / `QUOTE_*` if you use quote emails).
+3. In hPanel (**Websites → your site → Node.js**): **Application startup file** `server.js`, install command `npm install`, start `npm start` (or Hostinger’s Express preset). Set **environment variables** to match `backend/.env.example` (especially `DB_*`, `APP_BASE_URL`, `NODE_ENV=production`, and SMTP / quote mail). For **internal quote alerts**, `QUOTE_NOTIFY_TO` accepts **several addresses** separated by commas or semicolons (same notification to each).
 
 4. **Automated deploy (optional):** if you use the Hostinger API from Cursor (MCP `user-hostinger-mcp`), the tool **`hosting_deployJsApplication`** accepts the same zip path (`archivePath`) and your site **domain**. After upload, check deployment status with **`hosting_listJsDeployments`**. If the API is not configured, use hPanel **Upload** / **Deploy** for the archive.
 
