@@ -926,6 +926,74 @@ async function hasTransactionsCompanyColumn(connection) {
   return transactionsCompanyColumnCheck;
 }
 
+/**
+ * WHERE fragments for ledger queries. When applyUserFilters is false, only company/project scope (for filter-option lists).
+ */
+function buildLedgerWhereClause(query, { companyFieldExists, projectId, applyUserFilters }) {
+  const conditions = [];
+  const params = {};
+
+  if (companyFieldExists) {
+    conditions.push('t.company = :company');
+    params.company = DEFAULT_COMPANY_NAME;
+  }
+  if (projectId != null) {
+    const pid = Number(projectId);
+    if (Number.isFinite(pid) && pid > 0) {
+      conditions.push('t.project_id = :projectId');
+      params.projectId = pid;
+    }
+  }
+
+  if (applyUserFilters) {
+    const q = query || {};
+    const dateFrom = String(q.dateFrom || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateFrom)) {
+      conditions.push('t.transaction_date >= :dateFrom');
+      params.dateFrom = dateFrom;
+    }
+    const dateTo = String(q.dateTo || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateTo)) {
+      conditions.push('t.transaction_date <= :dateTo');
+      params.dateTo = dateTo;
+    }
+    const vendor = String(q.vendor || '').trim();
+    if (vendor) {
+      conditions.push('TRIM(t.vendor) = :vendor');
+      params.vendor = vendor;
+    }
+    const category = String(q.category || '').trim();
+    if (category) {
+      conditions.push(`COALESCE(NULLIF(TRIM(c.name), ''), 'General') = :category`);
+      params.category = category;
+    }
+    const type = String(q.type || 'all').trim();
+    if (type === 'Income' || type === 'Expense') {
+      conditions.push('t.type = :txType');
+      params.txType = type;
+    }
+    const amountMin = q.amountMin;
+    if (amountMin !== undefined && amountMin !== null && String(amountMin).trim() !== '') {
+      const n = Number(amountMin);
+      if (Number.isFinite(n)) {
+        conditions.push('ABS(t.amount) >= :amountMin');
+        params.amountMin = n;
+      }
+    }
+    const amountMax = q.amountMax;
+    if (amountMax !== undefined && amountMax !== null && String(amountMax).trim() !== '') {
+      const n = Number(amountMax);
+      if (Number.isFinite(n)) {
+        conditions.push('ABS(t.amount) <= :amountMax');
+        params.amountMax = n;
+      }
+    }
+  }
+
+  const whereSql = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  return { whereSql, params };
+}
+
 async function ensureSchema() {
   const fs = require('fs');
   const path = require('path');
@@ -1484,12 +1552,79 @@ app.get('/api/projects/:id/stats', async (req, res) => {
   }
 });
 
-app.get('/api/projects/:id/transactions', async (req, res) => {
+app.get('/api/projects/:id/transactions/filter-options', async (req, res) => {
+  const projectId = Number(req.params.id);
+  if (!Number.isFinite(projectId) || projectId <= 0) {
+    return res.status(400).json({ error: 'Invalid project id' });
+  }
+  const connection = await pool.getConnection();
   try {
-    const projectId = req.params.id;
-    const limit = Math.min(Math.max(Number(req.query.limit || 10), 1), 50);
+    const companyFieldExists = await hasTransactionsCompanyColumn(connection);
+    const { whereSql, params } = buildLedgerWhereClause({}, {
+      companyFieldExists,
+      projectId,
+      applyUserFilters: false
+    });
+    const vendorTail = whereSql
+      ? `${whereSql} AND t.vendor IS NOT NULL AND TRIM(t.vendor) <> ''`
+      : `WHERE t.vendor IS NOT NULL AND TRIM(t.vendor) <> ''`;
+    const [vRows] = await connection.query(
+      `SELECT DISTINCT TRIM(t.vendor) AS v FROM transactions t ${vendorTail} ORDER BY v ASC`,
+      params
+    );
+    const catTail = whereSql || 'WHERE 1=1';
+    const [cRows] = await connection.query(
+      `SELECT DISTINCT COALESCE(NULLIF(TRIM(c.name), ''), 'General') AS cat
+       FROM transactions t
+       LEFT JOIN categories c ON c.id = t.category_id
+       ${catTail}
+       ORDER BY cat ASC`,
+      params
+    );
+    return res.json({
+      vendors: vRows.map((r) => r.v).filter(Boolean),
+      categories: cRows.map((r) => r.cat).filter(Boolean)
+    });
+  } catch (err) {
+    console.error('Project transaction filter-options error:', err);
+    return res.status(500).json({ error: 'Failed to load filter options' });
+  } finally {
+    connection.release();
+  }
+});
 
-    const [rows] = await pool.query(
+app.get('/api/projects/:id/transactions', async (req, res) => {
+  const projectId = Number(req.params.id);
+  if (!Number.isFinite(projectId) || projectId <= 0) {
+    return res.status(400).json({ error: 'Invalid project id' });
+  }
+  const connection = await pool.getConnection();
+  try {
+    const page = Math.max(Number(req.query.page || 1), 1);
+    const limit = Math.min(Math.max(Number(req.query.limit || 10), 1), 100);
+
+    const companyFieldExists = await hasTransactionsCompanyColumn(connection);
+    const { whereSql, params } = buildLedgerWhereClause(req.query, {
+      companyFieldExists,
+      projectId,
+      applyUserFilters: true
+    });
+
+    const countSql = `
+      SELECT COUNT(*) AS total
+      FROM transactions t
+      LEFT JOIN categories c ON c.id = t.category_id
+      ${whereSql || ''}
+    `;
+    const [[{ total }]] = await connection.query(countSql, params);
+
+    const totalNum = Number(total) || 0;
+    const totalPages = totalNum === 0 ? 1 : Math.ceil(totalNum / limit);
+    const effectivePage = Math.min(page, totalPages);
+    const offset = (effectivePage - 1) * limit;
+    const listParams = { ...params, limit, offset };
+
+    const [rows] = await connection.query(
       `
       SELECT
         t.id,
@@ -1503,16 +1638,26 @@ app.get('/api/projects/:id/transactions', async (req, res) => {
       FROM transactions t
       LEFT JOIN categories c ON c.id = t.category_id
       LEFT JOIN receipt_uploads ru ON ru.id = t.receipt_id
-      WHERE t.project_id = :projectId
+      ${whereSql || ''}
       ORDER BY t.transaction_date DESC, t.id DESC
-      LIMIT :limit
+      LIMIT :limit OFFSET :offset
       `,
-      { projectId, limit }
+      listParams
     );
 
-    return res.json({ transactions: rows });
+    return res.json({
+      transactions: rows,
+      pagination: {
+        total: totalNum,
+        page: effectivePage,
+        limit,
+        totalPages
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  } finally {
+    connection.release();
   }
 });
 
@@ -2424,6 +2569,43 @@ app.post('/api/transactions', async (req, res) => {
   }
 });
 
+app.get('/api/transactions/filter-options', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const companyFieldExists = await hasTransactionsCompanyColumn(connection);
+    const { whereSql, params } = buildLedgerWhereClause({}, {
+      companyFieldExists,
+      projectId: null,
+      applyUserFilters: false
+    });
+    const vendorTail = whereSql
+      ? `${whereSql} AND t.vendor IS NOT NULL AND TRIM(t.vendor) <> ''`
+      : `WHERE t.vendor IS NOT NULL AND TRIM(t.vendor) <> ''`;
+    const [vRows] = await connection.query(
+      `SELECT DISTINCT TRIM(t.vendor) AS v FROM transactions t ${vendorTail} ORDER BY v ASC`,
+      params
+    );
+    const catTail = whereSql || 'WHERE 1=1';
+    const [cRows] = await connection.query(
+      `SELECT DISTINCT COALESCE(NULLIF(TRIM(c.name), ''), 'General') AS cat
+       FROM transactions t
+       LEFT JOIN categories c ON c.id = t.category_id
+       ${catTail}
+       ORDER BY cat ASC`,
+      params
+    );
+    return res.json({
+      vendors: vRows.map((r) => r.v).filter(Boolean),
+      categories: cRows.map((r) => r.cat).filter(Boolean)
+    });
+  } catch (err) {
+    console.error('Transaction filter-options error:', err);
+    return res.status(500).json({ error: 'Failed to load filter options' });
+  } finally {
+    connection.release();
+  }
+});
+
 app.get('/api/transactions/:id', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM transactions WHERE id = :id', { id: req.params.id });
@@ -2505,14 +2687,33 @@ app.delete('/api/transactions/:id', async (req, res) => {
 });
 
 app.get('/api/transactions', async (req, res) => {
+  const connection = await pool.getConnection();
   try {
     const page = Math.max(Number(req.query.page || 1), 1);
     const limit = Math.min(Math.max(Number(req.query.limit || 15), 1), 500);
-    const offset = (page - 1) * limit;
 
-    const [[{ total }]] = await pool.query('SELECT COUNT(*) as total FROM transactions');
+    const companyFieldExists = await hasTransactionsCompanyColumn(connection);
+    const { whereSql, params } = buildLedgerWhereClause(req.query, {
+      companyFieldExists,
+      projectId: null,
+      applyUserFilters: true
+    });
 
-    const [rows] = await pool.query(
+    const countSql = `
+      SELECT COUNT(*) AS total
+      FROM transactions t
+      LEFT JOIN categories c ON c.id = t.category_id
+      ${whereSql || ''}
+    `;
+    const [[{ total }]] = await connection.query(countSql, params);
+
+    const totalNum = Number(total) || 0;
+    const totalPages = totalNum === 0 ? 1 : Math.ceil(totalNum / limit);
+    const effectivePage = Math.min(page, totalPages);
+    const offset = (effectivePage - 1) * limit;
+    const listParams = { ...params, limit, offset };
+
+    const [rows] = await connection.query(
       `
       SELECT
         t.id,
@@ -2531,24 +2732,27 @@ app.get('/api/transactions', async (req, res) => {
       LEFT JOIN categories c ON c.id = t.category_id
       LEFT JOIN projects p ON p.id = t.project_id
       LEFT JOIN receipt_uploads ru ON ru.id = t.receipt_id
+      ${whereSql || ''}
       ORDER BY t.transaction_date DESC, t.id DESC
       LIMIT :limit OFFSET :offset
       `,
-      { limit, offset }
+      listParams
     );
 
-    return res.json({ 
+    return res.json({
       transactions: rows,
       pagination: {
-        total,
-        page,
+        total: totalNum,
+        page: effectivePage,
         limit,
-        totalPages: Math.ceil(total / limit)
+        totalPages
       }
     });
   } catch (error) {
     console.error('Transactions list error:', error);
     return res.status(500).json({ error: 'Failed to fetch transactions.' });
+  } finally {
+    connection.release();
   }
 });
 

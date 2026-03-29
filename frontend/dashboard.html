@@ -262,7 +262,7 @@
 
           <div class="p-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
             <button id="btn-prev" class="text-slate-600 disabled:text-slate-300 font-bold py-1.5 px-3 rounded-lg hover:bg-slate-200 transition-colors text-xs uppercase" disabled>Prev</button>
-            <div class="text-xs font-medium text-slate-500">Page <span id="current-page" class="text-slate-800 font-bold">1</span> of <span id="total-pages">1</span></div>
+            <div class="text-xs font-medium text-slate-500">Page <span id="current-page" class="text-slate-800 font-bold">1</span> of <span id="total-pages">1</span><span id="records-total-hint" class="text-slate-400 font-normal"></span></div>
             <button id="btn-next" class="text-slate-600 disabled:text-slate-300 font-bold py-1.5 px-3 rounded-lg hover:bg-slate-200 transition-colors text-xs uppercase" disabled>Next</button>
           </div>
         </div>
@@ -438,7 +438,7 @@
 
     let currentPage = 1;
     let currentLimit = 10;
-    let currentTransactions = [];
+    let recordsFilterDebounce = null;
 
     function renderRecordsTable(transactions) {
       const tbody = document.getElementById('records-tbody');
@@ -482,9 +482,42 @@
       };
     }
 
-    function applyRecordsFilter() {
-      const filtered = GregLedgerFilters.filterTransactions(currentTransactions, readRecordsFilterCriteria());
-      renderRecordsTable(filtered);
+    function appendLedgerQueryFilters(qs) {
+      const c = readRecordsFilterCriteria();
+      if (c.dateFrom) qs.set('dateFrom', c.dateFrom);
+      if (c.dateTo) qs.set('dateTo', c.dateTo);
+      if (c.vendor) qs.set('vendor', c.vendor);
+      if (c.category) qs.set('category', c.category);
+      if (c.type && c.type !== 'all') qs.set('type', c.type);
+      if (String(c.amountMin || '').trim() !== '') qs.set('amountMin', String(c.amountMin));
+      if (String(c.amountMax || '').trim() !== '') qs.set('amountMax', String(c.amountMax));
+    }
+
+    async function loadFilterOptions() {
+      try {
+        const res = await fetch('/api/transactions/filter-options');
+        if (!res.ok) return;
+        const data = await res.json();
+        GregLedgerFilters.applyFilterOptionsToSelects(
+          document.getElementById('records-filter-vendor'),
+          document.getElementById('records-filter-category'),
+          data
+        );
+      } catch (e) {}
+    }
+
+    function scheduleRecordsReload() {
+      clearTimeout(recordsFilterDebounce);
+      recordsFilterDebounce = setTimeout(() => {
+        currentPage = 1;
+        loadRecords(1);
+      }, 280);
+    }
+
+    function scheduleRecordsReloadImmediate() {
+      clearTimeout(recordsFilterDebounce);
+      currentPage = 1;
+      loadRecords(1);
     }
 
     function clearRecordsFilters() {
@@ -495,24 +528,27 @@
       document.getElementById('records-filter-type').value = 'all';
       document.getElementById('records-filter-amount-min').value = '';
       document.getElementById('records-filter-amount-max').value = '';
-      applyRecordsFilter();
+      clearTimeout(recordsFilterDebounce);
+      loadFilterOptions();
+      loadRecords(1);
     }
 
     async function loadRecords(page) {
       try {
-        const res = await fetch(`/api/transactions?page=${page}&limit=${currentLimit}`);
+        const qs = new URLSearchParams();
+        qs.set('page', String(page));
+        qs.set('limit', String(currentLimit));
+        appendLedgerQueryFilters(qs);
+        const res = await fetch('/api/transactions?' + qs.toString());
         const data = await res.json();
-        currentTransactions = Array.isArray(data.transactions) ? data.transactions : [];
-        GregLedgerFilters.populateVendorCategorySelects(
-          document.getElementById('records-filter-vendor'),
-          document.getElementById('records-filter-category'),
-          currentTransactions
-        );
-        applyRecordsFilter();
-
-        const pg = data.pagination;
+        renderRecordsTable(data.transactions || []);
+        const pg = data.pagination || { page: 1, totalPages: 1, total: 0 };
         document.getElementById('current-page').textContent = pg.page;
         document.getElementById('total-pages').textContent = pg.totalPages || 1;
+        const hintEl = document.getElementById('records-total-hint');
+        if (hintEl) {
+          hintEl.textContent = typeof pg.total === 'number' ? ' · ' + pg.total + ' matching' : '';
+        }
         document.getElementById('btn-prev').disabled = pg.page <= 1;
         document.getElementById('btn-next').disabled = pg.page >= pg.totalPages;
         currentPage = pg.page;
@@ -522,10 +558,10 @@
     document.getElementById('btn-prev').addEventListener('click', () => { if (currentPage > 1) loadRecords(currentPage - 1); });
     document.getElementById('btn-next').addEventListener('click', () => { loadRecords(currentPage + 1); });
     ['records-filter-date-from', 'records-filter-date-to', 'records-filter-vendor', 'records-filter-category', 'records-filter-type'].forEach((id) => {
-      document.getElementById(id).addEventListener('change', applyRecordsFilter);
+      document.getElementById(id).addEventListener('change', scheduleRecordsReloadImmediate);
     });
     ['records-filter-amount-min', 'records-filter-amount-max'].forEach((id) => {
-      document.getElementById(id).addEventListener('input', applyRecordsFilter);
+      document.getElementById(id).addEventListener('input', scheduleRecordsReload);
     });
     document.getElementById('records-filter-clear').addEventListener('click', clearRecordsFilters);
 
@@ -533,6 +569,7 @@
       if (!confirm('Are you sure you want to delete this record?')) return;
       try {
         await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+        await loadFilterOptions();
         loadRecords(currentPage);
         loadStats();
       } catch (err) {}
@@ -555,6 +592,7 @@
     loadAppSettings();
     hydrateAdminNav();
     loadStats();
+    loadFilterOptions();
     loadRecords(1);
   </script>
   <script src="/js/app-shell.js"></script>

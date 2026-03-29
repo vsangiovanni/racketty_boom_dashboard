@@ -235,6 +235,11 @@
             </tbody>
           </table>
         </div>
+        <div class="p-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <button type="button" id="pd-btn-tx-prev" class="text-slate-600 disabled:text-slate-300 font-bold py-1.5 px-3 rounded-lg hover:bg-slate-200 transition-colors text-xs uppercase" disabled>Prev</button>
+          <div class="text-xs font-medium text-slate-500">Page <span id="pd-tx-current-page" class="text-slate-800 font-bold">1</span> of <span id="pd-tx-total-pages">1</span><span id="pd-tx-total-hint" class="text-slate-400 font-normal"></span></div>
+          <button type="button" id="pd-btn-tx-next" class="text-slate-600 disabled:text-slate-300 font-bold py-1.5 px-3 rounded-lg hover:bg-slate-200 transition-colors text-xs uppercase" disabled>Next</button>
+        </div>
       </section>
 
     </main>
@@ -253,6 +258,12 @@
 
     let currentProjectMeta = null;
     let projectTransactions = [];
+    let pdTxPage = 1;
+    const pdTxLimit = 10;
+    let pdFilterTimer = null;
+    let pdInsightMetrics = null;
+    let pdInsightCats = null;
+    let pdInsightVendors = null;
 
     function renderProjectTransactions(txs) {
       const body = document.getElementById('pd-transactions-body');
@@ -290,9 +301,72 @@
       };
     }
 
-    function applyProjectTxFilter() {
-      const filtered = GregLedgerFilters.filterTransactions(projectTransactions, readPdFilterCriteria());
-      renderProjectTransactions(filtered);
+    function appendPdLedgerQueryFilters(qs) {
+      const c = readPdFilterCriteria();
+      if (c.dateFrom) qs.set('dateFrom', c.dateFrom);
+      if (c.dateTo) qs.set('dateTo', c.dateTo);
+      if (c.vendor) qs.set('vendor', c.vendor);
+      if (c.category) qs.set('category', c.category);
+      if (c.type && c.type !== 'all') qs.set('type', c.type);
+      if (String(c.amountMin || '').trim() !== '') qs.set('amountMin', String(c.amountMin));
+      if (String(c.amountMax || '').trim() !== '') qs.set('amountMax', String(c.amountMax));
+    }
+
+    async function loadPdFilterOptions() {
+      if (!projectId) return;
+      try {
+        const res = await fetch('/api/projects/' + projectId + '/transactions/filter-options', { credentials: 'same-origin' });
+        if (!res.ok) return;
+        const data = await res.json();
+        GregLedgerFilters.applyFilterOptionsToSelects(
+          document.getElementById('pd-filter-vendor'),
+          document.getElementById('pd-filter-category'),
+          data
+        );
+      } catch (_e) {}
+    }
+
+    async function loadPdTransactions(page) {
+      if (!projectId) return;
+      const qs = new URLSearchParams();
+      qs.set('page', String(page));
+      qs.set('limit', String(pdTxLimit));
+      appendPdLedgerQueryFilters(qs);
+      const res = await fetch('/api/projects/' + projectId + '/transactions?' + qs.toString(), { credentials: 'same-origin' });
+      if (!res.ok) throw new Error('Failed to load project transactions');
+      const payload = await res.json();
+      projectTransactions = payload.transactions || [];
+      const pg = payload.pagination || { page: 1, totalPages: 1, total: 0 };
+      pdTxPage = pg.page;
+      const totalM = typeof pg.total === 'number' ? pg.total : 0;
+      document.getElementById('pd-recent-subtitle').textContent =
+        totalM + ' matching · page ' + pg.page + ' of ' + (pg.totalPages || 1);
+      document.getElementById('pd-tx-current-page').textContent = pg.page;
+      document.getElementById('pd-tx-total-pages').textContent = pg.totalPages || 1;
+      const hint = document.getElementById('pd-tx-total-hint');
+      if (hint) hint.textContent = '';
+      document.getElementById('pd-btn-tx-prev').disabled = pg.page <= 1;
+      document.getElementById('pd-btn-tx-next').disabled = pg.page >= (pg.totalPages || 1);
+      try {
+        await renderAIInsights();
+      } catch (_aiErr) {
+        renderRuleBasedInsights(pdInsightMetrics, pdInsightCats, pdInsightVendors, projectTransactions);
+      }
+      renderProjectTransactions(projectTransactions);
+    }
+
+    function schedulePdTxReload() {
+      clearTimeout(pdFilterTimer);
+      pdFilterTimer = setTimeout(() => {
+        pdTxPage = 1;
+        loadPdTransactions(1).catch((e) => alert(e.message || 'Error'));
+      }, 280);
+    }
+
+    function schedulePdTxReloadImmediate() {
+      clearTimeout(pdFilterTimer);
+      pdTxPage = 1;
+      loadPdTransactions(1).catch((e) => alert(e.message || 'Error'));
     }
 
     function clearPdFilters() {
@@ -303,7 +377,9 @@
       document.getElementById('pd-filter-type').value = 'all';
       document.getElementById('pd-filter-amount-min').value = '';
       document.getElementById('pd-filter-amount-max').value = '';
-      applyProjectTxFilter();
+      clearTimeout(pdFilterTimer);
+      loadPdFilterOptions();
+      loadPdTransactions(1).catch((e) => alert(e.message || 'Error'));
     }
 
     async function updateProjectStatus(newStatus) {
@@ -492,9 +568,12 @@
         recommendations.push(`Create a category budget cap for ${topCategory.name} and track variance each week.`);
       }
 
+      const sampleLen = (txs || []).length;
+      const totalTx = Number(metrics.transactionCount || 0);
+      const ledgerSampleComplete = totalTx > 0 && sampleLen >= totalTx;
       const incomeTxCount = (txs || []).filter(t => t.type === 'Income').length;
       const expenseTxCount = (txs || []).filter(t => t.type === 'Expense').length;
-      if (expenseTxCount > incomeTxCount * 2 && txCount >= 5) {
+      if (ledgerSampleComplete && expenseTxCount > incomeTxCount * 2 && txCount >= 5) {
         insights.push('Expense activity is significantly higher than income activity in the ledger. Review whether income entries are missing or delayed.');
         recommendations.push('Post milestone income entries in the ledger as you bill the client to keep the project view balanced.');
       }
@@ -546,14 +625,12 @@
     async function loadProject() {
       try {
         const fetchOpts = { credentials: 'same-origin' };
-        const [statsRes, txRes, breakdownRes] = await Promise.all([
+        const [statsRes, breakdownRes] = await Promise.all([
           fetch('/api/projects/' + projectId + '/stats', fetchOpts),
-          fetch('/api/projects/' + projectId + '/transactions?limit=10', fetchOpts),
           fetch('/api/projects/' + projectId + '/breakdown?limit=6', fetchOpts)
         ]);
 
         if (!statsRes.ok) throw new Error('Failed to load project stats');
-        if (!txRes.ok) throw new Error('Failed to load project transactions');
         if (!breakdownRes.ok) {
           let detail = '';
           try {
@@ -564,7 +641,6 @@
         }
 
         const statsPayload = await statsRes.json();
-        const txPayload = await txRes.json();
         const breakdown = await breakdownRes.json();
 
         const project = statsPayload.project || {};
@@ -611,21 +687,12 @@
             `).join('')
           : '<tr><td colspan="3" class="p-4 text-center text-slate-400">No vendor data.</td></tr>';
 
-        // Transactions
-        const txs = Array.isArray(txPayload.transactions) ? txPayload.transactions : [];
-        projectTransactions = txs;
-        document.getElementById('pd-recent-subtitle').textContent = 'Showing ' + txs.length + ' of ' + (metrics.transactionCount || 0);
-        GregLedgerFilters.populateVendorCategorySelects(
-          document.getElementById('pd-filter-vendor'),
-          document.getElementById('pd-filter-category'),
-          projectTransactions
-        );
-        try {
-          await renderAIInsights();
-        } catch (_aiErr) {
-          renderRuleBasedInsights(metrics, cats, vendors, txs);
-        }
-        applyProjectTxFilter();
+        pdInsightMetrics = metrics;
+        pdInsightCats = cats;
+        pdInsightVendors = vendors;
+
+        await loadPdFilterOptions();
+        await loadPdTransactions(1);
 
         await Promise.all([loadBudgetSummary(), loadLedgerSignals()]);
 
@@ -636,12 +703,18 @@
 
     document.getElementById('pd-budget-form').addEventListener('submit', (e) => saveBudget(e).catch((err) => alert(err.message)));
     ['pd-filter-date-from', 'pd-filter-date-to', 'pd-filter-vendor', 'pd-filter-category', 'pd-filter-type'].forEach((id) => {
-      document.getElementById(id).addEventListener('change', applyProjectTxFilter);
+      document.getElementById(id).addEventListener('change', schedulePdTxReloadImmediate);
     });
     ['pd-filter-amount-min', 'pd-filter-amount-max'].forEach((id) => {
-      document.getElementById(id).addEventListener('input', applyProjectTxFilter);
+      document.getElementById(id).addEventListener('input', schedulePdTxReload);
     });
     document.getElementById('pd-filter-clear').addEventListener('click', clearPdFilters);
+    document.getElementById('pd-btn-tx-prev').addEventListener('click', () => {
+      if (pdTxPage > 1) loadPdTransactions(pdTxPage - 1).catch((e) => alert(e.message || 'Error'));
+    });
+    document.getElementById('pd-btn-tx-next').addEventListener('click', () => {
+      loadPdTransactions(pdTxPage + 1).catch((e) => alert(e.message || 'Error'));
+    });
 
     if (projectId) loadProject();
   </script>
