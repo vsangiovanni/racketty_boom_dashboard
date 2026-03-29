@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quote requests - Greg Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/js/brand-defaults.js"></script>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -240,10 +241,13 @@
     async function loadPublicSettings() {
       try {
         const res = await fetch('/api/settings/public');
-        const data = await res.json();
-        if (data.logo_url) {
-          const el = document.getElementById('sidebar-logo-container');
-          el.innerHTML = '<img src="' + escapeHtml(data.logo_url) + '" class="w-full h-full object-contain bg-white" alt="" />';
+        const data = res.ok ? await res.json() : {};
+        const defaultLogo = window.GREG_TRACKER_DEFAULT_LOGO_URL || '/assets/landing/logo.svg';
+        const logoUrl = data.logo_url || defaultLogo;
+        const el = document.getElementById('sidebar-logo-container');
+        if (el) {
+          el.innerHTML =
+            '<img src="' + escapeHtml(logoUrl) + '" class="w-full h-full object-contain" alt="" />';
           el.classList.remove('bg-gradient-to-br', 'from-blue-500', 'to-indigo-600', 'text-white', 'font-bold');
         }
       } catch (e) {}

@@ -1,6 +1,7 @@
 node_modules/
 .env
 .env.production
+.env.produccion
 uploads/
 deploy_*.zip
 deploy_*.tgz

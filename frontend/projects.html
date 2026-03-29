@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/js/brand-defaults.js"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
   </style>
@@ -347,19 +348,35 @@
       sidebar.classList.toggle('-translate-x-full');
     }
 
+    function escLogoSrc(s) {
+      return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+        .replace(/</g, '&lt;');
+    }
+
     async function loadSettings() {
       try {
         const res = await fetch('/api/settings/public');
-        const data = await res.json();
-        
-        if (data.logo_url) {
-          const logoContainers = document.querySelectorAll('#sidebar-logo-container');
-          logoContainers.forEach(container => {
-             container.innerHTML = `<img src="${data.logo_url}" class="w-full h-full object-contain bg-white" alt="Logo">`;
-             container.classList.remove('bg-gradient-to-br', 'from-blue-500', 'to-indigo-600');
-          });
-        }
-      } catch (err) { console.error('Error loading settings', err); }
+        const data = res.ok ? await res.json() : {};
+        const defaultLogo = window.GREG_TRACKER_DEFAULT_LOGO_URL || '/assets/landing/logo.svg';
+        const logoUrl = data.logo_url || defaultLogo;
+        const logoContainers = document.querySelectorAll('#sidebar-logo-container');
+        logoContainers.forEach((container) => {
+          container.innerHTML =
+            '<img src="' + escLogoSrc(logoUrl) + '" class="w-full h-full object-contain" alt="Logo">';
+          container.classList.remove(
+            'bg-gradient-to-br',
+            'from-blue-500',
+            'to-indigo-600',
+            'text-white',
+            'font-bold'
+          );
+        });
+      } catch (err) {
+        console.error('Error loading settings', err);
+      }
     }
 
     async function loadDashboard() {

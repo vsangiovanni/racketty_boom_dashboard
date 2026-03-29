@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gregtracker-v32';
+const CACHE_NAME = 'gregtracker-v34';
 const ASSETS = [
   './',
   './index.html',
@@ -10,9 +10,10 @@ const ASSETS = [
   './service.html',
   './manifest.webmanifest',
   './icon.svg',
-  './assets/landing/logo-transparent.webp',
+  './assets/landing/logo.svg',
   './data/service-content.json',
   './js/service-router.js',
+  './js/brand-defaults.js',
   './js/app-shell.js',
   './js/ledger-table-filters.js',
   './js/app-nav.js',

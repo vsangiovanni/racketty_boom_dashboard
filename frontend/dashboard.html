@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/js/brand-defaults.js"></script>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     .glass-card { background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(248,250,252,1) 100%); }
@@ -370,13 +371,24 @@
       });
     }
 
+    function escLogoSrc(s) {
+      return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+        .replace(/</g, '&lt;');
+    }
+
     async function loadAppSettings() {
       try {
         const res = await fetch('/api/settings/public');
-        const data = await res.json();
-        if (data.logo_url) {
-          document.getElementById('sidebar-logo-container').innerHTML = `<img src="${data.logo_url}" class="w-full h-full object-contain bg-white" />`;
-          document.getElementById('sidebar-logo-container').classList.remove('bg-gradient-to-br', 'from-blue-500', 'to-indigo-600', 'text-white', 'font-bold');
+        const data = res.ok ? await res.json() : {};
+        const defaultLogo = window.GREG_TRACKER_DEFAULT_LOGO_URL || '/assets/landing/logo.svg';
+        const logoUrl = data.logo_url || defaultLogo;
+        const logoEl = document.getElementById('sidebar-logo-container');
+        if (logoEl) {
+          logoEl.innerHTML = `<img src="${escLogoSrc(logoUrl)}" class="w-full h-full object-contain" alt="" />`;
+          logoEl.classList.remove('bg-gradient-to-br', 'from-blue-500', 'to-indigo-600', 'text-white', 'font-bold');
         }
         if (data.avatar_url) {
           const avatarEl = document.getElementById('header-avatar-container');

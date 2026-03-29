@@ -3,8 +3,13 @@
 Greg Tracker is a web app for small-business bookkeeping and project-level financial tracking.  
 It combines manual data entry, AI-assisted receipt extraction, Excel import/export, and a quote-request pipeline in one flow.
 
+## Source code (GitHub)
+
+Repository: [github.com/vsangiovanni/racketty_boom_dashboard](https://github.com/vsangiovanni/racketty_boom_dashboard)
+
 ## What is new (recent)
 
+- **Public branding:** default logo is `frontend/assets/landing/logo.svg`. `frontend/js/brand-defaults.js` exposes `GREG_TRACKER_DEFAULT_LOGO_URL` for the sidebar, login, and Settings preview when no custom logo is stored in the database.
 - **Quote requests module:** `frontend/quote-requests.html` — managers/admins manage leads (filters, full detail, internal notes). Public intake remains `frontend/quote.html`.
 - **Projects:** tabs **Active / Completed / All**; KPIs and chart follow the selected view; quick **complete** / **reopen** actions; project details page has the same status actions.
 - **Deploy root:** repository root has `package.json` (all runtime deps), `server.js` (`require('./backend/server.js')`), and `npm start` for a single install — matches Hostinger Node detection (`server.js`, Express).
@@ -30,8 +35,9 @@ It combines manual data entry, AI-assisted receipt extraction, Excel import/expo
 - **Backend:** Node.js + Express — main app in `backend/server.js`; root `server.js` loads it for deployment.
 - **Database:** MySQL (`mysql2/promise`).
 - **Frontend:** Static HTML + Tailwind CDN + vanilla JS.
-- **PWA:** `frontend/manifest.webmanifest`, `frontend/sw.js`.
+- **PWA:** `frontend/manifest.webmanifest`, `frontend/sw.js` (bump `CACHE_NAME` when static assets change materially).
 - **Shell helper:** `frontend/js/app-shell.js`.
+- **Shared nav / default logo:** `frontend/js/app-nav.js`, `frontend/js/brand-defaults.js`.
 
 ## Repository guide
 
@@ -58,19 +64,21 @@ To run only from `backend/` (optional): `cd backend && npm install && npm start`
 
 ## Deployment (Hostinger)
 
-1. From the repo root, generate one archive (overwrites the same file):
+1. From the repo root, generate one archive (overwrites the same file; the zip is listed in `.gitignore`):
 
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\pack-hostinger.ps1
    ```
 
-2. Upload **`hostinger-deploy.zip`**. Zip root must include **`package.json`**, **`server.js`**, **`backend/`**, **`frontend/`**, etc. (no `node_modules`; do not commit secrets — script skips `backend/.env`; include `backend/.env.production` on the server if you use it).
+2. Upload **`hostinger-deploy.zip`**. Zip root must include **`package.json`**, **`server.js`**, **`backend/`**, **`frontend/`**, etc. (no `node_modules`; do not commit secrets — the script skips `backend/.env` and production env files; configure variables in hPanel or place `backend/.env.production` on the server only there).
 
-3. In hPanel (Node.js app): **Application startup file** `server.js`, install command `npm install`, start `npm start` (or as Hostinger presets Express).
+3. In hPanel (**Websites → your site → Node.js**): **Application startup file** `server.js`, install command `npm install`, start `npm start` (or Hostinger’s Express preset). Set **environment variables** to match `backend/.env.example` (especially `DB_*`, `APP_BASE_URL`, `NODE_ENV=production`, and SMTP / `QUOTE_*` if you use quote emails).
 
-4. **MCP / API:** if automated deploy fails, upload the same zip manually and set env vars in the panel.
+4. **Automated deploy (optional):** if you use the Hostinger API from Cursor (MCP `user-hostinger-mcp`), the tool **`hosting_deployJsApplication`** accepts the same zip path (`archivePath`) and your site **domain**. After upload, check deployment status with **`hosting_listJsDeployments`**. If the API is not configured, use hPanel **Upload** / **Deploy** for the archive.
 
 5. **Windows path tip:** use forward slashes for tool paths, e.g. `c:/Users/.../hostinger-deploy.zip`.
+
+6. After a deploy, do a hard refresh or wait for the service worker (`sw.js`) to update so the latest `logo.svg` and precached assets load.
 
 ## Notes
 

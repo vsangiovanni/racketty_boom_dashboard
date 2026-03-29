@@ -16,20 +16,28 @@
   }
 
   async function hydrateSidebarLogo() {
+    var el = document.getElementById('sidebar-logo-container');
+    if (!el) return;
+    var defaultUrl =
+      (typeof window !== 'undefined' && window.GREG_TRACKER_DEFAULT_LOGO_URL) ||
+      '/assets/landing/logo.svg';
+    var url = defaultUrl;
     try {
       var res = await fetch('/api/settings/public');
-      if (!res.ok) return;
-      var data = await res.json();
-      if (data.logo_url) {
-        var el = document.getElementById('sidebar-logo-container');
-        if (!el) return;
-        el.innerHTML =
-          '<img src="' +
-          escapeHtml(data.logo_url) +
-          '" class="w-full h-full object-contain bg-white" alt="" />';
-        el.classList.remove('bg-gradient-to-br', 'from-blue-500', 'to-indigo-600', 'text-white', 'font-bold');
+      if (res.ok) {
+        var data = await res.json();
+        if (data.logo_url) url = data.logo_url;
       }
     } catch (e) {}
+    el.innerHTML =
+      '<img src="' + escapeHtml(url) + '" class="w-full h-full object-contain" alt="" />';
+    el.classList.remove(
+      'bg-gradient-to-br',
+      'from-blue-500',
+      'to-indigo-600',
+      'text-white',
+      'font-bold'
+    );
   }
 
   async function hydrateSidebarNav() {

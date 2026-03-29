@@ -7,7 +7,7 @@ This module contains the main API and runtime schema management for Greg Tracker
 - Authentication: company PIN and/or per-user access (hashed) with roles Admin / Manager / Viewer (`app_users` table).
 - REST APIs for transactions, projects, categories, settings, and imports.
 - Receipt upload + AI extraction draft + review-confirm flow.
-- Client lead capture: quote request intake and manager/admin lead inbox.
+- Client lead capture: quote request intake and manager/admin lead inbox (team + customer notification emails; optional `SMTP_FROM_NAME`, formatted estimate budget in team mail).
 - MySQL schema bootstrap/update through `ensureSchema()` during startup.
 - Static serving support for frontend screens and uploads (`/` and `index.html` are public landing; app dashboard is `dashboard.html`).
 

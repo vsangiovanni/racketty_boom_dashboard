@@ -5,7 +5,10 @@
   "type": "commonjs",
   "description": "Express API and static frontend for Greg Tracker",
   "main": "server.js",
-  "keywords": ["express", "greg-tracker"],
+  "keywords": [
+    "express",
+    "greg-tracker"
+  ],
   "engines": {
     "node": ">=18.x"
   },
@@ -21,6 +24,7 @@
     "express": "^4.21.2",
     "multer": "^2.0.2",
     "mysql2": "^3.11.5",
+    "nodemailer": "^6.10.1",
     "xlsx": "^0.18.5"
   },
   "overrides": {

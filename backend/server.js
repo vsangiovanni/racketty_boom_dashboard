@@ -9,10 +9,22 @@ const xlsx = require('xlsx');
 const mysql = require('mysql2/promise');
 const ExcelImportService = require('./services/excelImportService');
 
-const productionEnvPath = path.resolve(__dirname, '.env.production');
-const defaultEnvPath = path.resolve(__dirname, '.env');
-const selectedEnvPath = fs.existsSync(productionEnvPath) ? productionEnvPath : defaultEnvPath;
-dotenv.config({ path: selectedEnvPath });
+// Local: backend/.env. Produccion: backend/.env.produccion (NODE_ENV=production o solo ese archivo en el servidor).
+const envPath = path.resolve(__dirname, '.env');
+const produccionPath = path.resolve(__dirname, '.env.produccion');
+const envExists = fs.existsSync(envPath);
+const produccionExists = fs.existsSync(produccionPath);
+const isProduction = process.env.NODE_ENV === 'production';
+
+if (isProduction && produccionExists) {
+  dotenv.config({ path: produccionPath });
+} else if (!isProduction && envExists) {
+  dotenv.config({ path: envPath });
+} else if (!envExists && produccionExists) {
+  dotenv.config({ path: produccionPath });
+} else if (envExists) {
+  dotenv.config({ path: envPath });
+}
 
 const app = express();
 const PORT = Number(process.env.PORT || 4000);
@@ -25,6 +37,7 @@ const UPLOAD_FS_DIR = process.env.UPLOAD_FS_DIR
 const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB || 10);
 const APP_BASE_URL = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
 const DEFAULT_COMPANY_NAME = process.env.DEFAULT_COMPANY_NAME || 'Racketty Boom Enterprises';
+const QUOTE_NOTIFY_TO_DEFAULT = 'victorsangiovanni@gmail.com';
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
@@ -104,6 +117,267 @@ async function countActiveAppUsers() {
     return Number(rows[0]?.n || 0);
   } catch (_e) {
     return 0;
+  }
+}
+
+function escapeHtmlEmail(s) {
+  if (s == null || s === '') return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\n/g, '<br>');
+}
+
+function displayVal(val) {
+  if (val == null || String(val).trim() === '') return '—';
+  return String(val).trim();
+}
+
+/** Formats quote estimated_budget as USD for emails; non-numeric text returned unchanged. */
+function formatEstimateBudgetForEmail(val) {
+  if (val == null || String(val).trim() === '') return '—';
+  const original = String(val).trim();
+  let t = original.replace(/[$\u20AC\u00A3\s]/gi, '');
+  if (/^\d{1,3}(,\d{3})*(\.\d{0,2})?$/.test(t)) {
+    t = t.replace(/,/g, '');
+  } else {
+    t = t.replace(/,/g, '');
+  }
+  const n = Number(t);
+  if (!Number.isFinite(n) || t === '') return original;
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }).format(n);
+}
+
+function normalizeCustomerEmail(addr) {
+  if (!addr || typeof addr !== 'string') return '';
+  return addr.trim().toLowerCase();
+}
+
+function isValidCustomerEmail(addr) {
+  const t = normalizeCustomerEmail(addr);
+  if (!t) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t);
+}
+
+/** Plain SMTP_FROM or already "Name <email>"; adds display name to reduce spam triggers. */
+function buildSmtpFrom(fromRaw, friendlyName) {
+  const raw = String(fromRaw || '').trim();
+  if (!raw) return raw;
+  if (raw.includes('<') && raw.includes('>')) return raw;
+  const envName = String(process.env.SMTP_FROM_NAME || '').trim().replace(/["<>]/g, '');
+  const name = envName || String(friendlyName || '').trim().replace(/["<>]/g, '');
+  if (!name) return raw;
+  return `"${name}" <${raw}>`;
+}
+
+function createQuoteMailTransporter() {
+  const smtpHost = String(process.env.SMTP_HOST || '').trim();
+  const smtpUser = String(process.env.SMTP_USER || '').trim();
+  const smtpPass = String(process.env.SMTP_PASS || '').trim();
+  if (!smtpHost || !smtpUser || !smtpPass) return null;
+  const nodemailer = require('nodemailer');
+  const port = Number(process.env.SMTP_PORT || 587);
+  const secure =
+    process.env.SMTP_SECURE === 'true' ||
+    process.env.SMTP_SECURE === '1' ||
+    port === 465;
+  return nodemailer.createTransport({
+    host: smtpHost,
+    port,
+    secure,
+    auth: { user: smtpUser, pass: smtpPass }
+  });
+}
+
+async function sendQuoteRequestNotificationEmail(detail) {
+  const teamTo = String(process.env.QUOTE_NOTIFY_TO || QUOTE_NOTIFY_TO_DEFAULT).trim();
+  if (!teamTo) {
+    console.warn('[quote-requests] QUOTE_NOTIFY_TO empty; notification email skipped.');
+    return;
+  }
+  const transporter = createQuoteMailTransporter();
+  if (!transporter) {
+    console.warn('[quote-requests] SMTP not configured (SMTP_HOST / SMTP_USER / SMTP_PASS); notification skipped (lead saved).');
+    return;
+  }
+
+  await reloadSettings();
+  const businessName = String(appSettings.business_name || 'Racketty Boom').trim() || 'Our team';
+  const from = buildSmtpFrom(
+    String(process.env.SMTP_FROM || process.env.SMTP_USER || '').trim(),
+    businessName
+  );
+  const submittedAt = new Date().toLocaleString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+  const inboxUrl = `${APP_BASE_URL.replace(/\/$/, '')}/quote-requests.html?id=${detail.id}`;
+  const safeName = String(detail.customer_name || '').replace(/[\r\n]+/g, ' ').trim().slice(0, 120);
+  const budgetFormatted = formatEstimateBudgetForEmail(detail.estimated_budget);
+
+  const row = (label, value) =>
+    `<tr><td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px;width:160px;vertical-align:top;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">${escapeHtmlEmail(label)}</td>` +
+    `<td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:14px;vertical-align:top;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">${value === '—' ? '<span style="color:#94a3b8;">—</span>' : escapeHtmlEmail(value)}</td></tr>`;
+
+  const teamSubject = `New estimate request #${detail.id} — ${safeName || 'Lead'}`;
+  const teamText = [
+    `${businessName} — New estimate request`,
+    '',
+    `Request ID: #${detail.id}`,
+    `Received: ${submittedAt}`,
+    '',
+    `Name: ${displayVal(detail.customer_name)}`,
+    `Email: ${displayVal(detail.email)}`,
+    `Phone: ${displayVal(detail.phone)}`,
+    `Service: ${displayVal(detail.service_type)}`,
+    `Address: ${displayVal(detail.project_address)}`,
+    `Preferred contact: ${displayVal(detail.preferred_contact)}`,
+    `Budget: ${budgetFormatted}`,
+    '',
+    'Message:',
+    displayVal(detail.message),
+    '',
+    `Open in dashboard: ${inboxUrl}`
+  ].join('\r\n');
+
+  const teamHtml = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
+<body style="margin:0;background:#f1f5f9;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f1f5f9;padding:24px 12px;">
+<tr><td align="center">
+<table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(15,23,42,0.08);">
+<tr><td style="background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);padding:22px 28px;">
+<p style="margin:0;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#93c5fd;">Internal · New lead</p>
+<h1 style="margin:8px 0 0;font-size:20px;font-weight:700;color:#ffffff;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">Estimate request #${detail.id}</h1>
+<p style="margin:6px 0 0;font-size:13px;color:#bfdbfe;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">${escapeHtmlEmail(submittedAt)}</p>
+</td></tr>
+<tr><td style="padding:8px 0 0;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+${row('Customer', displayVal(detail.customer_name))}
+${row('Email', displayVal(detail.email))}
+${row('Phone', displayVal(detail.phone))}
+${row('Service type', displayVal(detail.service_type))}
+${row('Project address', displayVal(detail.project_address))}
+${row('Preferred contact', displayVal(detail.preferred_contact))}
+${row('Estimated budget', budgetFormatted)}
+<tr><td colspan="2" style="padding:14px 14px 8px;color:#64748b;font-size:13px;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">Message</td></tr>
+<tr><td colspan="2" style="padding:0 14px 18px;color:#0f172a;font-size:14px;line-height:1.5;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">${detail.message && String(detail.message).trim() ? escapeHtmlEmail(detail.message) : '<span style="color:#94a3b8;">—</span>'}</td></tr>
+</table>
+</td></tr>
+<tr><td style="padding:0 24px 24px;">
+<a href="${inboxUrl.replace(/"/g, '&quot;')}" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:600;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">Open in ${escapeHtmlEmail(businessName)}</a>
+<p style="margin:16px 0 0;font-size:12px;color:#94a3b8;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">Greg Tracker · Quote requests</p>
+</td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
+
+  const teamInfo = await transporter.sendMail({
+    from,
+    to: teamTo,
+    subject: teamSubject,
+    text: teamText,
+    html: teamHtml
+  });
+  console.log('[quote-requests] team notification sent to', teamTo, teamInfo.messageId ? `(id ${teamInfo.messageId})` : '');
+
+  const custEmailRaw = detail.email ? String(detail.email) : '';
+  const custEmail = normalizeCustomerEmail(custEmailRaw);
+  if (!custEmail) {
+    console.warn('[quote-requests] customer confirmation skipped: no email on the request (add email on the quote form).');
+    return;
+  }
+  if (!isValidCustomerEmail(custEmail)) {
+    console.warn('[quote-requests] customer confirmation skipped: invalid email format:', custEmailRaw.slice(0, 80));
+    return;
+  }
+
+  const firstName = safeName.split(/\s+/)[0] || 'there';
+  const customerSubject = `We received your request — ${businessName}`;
+  const customerText = [
+    `Hi ${firstName},`,
+    '',
+    `Thank you for contacting ${businessName}. We have received your estimate request and our team will review it shortly.`,
+    '',
+    `Your reference number: #${detail.id}`,
+    '',
+    'What happens next:',
+    '• A member of our team will review your project details.',
+    '• We will reach out using the contact information you provided.',
+    '• We are here to help you move forward with confidence.',
+    '',
+    `If you have questions in the meantime, simply reply to this email or contact us at the number on our website.`,
+    '',
+    'Warm regards,',
+    'Greg',
+    `The ${businessName} team`
+  ].join('\r\n');
+
+  const customerHtml = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
+<body style="margin:0;background:#f8fafc;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;padding:28px 12px;">
+<tr><td align="center">
+<table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 8px 30px rgba(15,23,42,0.06);border:1px solid #e2e8f0;">
+<tr><td style="padding:32px 32px 8px;text-align:center;">
+<p style="margin:0;font-family:Georgia,Times New Roman,serif;font-size:22px;color:#0f172a;font-weight:600;">Thank you, ${escapeHtmlEmail(firstName)}</p>
+<p style="margin:14px 0 0;font-size:15px;line-height:1.6;color:#475569;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">We have safely received your estimate request. Our team will review your details and follow up with you soon.</p>
+</td></tr>
+<tr><td style="padding:8px 32px 24px;">
+<table role="presentation" width="100%" style="background:#f1f5f9;border-radius:10px;padding:16px 20px;">
+<tr><td style="font-size:13px;color:#64748b;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">Reference</td></tr>
+<tr><td style="font-size:18px;font-weight:700;color:#1e40af;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding-top:4px;">#${detail.id}</td></tr>
+</table>
+</td></tr>
+<tr><td style="padding:0 32px 8px;">
+<p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#0f172a;text-transform:uppercase;letter-spacing:0.06em;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">What happens next</p>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;line-height:1.55;color:#334155;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+<tr><td style="padding:6px 0 6px 0;vertical-align:top;width:28px;color:#2563eb;font-weight:bold;">1.</td><td style="padding:6px 0;">We review your project scope and requirements.</td></tr>
+<tr><td style="padding:6px 0 6px 0;vertical-align:top;color:#2563eb;font-weight:bold;">2.</td><td style="padding:6px 0;">We contact you using the phone or email you provided.</td></tr>
+<tr><td style="padding:6px 0 6px 0;vertical-align:top;color:#2563eb;font-weight:bold;">3.</td><td style="padding:6px 0;">We work with you to plan the next steps toward your goals.</td></tr>
+</table>
+</td></tr>
+<tr><td style="padding:20px 32px 32px;">
+<p style="margin:0;font-size:14px;line-height:1.6;color:#475569;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">We appreciate you considering <strong style="color:#0f172a;">${escapeHtmlEmail(businessName)}</strong> for your project. Our goal is to make the process clear, professional, and stress-free.</p>
+<p style="margin:18px 0 0;font-size:14px;color:#0f172a;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-weight:600;">Warm regards,<br><span style="font-weight:600;color:#0f172a;">Greg</span><br><span style="font-weight:500;color:#334155;">The ${escapeHtmlEmail(businessName)} team</span></p>
+</td></tr>
+<tr><td style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e2e8f0;text-align:center;">
+<p style="margin:0;font-size:11px;color:#94a3b8;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">You are receiving this because you submitted an estimate request on our website. Please do not share sensitive information by email unless you trust the recipient.</p>
+</td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
+
+  try {
+    const customerInfo = await transporter.sendMail({
+      from,
+      to: custEmail,
+      replyTo: teamTo,
+      subject: customerSubject,
+      text: customerText,
+      html: customerHtml,
+      headers: {
+        'X-Entity-Ref-ID': `quote-${detail.id}-customer`,
+        'Auto-Submitted': 'auto-generated'
+      }
+    });
+    console.log('[quote-requests] customer confirmation sent to', custEmail, customerInfo.messageId ? `(id ${customerInfo.messageId})` : '');
+  } catch (custErr) {
+    console.error('[quote-requests] customer confirmation FAILED (team email was already sent):', custErr && custErr.message);
+    if (custErr && custErr.response) console.error('[quote-requests] customer SMTP response:', custErr.response);
   }
 }
 
@@ -2897,7 +3171,15 @@ app.post('/api/quote-requests', async (req, res) => {
       return res.status(400).json({ error: 'customer_name is required.' });
     }
 
-    const email = payload.email ? String(payload.email).trim() : null;
+    const emailRaw = payload.email ? String(payload.email).trim() : '';
+    if (!emailRaw) {
+      return res.status(400).json({ error: 'Email is required so we can send you a confirmation.' });
+    }
+    const email = normalizeCustomerEmail(emailRaw);
+    if (!isValidCustomerEmail(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
+    }
+
     const phone = payload.phone ? String(payload.phone).trim() : null;
     const service_type = payload.service_type ? String(payload.service_type).trim() : null;
     const project_address = payload.project_address ? String(payload.project_address).trim() : null;
@@ -2914,7 +3196,7 @@ app.post('/api/quote-requests', async (req, res) => {
       `,
       {
         customer_name,
-        email: email || null,
+        email,
         phone: phone || null,
         service_type: service_type || null,
         project_address: project_address || null,
@@ -2924,7 +3206,23 @@ app.post('/api/quote-requests', async (req, res) => {
       }
     );
 
-    return res.json({ success: true, id: result.insertId });
+    const newId = result.insertId;
+    void sendQuoteRequestNotificationEmail({
+      id: newId,
+      customer_name,
+      email,
+      phone,
+      service_type,
+      project_address,
+      preferred_contact,
+      estimated_budget,
+      message
+    }).catch((err) => {
+      console.error('[quote-requests] notify email failed:', err && err.message);
+      if (err && err.response) console.error('[quote-requests] SMTP response:', err.response);
+    });
+
+    return res.json({ success: true, id: newId });
   } catch (error) {
     console.error('Quote request error:', error);
     return res.status(500).json({ error: 'Failed to submit quote request.' });

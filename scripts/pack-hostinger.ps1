@@ -16,6 +16,8 @@ function Test-ShouldSkip {
   if ($n.StartsWith('deploy_stage_')) { return $true }
   if ($n -match '\.(zip|tgz)$') { return $true }
   if ($n -eq '.env') { return $true }
+  if ($n -eq '.env.production') { return $true }
+  if ($n -eq '.env.produccion') { return $true }
   if ($n -eq 'docs' -and $ParentPath -eq $root) { return $true }
   if ($parentLeaf -eq 'backend' -and ($n -eq 'package.json' -or $n -eq 'package-lock.json')) { return $true }
   return $false
