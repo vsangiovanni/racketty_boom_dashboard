@@ -9,21 +9,23 @@ const xlsx = require('xlsx');
 const mysql = require('mysql2/promise');
 const ExcelImportService = require('./services/excelImportService');
 
-// Local: backend/.env. Produccion: backend/.env.produccion (NODE_ENV=production o solo ese archivo en el servidor).
+// Local: backend/.env. Produccion: .env.produccion, .env.production o variables del panel (Hostinger).
 const envPath = path.resolve(__dirname, '.env');
 const produccionPath = path.resolve(__dirname, '.env.produccion');
+const envProductionPath = path.resolve(__dirname, '.env.production');
 const envExists = fs.existsSync(envPath);
-const produccionExists = fs.existsSync(produccionPath);
 const isProduction = process.env.NODE_ENV === 'production';
 
-if (isProduction && produccionExists) {
-  dotenv.config({ path: produccionPath });
-} else if (!isProduction && envExists) {
-  dotenv.config({ path: envPath });
-} else if (!envExists && produccionExists) {
-  dotenv.config({ path: produccionPath });
+if (isProduction) {
+  for (const p of [produccionPath, envProductionPath, envPath]) {
+    if (fs.existsSync(p)) dotenv.config({ path: p, override: false });
+  }
 } else if (envExists) {
   dotenv.config({ path: envPath });
+} else {
+  for (const p of [produccionPath, envProductionPath]) {
+    if (fs.existsSync(p)) dotenv.config({ path: p, override: false });
+  }
 }
 
 const app = express();
@@ -55,18 +57,51 @@ function parseQuoteNotifyRecipients(raw) {
   return out;
 }
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT || 3306),
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: Number(process.env.DB_CONNECTION_LIMIT || 10),
-  queueLimit: 0,
-  namedPlaceholders: true,
-  connectTimeout: Number(process.env.DB_CONNECT_TIMEOUT_MS || 10000)
-});
+function buildMysqlPoolOptions() {
+  const waitForConnections = true;
+  const connectionLimit = Number(process.env.DB_CONNECTION_LIMIT || 10);
+  const queueLimit = 0;
+  const namedPlaceholders = true;
+  const connectTimeout = Number(process.env.DB_CONNECT_TIMEOUT_MS || 10000);
+  const uri = String(process.env.DATABASE_URL || process.env.MYSQL_URL || '').trim();
+  if (uri && /^mysql:\/\//i.test(uri)) {
+    return {
+      uri,
+      waitForConnections,
+      connectionLimit,
+      queueLimit,
+      namedPlaceholders,
+      connectTimeout
+    };
+  }
+  return {
+    host:
+      process.env.DB_HOST ||
+      process.env.MYSQL_HOST ||
+      process.env.MYSQLHOST ||
+      'localhost',
+    port: Number(process.env.DB_PORT || process.env.MYSQL_PORT || 3306),
+    user: process.env.DB_USER || process.env.MYSQL_USER || '',
+    password: process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD || '',
+    database: process.env.DB_NAME || process.env.MYSQL_DATABASE || '',
+    waitForConnections,
+    connectionLimit,
+    queueLimit,
+    namedPlaceholders,
+    connectTimeout
+  };
+}
+
+const mysqlPoolOptions = buildMysqlPoolOptions();
+const pool = mysql.createPool(mysqlPoolOptions);
+if (
+  !mysqlPoolOptions.uri &&
+  (!String(mysqlPoolOptions.user || '').trim() || !String(mysqlPoolOptions.database || '').trim())
+) {
+  console.warn(
+    '[startup] MySQL not configured: set DATABASE_URL or DB_HOST/DB_USER/DB_PASSWORD/DB_NAME (or MYSQL_*). Quote intake will fail until the database is reachable.'
+  );
+}
 
 let effectiveUploadDir = UPLOAD_FS_DIR;
 try {
@@ -3247,7 +3282,21 @@ app.post('/api/quote-requests', async (req, res) => {
     return res.json({ success: true, id: newId });
   } catch (error) {
     console.error('Quote request error:', error);
-    return res.status(500).json({ error: 'Failed to submit quote request.' });
+    const code = error && error.code;
+    const isDb =
+      code === 'ECONNREFUSED' ||
+      code === 'ENOTFOUND' ||
+      code === 'ER_ACCESS_DENIED_ERROR' ||
+      code === 'ER_BAD_DB_ERROR' ||
+      (typeof code === 'string' && code.startsWith('ER_'));
+    const hint = isDb
+      ? 'Database not reachable. Set DATABASE_URL or DB_HOST, DB_USER, DB_PASSWORD, DB_NAME in Hostinger (Node.js env) or deploy backend/.env.production. See README.'
+      : undefined;
+    return res.status(isDb ? 503 : 500).json({
+      error: 'Failed to submit quote request.',
+      code: isDb ? 'DATABASE_UNAVAILABLE' : undefined,
+      hint
+    });
   }
 });
 

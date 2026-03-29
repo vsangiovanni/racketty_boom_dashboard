@@ -1,3 +1,7 @@
+param(
+  [switch]$IncludeProductionEnv
+)
+
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -65,6 +69,18 @@ function Write-ZipFromFolder {
 if (Test-Path $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
 New-Item -ItemType Directory -Path $stage -Force | Out-Null
 Copy-ProjectTree -Src $root -Dst $stage
+
+if ($IncludeProductionEnv) {
+  $prodSrc = Join-Path $root 'backend\.env.production'
+  if (Test-Path -LiteralPath $prodSrc) {
+    $backendStage = Join-Path $stage 'backend'
+    if (-not (Test-Path -LiteralPath $backendStage)) { New-Item -ItemType Directory -Path $backendStage -Force | Out-Null }
+    Copy-Item -LiteralPath $prodSrc -Destination (Join-Path $backendStage '.env.production') -Force
+    Write-Host 'Incluido backend/.env.production en el zip (no compartas el archivo; alternativa: variables en hPanel).'
+  } else {
+    Write-Warning 'IncludeProductionEnv: no existe backend\.env.production'
+  }
+}
 
 $pkg = Join-Path $stage 'package.json'
 $entry = Join-Path $stage 'server.js'

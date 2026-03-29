@@ -13,7 +13,7 @@ Repository: [github.com/vsangiovanni/racketty_boom_dashboard](https://github.com
 - **Quote requests module:** `frontend/quote-requests.html` — managers/admins manage leads (filters, full detail, internal notes). Public intake remains `frontend/quote.html`.
 - **Projects:** tabs **Active / Completed / All**; KPIs and chart follow the selected view; quick **complete** / **reopen** actions; project details page has the same status actions.
 - **Deploy root:** repository root has `package.json` (all runtime deps), `server.js` (`require('./backend/server.js')`), and `npm start` for a single install — matches Hostinger Node detection (`server.js`, Express).
-- **Packaging:** `scripts/pack-hostinger.ps1` builds `hostinger-deploy.zip` (POSIX paths in the zip, validates JSON, excludes `node_modules`, duplicate `backend/package.json` in archive, local `.env`, etc.).
+- **Packaging:** `scripts/pack-hostinger.ps1` builds `hostinger-deploy.zip` (POSIX paths in the zip, validates JSON, excludes `node_modules`, duplicate `backend/package.json` in archive, local `.env`, etc.). Use **`-IncludeProductionEnv`** to embed `backend/.env.production` when you are not using hPanel env vars (keep the zip private).
 - Dedicated project details: `frontend/project-details.html`.
 - **Export Excel report** (`frontend/export-report.html`): period + optional project (`GET /api/export`).
 - **Bulk Excel import** (`frontend/import.html`) with optional `project_id` on commit.
@@ -68,6 +68,12 @@ To run only from `backend/` (optional): `cd backend && npm install && npm start`
 
    ```powershell
    powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\pack-hostinger.ps1
+   ```
+
+   Si prefieres llevar credenciales en archivo en vez del panel, genera el zip con `backend/.env.production` incluido (no compartas ese archivo):
+
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\pack-hostinger.ps1 -IncludeProductionEnv
    ```
 
 2. Upload **`hostinger-deploy.zip`**. Zip root must include **`package.json`**, **`server.js`**, **`backend/`**, **`frontend/`**, etc. (no `node_modules`; do not commit secrets — the script skips `backend/.env` and production env files; configure variables in hPanel or place `backend/.env.production` on the server only there).

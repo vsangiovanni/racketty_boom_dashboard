@@ -364,6 +364,7 @@
           .then(function (r) {
             if (!r.ok) {
               var msg = r.data && r.data.error ? r.data.error : 'Failed to submit.';
+              if (r.data && r.data.hint) msg += ' ' + r.data.hint;
               setStatus(msg, true);
               return;
             }
