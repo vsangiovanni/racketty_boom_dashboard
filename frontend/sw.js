@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gregtracker-v30';
+const CACHE_NAME = 'gregtracker-v31';
 const ASSETS = [
   './',
   './index.html',
@@ -14,6 +14,7 @@ const ASSETS = [
   './data/service-content.json',
   './js/service-router.js',
   './js/app-shell.js',
+  './js/ledger-table-filters.js',
   './js/app-nav.js',
   './css/ui-polish.css'
 ];

@@ -171,6 +171,52 @@
             <p id="pd-recent-subtitle" class="text-xs text-slate-500 mt-1"></p>
           </div>
         </div>
+        <div class="px-4 py-3 border-b border-slate-100 bg-white space-y-2">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            <label class="flex flex-col gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+              From date
+              <input type="date" id="pd-filter-date-from" class="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 font-normal normal-case" />
+            </label>
+            <label class="flex flex-col gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+              To date
+              <input type="date" id="pd-filter-date-to" class="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 font-normal normal-case" />
+            </label>
+            <label class="flex flex-col gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+              Type
+              <select id="pd-filter-type" class="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 font-normal normal-case">
+                <option value="all">All types</option>
+                <option value="Income">Income</option>
+                <option value="Expense">Expense</option>
+              </select>
+            </label>
+            <div class="flex flex-col gap-1 justify-end">
+              <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide opacity-0 pointer-events-none select-none sm:block">Reset</span>
+              <button type="button" id="pd-filter-clear" class="px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">Clear filters</button>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            <label class="flex flex-col gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+              Vendor
+              <select id="pd-filter-vendor" class="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 font-normal normal-case">
+                <option value="">All vendors</option>
+              </select>
+            </label>
+            <label class="flex flex-col gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+              Category
+              <select id="pd-filter-category" class="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 font-normal normal-case">
+                <option value="">All categories</option>
+              </select>
+            </label>
+            <label class="flex flex-col gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+              Min amount
+              <input type="number" id="pd-filter-amount-min" step="0.01" min="0" placeholder="0.00" class="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 font-normal normal-case placeholder:normal-case placeholder:font-normal" />
+            </label>
+            <label class="flex flex-col gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+              Max amount
+              <input type="number" id="pd-filter-amount-max" step="0.01" min="0" placeholder="0.00" class="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 font-normal normal-case placeholder:normal-case placeholder:font-normal" />
+            </label>
+          </div>
+        </div>
 
         <div class="overflow-x-auto">
           <table class="w-full text-left text-sm whitespace-nowrap">
@@ -195,6 +241,7 @@
   </div>
 
   <script src="/js/app-shell.js"></script>
+  <script src="/js/ledger-table-filters.js"></script>
   <script>
     const params = new URLSearchParams(window.location.search);
     const projectId = params.get('id');
@@ -205,6 +252,59 @@
     }
 
     let currentProjectMeta = null;
+    let projectTransactions = [];
+
+    function renderProjectTransactions(txs) {
+      const body = document.getElementById('pd-transactions-body');
+      body.innerHTML = txs.length
+        ? txs.map(t => {
+            const isIncome = t.type === 'Income';
+            const amountColor = isIncome ? 'text-emerald-600' : 'text-rose-600';
+            const sign = isIncome ? '+' : '-';
+            const dateStr = t.date ? new Date(t.date).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '';
+            return `
+              <tr>
+                <td class="py-3 px-4 text-slate-500 text-xs">${dateStr}</td>
+                <td class="py-3 px-4 text-slate-800 text-xs font-bold truncate max-w-[220px]" title="${t.vendor || ''}">${t.vendor || ''}</td>
+                <td class="py-3 px-4 text-slate-500 text-xs truncate max-w-[180px]">${t.category || 'General'}</td>
+                <td class="py-3 px-4 text-slate-500 text-xs uppercase font-bold">${t.type || ''}</td>
+                <td class="py-3 px-4 text-right font-bold tabular-nums text-xs ${amountColor}">${sign}${fmtMoney(t.amount).replace('$','')}</td>
+                <td class="py-3 px-4 text-center">
+                  ${t.receipt_url ? `<button onclick="window.open('${t.receipt_url}', '_blank')" class="text-blue-500 hover:text-blue-700 bg-blue-50 p-1 rounded transition-colors" title="View Receipt"><span class="material-icons-round text-[16px]">receipt_long</span></button>` : '<span class="text-slate-200">-</span>'}
+                </td>
+              </tr>
+            `;
+          }).join('')
+        : '<tr><td colspan="6" class="p-4 text-center text-slate-400">No transactions found.</td></tr>';
+    }
+
+    function readPdFilterCriteria() {
+      return {
+        dateFrom: document.getElementById('pd-filter-date-from').value,
+        dateTo: document.getElementById('pd-filter-date-to').value,
+        vendor: document.getElementById('pd-filter-vendor').value,
+        category: document.getElementById('pd-filter-category').value,
+        type: document.getElementById('pd-filter-type').value,
+        amountMin: document.getElementById('pd-filter-amount-min').value,
+        amountMax: document.getElementById('pd-filter-amount-max').value
+      };
+    }
+
+    function applyProjectTxFilter() {
+      const filtered = GregLedgerFilters.filterTransactions(projectTransactions, readPdFilterCriteria());
+      renderProjectTransactions(filtered);
+    }
+
+    function clearPdFilters() {
+      document.getElementById('pd-filter-date-from').value = '';
+      document.getElementById('pd-filter-date-to').value = '';
+      document.getElementById('pd-filter-vendor').value = '';
+      document.getElementById('pd-filter-category').value = '';
+      document.getElementById('pd-filter-type').value = 'all';
+      document.getElementById('pd-filter-amount-min').value = '';
+      document.getElementById('pd-filter-amount-max').value = '';
+      applyProjectTxFilter();
+    }
 
     async function updateProjectStatus(newStatus) {
       if (!projectId || !currentProjectMeta) return;
@@ -513,34 +613,19 @@
 
         // Transactions
         const txs = Array.isArray(txPayload.transactions) ? txPayload.transactions : [];
+        projectTransactions = txs;
         document.getElementById('pd-recent-subtitle').textContent = 'Showing ' + txs.length + ' of ' + (metrics.transactionCount || 0);
+        GregLedgerFilters.populateVendorCategorySelects(
+          document.getElementById('pd-filter-vendor'),
+          document.getElementById('pd-filter-category'),
+          projectTransactions
+        );
         try {
           await renderAIInsights();
         } catch (_aiErr) {
           renderRuleBasedInsights(metrics, cats, vendors, txs);
         }
-
-        const body = document.getElementById('pd-transactions-body');
-        body.innerHTML = txs.length
-          ? txs.map(t => {
-              const isIncome = t.type === 'Income';
-              const amountColor = isIncome ? 'text-emerald-600' : 'text-rose-600';
-              const sign = isIncome ? '+' : '-';
-              const dateStr = t.date ? new Date(t.date).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '';
-              return `
-                <tr>
-                  <td class="py-3 px-4 text-slate-500 text-xs">${dateStr}</td>
-                  <td class="py-3 px-4 text-slate-800 text-xs font-bold truncate max-w-[220px]" title="${t.vendor || ''}">${t.vendor || ''}</td>
-                  <td class="py-3 px-4 text-slate-500 text-xs truncate max-w-[180px]">${t.category || 'General'}</td>
-                  <td class="py-3 px-4 text-slate-500 text-xs uppercase font-bold">${t.type || ''}</td>
-                  <td class="py-3 px-4 text-right font-bold tabular-nums text-xs ${amountColor}">${sign}${fmtMoney(t.amount).replace('$','')}</td>
-                  <td class="py-3 px-4 text-center">
-                    ${t.receipt_url ? `<button onclick="window.open('${t.receipt_url}', '_blank')" class="text-blue-500 hover:text-blue-700 bg-blue-50 p-1 rounded transition-colors" title="View Receipt"><span class="material-icons-round text-[16px]">receipt_long</span></button>` : '<span class="text-slate-200">-</span>'}
-                  </td>
-                </tr>
-              `;
-            }).join('')
-          : '<tr><td colspan="6" class="p-4 text-center text-slate-400">No transactions found.</td></tr>';
+        applyProjectTxFilter();
 
         await Promise.all([loadBudgetSummary(), loadLedgerSignals()]);
 
@@ -550,6 +635,13 @@
     }
 
     document.getElementById('pd-budget-form').addEventListener('submit', (e) => saveBudget(e).catch((err) => alert(err.message)));
+    ['pd-filter-date-from', 'pd-filter-date-to', 'pd-filter-vendor', 'pd-filter-category', 'pd-filter-type'].forEach((id) => {
+      document.getElementById(id).addEventListener('change', applyProjectTxFilter);
+    });
+    ['pd-filter-amount-min', 'pd-filter-amount-max'].forEach((id) => {
+      document.getElementById(id).addEventListener('input', applyProjectTxFilter);
+    });
+    document.getElementById('pd-filter-clear').addEventListener('click', clearPdFilters);
 
     if (projectId) loadProject();
   </script>

@@ -194,6 +194,52 @@
               <button onclick="window.location.href='/add-record.html'" class="text-xs font-bold bg-slate-900 text-white px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors">Add New</button>
             </div>
           </div>
+          <div class="px-5 py-3 border-b border-slate-100 bg-white space-y-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              <label class="flex flex-col gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                From date
+                <input type="date" id="records-filter-date-from" class="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 font-normal normal-case" />
+              </label>
+              <label class="flex flex-col gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                To date
+                <input type="date" id="records-filter-date-to" class="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 font-normal normal-case" />
+              </label>
+              <label class="flex flex-col gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                Type
+                <select id="records-filter-type" class="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 font-normal normal-case">
+                  <option value="all">All types</option>
+                  <option value="Income">Income</option>
+                  <option value="Expense">Expense</option>
+                </select>
+              </label>
+              <div class="flex flex-col gap-1 justify-end">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide opacity-0 pointer-events-none select-none sm:block">Reset</span>
+                <button type="button" id="records-filter-clear" class="px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">Clear filters</button>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              <label class="flex flex-col gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                Vendor
+                <select id="records-filter-vendor" class="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 font-normal normal-case">
+                  <option value="">All vendors</option>
+                </select>
+              </label>
+              <label class="flex flex-col gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                Category
+                <select id="records-filter-category" class="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 font-normal normal-case">
+                  <option value="">All categories</option>
+                </select>
+              </label>
+              <label class="flex flex-col gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                Min amount
+                <input type="number" id="records-filter-amount-min" step="0.01" min="0" placeholder="0.00" class="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 font-normal normal-case placeholder:normal-case placeholder:font-normal" />
+              </label>
+              <label class="flex flex-col gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                Max amount
+                <input type="number" id="records-filter-amount-max" step="0.01" min="0" placeholder="0.00" class="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 font-normal normal-case placeholder:normal-case placeholder:font-normal" />
+              </label>
+            </div>
+          </div>
           
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm whitespace-nowrap">
@@ -226,6 +272,7 @@
     </main>
   </div>
 
+  <script src="/js/ledger-table-filters.js"></script>
   <script>
     function toggleSidebar() {
       document.getElementById('sidebar').classList.toggle('-translate-x-full');
@@ -391,38 +438,77 @@
 
     let currentPage = 1;
     let currentLimit = 10;
+    let currentTransactions = [];
+
+    function renderRecordsTable(transactions) {
+      const tbody = document.getElementById('records-tbody');
+      tbody.innerHTML = '';
+
+      if (!transactions || transactions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="py-10 text-center text-slate-400">No records found.</td></tr>';
+        return;
+      }
+
+      transactions.forEach(tx => {
+        const isIncome = tx.type === 'Income';
+        const amountColor = isIncome ? 'text-emerald-600' : 'text-slate-800';
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition-colors group';
+        tr.innerHTML = `
+          <td class="py-3 px-4 lg:px-5 text-slate-500 text-xs font-medium">${new Date(tx.date).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}</td>
+          <td class="py-3 px-4 lg:px-5 font-bold text-slate-800 max-w-[150px] sm:max-w-[200px] truncate" title="${tx.vendor}">${tx.vendor}</td>
+          <td class="py-3 px-4 lg:px-5 text-slate-500 text-xs truncate max-w-[120px]"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wider">${tx.category || 'General'}</span></td>
+          <td class="py-3 px-4 lg:px-5 text-slate-500 text-xs truncate max-w-[160px]"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] font-bold tracking-wider">${tx.project || 'No Project'}</span></td>
+          <td class="py-3 px-4 lg:px-5 text-right font-black tabular-nums ${amountColor}">${isIncome?'+':''}$${Number(tx.amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+          <td class="py-3 px-4 lg:px-5 text-center">${tx.receipt_url ? `<button onclick="window.open('${tx.receipt_url}', '_blank')" class="text-blue-500 hover:text-blue-700 bg-blue-50 p-1 rounded transition-colors" title="View Receipt"><span class="material-icons-round text-[16px]">receipt_long</span></button>` : `<span class="text-slate-200">-</span>`}</td><td class="py-3 px-4 lg:px-5 text-center opacity-50 group-hover:opacity-100 transition-opacity">
+            <button onclick="window.location.href='/add-record.html?id=${tx.id}'" class="text-slate-400 hover:text-blue-600 p-1 mx-1 transition-colors" title="Edit"><span class="material-icons-round text-[16px]">edit</span></button>
+            <button onclick="deleteRecord(${tx.id})" class="text-slate-400 hover:text-rose-600 p-1 mx-1 transition-colors" title="Delete"><span class="material-icons-round text-[16px]">delete</span></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function readRecordsFilterCriteria() {
+      return {
+        dateFrom: document.getElementById('records-filter-date-from').value,
+        dateTo: document.getElementById('records-filter-date-to').value,
+        vendor: document.getElementById('records-filter-vendor').value,
+        category: document.getElementById('records-filter-category').value,
+        type: document.getElementById('records-filter-type').value,
+        amountMin: document.getElementById('records-filter-amount-min').value,
+        amountMax: document.getElementById('records-filter-amount-max').value
+      };
+    }
+
+    function applyRecordsFilter() {
+      const filtered = GregLedgerFilters.filterTransactions(currentTransactions, readRecordsFilterCriteria());
+      renderRecordsTable(filtered);
+    }
+
+    function clearRecordsFilters() {
+      document.getElementById('records-filter-date-from').value = '';
+      document.getElementById('records-filter-date-to').value = '';
+      document.getElementById('records-filter-vendor').value = '';
+      document.getElementById('records-filter-category').value = '';
+      document.getElementById('records-filter-type').value = 'all';
+      document.getElementById('records-filter-amount-min').value = '';
+      document.getElementById('records-filter-amount-max').value = '';
+      applyRecordsFilter();
+    }
 
     async function loadRecords(page) {
       try {
         const res = await fetch(`/api/transactions?page=${page}&limit=${currentLimit}`);
         const data = await res.json();
-        const tbody = document.getElementById('records-tbody');
-        tbody.innerHTML = '';
-        
-        if (!data.transactions || data.transactions.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" class="py-10 text-center text-slate-400">No records found.</td></tr>';
-          return;
-        }
-
-        data.transactions.forEach(tx => {
-          const isIncome = tx.type === 'Income';
-          const amountColor = isIncome ? 'text-emerald-600' : 'text-slate-800';
-          
-          const tr = document.createElement('tr');
-          tr.className = 'hover:bg-slate-50 transition-colors group';
-          tr.innerHTML = `
-            <td class="py-3 px-4 lg:px-5 text-slate-500 text-xs font-medium">${new Date(tx.date).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}</td>
-            <td class="py-3 px-4 lg:px-5 font-bold text-slate-800 max-w-[150px] sm:max-w-[200px] truncate" title="${tx.vendor}">${tx.vendor}</td>
-            <td class="py-3 px-4 lg:px-5 text-slate-500 text-xs truncate max-w-[120px]"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wider">${tx.category || 'General'}</span></td>
-            <td class="py-3 px-4 lg:px-5 text-slate-500 text-xs truncate max-w-[160px]"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] font-bold tracking-wider">${tx.project || 'No Project'}</span></td>
-            <td class="py-3 px-4 lg:px-5 text-right font-black tabular-nums ${amountColor}">${isIncome?'+':''}$${Number(tx.amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-            <td class="py-3 px-4 lg:px-5 text-center">${tx.receipt_url ? `<button onclick="window.open('${tx.receipt_url}', '_blank')" class="text-blue-500 hover:text-blue-700 bg-blue-50 p-1 rounded transition-colors" title="View Receipt"><span class="material-icons-round text-[16px]">receipt_long</span></button>` : `<span class="text-slate-200">-</span>`}</td><td class="py-3 px-4 lg:px-5 text-center opacity-50 group-hover:opacity-100 transition-opacity">
-              <button onclick="window.location.href='/add-record.html?id=${tx.id}'" class="text-slate-400 hover:text-blue-600 p-1 mx-1 transition-colors" title="Edit"><span class="material-icons-round text-[16px]">edit</span></button>
-              <button onclick="deleteRecord(${tx.id})" class="text-slate-400 hover:text-rose-600 p-1 mx-1 transition-colors" title="Delete"><span class="material-icons-round text-[16px]">delete</span></button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
+        currentTransactions = Array.isArray(data.transactions) ? data.transactions : [];
+        GregLedgerFilters.populateVendorCategorySelects(
+          document.getElementById('records-filter-vendor'),
+          document.getElementById('records-filter-category'),
+          currentTransactions
+        );
+        applyRecordsFilter();
 
         const pg = data.pagination;
         document.getElementById('current-page').textContent = pg.page;
@@ -435,6 +521,13 @@
 
     document.getElementById('btn-prev').addEventListener('click', () => { if (currentPage > 1) loadRecords(currentPage - 1); });
     document.getElementById('btn-next').addEventListener('click', () => { loadRecords(currentPage + 1); });
+    ['records-filter-date-from', 'records-filter-date-to', 'records-filter-vendor', 'records-filter-category', 'records-filter-type'].forEach((id) => {
+      document.getElementById(id).addEventListener('change', applyRecordsFilter);
+    });
+    ['records-filter-amount-min', 'records-filter-amount-max'].forEach((id) => {
+      document.getElementById(id).addEventListener('input', applyRecordsFilter);
+    });
+    document.getElementById('records-filter-clear').addEventListener('click', clearRecordsFilters);
 
     async function deleteRecord(id) {
       if (!confirm('Are you sure you want to delete this record?')) return;
