@@ -57,6 +57,11 @@
         if (sn) sn.classList.remove('hidden');
       }
     } catch (e) {}
+    try {
+      if (typeof global.hydrateQuoteRequestsBadge === 'function') {
+        await global.hydrateQuoteRequestsBadge();
+      }
+    } catch (e2) {}
   }
 
   async function logout() {

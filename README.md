@@ -11,6 +11,7 @@ Repository: [github.com/vsangiovanni/racketty_boom_dashboard](https://github.com
 
 - **Public branding:** default logo is `frontend/assets/landing/logo.svg`. `frontend/js/brand-defaults.js` exposes `GREG_TRACKER_DEFAULT_LOGO_URL` for the sidebar, login, and Settings preview when no custom logo is stored in the database.
 - **Quote requests module:** `frontend/quote-requests.html` — managers/admins manage leads (filters, full detail, internal notes). Public intake remains `frontend/quote.html`.
+- **Quote “unread” badge:** sidebar **Quote requests** shows an amber count for leads whose team detail was never opened (`team_first_viewed_at`); opening a row’s detail clears that lead from the count. Implemented via `GET /api/quote-requests/unread-count` and `frontend/js/quote-requests-badge.js` (periodic refresh ~90s).
 - **Projects:** tabs **Active / Completed / All**; KPIs and chart follow the selected view; quick **complete** / **reopen** actions; project details page has the same status actions.
 - **Deploy root:** repository root has `package.json` (all runtime deps), `server.js` (`require('./backend/server.js')`), and `npm start` for a single install — matches Hostinger Node detection (`server.js`, Express).
 - **Packaging:** `scripts/pack-hostinger.ps1` builds `hostinger-deploy.zip` (POSIX paths in the zip, validates JSON, excludes `node_modules`, duplicate `backend/package.json` in archive, local `.env`, etc.). Use **`-IncludeProductionEnv`** to embed `backend/.env.production` when you are not using hPanel env vars (keep the zip private).
@@ -37,7 +38,7 @@ Repository: [github.com/vsangiovanni/racketty_boom_dashboard](https://github.com
 - **Frontend:** Static HTML + Tailwind CDN + vanilla JS.
 - **PWA:** `frontend/manifest.webmanifest`, `frontend/sw.js` (bump `CACHE_NAME` when static assets change materially).
 - **Shell helper:** `frontend/js/app-shell.js`.
-- **Shared nav / default logo:** `frontend/js/app-nav.js`, `frontend/js/brand-defaults.js`.
+- **Shared nav / default logo:** `frontend/js/app-nav.js`, `frontend/js/brand-defaults.js`, `frontend/js/quote-requests-badge.js` (Managers/Admins).
 
 ## Repository guide
 
@@ -78,7 +79,7 @@ To run only from `backend/` (optional): `cd backend && npm install && npm start`
 
 2. Upload **`hostinger-deploy.zip`**. Zip root must include **`package.json`**, **`server.js`**, **`backend/`**, **`frontend/`**, etc. (no `node_modules`; do not commit secrets — the script skips `backend/.env` and production env files; configure variables in hPanel or place `backend/.env.production` on the server only there).
 
-3. In hPanel (**Websites → your site → Node.js**): **Application startup file** `server.js`, install command `npm install`, start `npm start` (or Hostinger’s Express preset). Set **environment variables** to match `backend/.env.example` (especially `DB_*`, `APP_BASE_URL`, `NODE_ENV=production`, and SMTP / quote mail). For **internal quote alerts**, `QUOTE_NOTIFY_TO` accepts **several addresses** separated by commas or semicolons (same notification to each).
+3. In hPanel (**Websites → your site → Node.js**): **Application startup file** `server.js`, install command `npm install`, start `npm start` (or Hostinger’s Express preset). Set **environment variables** to match `backend/.env.example` (especially `DB_*` or `DATABASE_URL`, `APP_BASE_URL`, `NODE_ENV=production`, and SMTP / quote mail). Production can also load `backend/.env.production` from the deploy zip if you use **`-IncludeProductionEnv`**. For **internal quote alerts**, `QUOTE_NOTIFY_TO` accepts **several addresses** separated by commas or semicolons (same notification to each).
 
 4. **Automated deploy (optional):** if you use the Hostinger API from Cursor (MCP `user-hostinger-mcp`), the tool **`hosting_deployJsApplication`** accepts the same zip path (`archivePath`) and your site **domain**. After upload, check deployment status with **`hosting_listJsDeployments`**. If the API is not configured, use hPanel **Upload** / **Deploy** for the archive.
 

@@ -1325,6 +1325,25 @@ function buildLedgerWhereClause(query, { companyFieldExists, projectId, applyUse
   return { whereSql, params };
 }
 
+async function ensureQuoteRequestsTeamViewedColumn() {
+  try {
+    const [cols] = await pool.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'quote_requests' AND COLUMN_NAME = 'team_first_viewed_at'`
+    );
+    if (cols && cols.length) return;
+    await pool.query(
+      `ALTER TABLE quote_requests ADD COLUMN team_first_viewed_at TIMESTAMP NULL DEFAULT NULL AFTER internal_notes`
+    );
+    await pool.query(
+      `UPDATE quote_requests SET team_first_viewed_at = NOW() WHERE team_first_viewed_at IS NULL`
+    );
+    console.log('[schema] quote_requests.team_first_viewed_at added; existing rows marked seen.');
+  } catch (e) {
+    console.warn('[schema] quote_requests team_first_viewed_at migration:', e && e.message);
+  }
+}
+
 async function ensureSchema() {
   const fs = require('fs');
   const path = require('path');
@@ -1396,6 +1415,8 @@ async function ensureSchema() {
       INDEX idx_quote_created (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
+
+  await ensureQuoteRequestsTeamViewedColumn();
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS projects (
@@ -3354,6 +3375,20 @@ app.get('/api/quote-requests', async (req, res) => {
   }
 });
 
+app.get('/api/quote-requests/unread-count', async (req, res) => {
+  if (!ensureCanEdit(req, res)) return;
+
+  try {
+    const [[row]] = await pool.query(
+      `SELECT COUNT(*) AS c FROM quote_requests WHERE team_first_viewed_at IS NULL`
+    );
+    return res.json({ unreadCount: Number(row && row.c != null ? row.c : 0) });
+  } catch (error) {
+    console.error('Quote requests unread-count error:', error);
+    return res.status(500).json({ error: 'Failed to count unread quote requests.' });
+  }
+});
+
 app.get('/api/quote-requests/:id', async (req, res) => {
   if (!ensureCanEdit(req, res)) return;
 
@@ -3375,7 +3410,8 @@ app.get('/api/quote-requests/:id', async (req, res) => {
         message,
         status,
         internal_notes,
-        created_at
+        created_at,
+        team_first_viewed_at
       FROM quote_requests
       WHERE id = ?
       LIMIT 1
@@ -3384,6 +3420,10 @@ app.get('/api/quote-requests/:id', async (req, res) => {
     );
 
     if (!rows.length) return res.status(404).json({ error: 'Quote request not found.' });
+    await pool.query(
+      `UPDATE quote_requests SET team_first_viewed_at = COALESCE(team_first_viewed_at, NOW()) WHERE id = ?`,
+      [id]
+    );
     return res.json({ quoteRequest: rows[0] });
   } catch (error) {
     console.error('Quote request get error:', error);

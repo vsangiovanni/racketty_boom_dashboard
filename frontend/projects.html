@@ -9,6 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/js/brand-defaults.js"></script>
+  <script src="/js/quote-requests-badge.js"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
   </style>
@@ -50,8 +51,12 @@
         <a href="/projects.html" class="flex items-center gap-3 px-3 py-2.5 bg-blue-600/10 text-blue-400 rounded-lg font-medium border border-blue-500/20">
           <span class="material-icons-round text-[20px]">construction</span> Projects
         </a>
-        <a href="/quote-requests.html" id="nav-quote-requests" class="hidden flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
-          <span class="material-icons-round text-[20px]">request_quote</span> Quote requests
+        <a href="/quote-requests.html" id="nav-quote-requests" class="hidden w-full flex items-center justify-between gap-2 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="flex items-center gap-3 min-w-0">
+            <span class="material-icons-round text-[20px] shrink-0">request_quote</span>
+            <span class="truncate">Quote requests</span>
+          </span>
+          <span id="nav-quote-requests-badge" class="hidden shrink-0 min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-400 text-slate-900 text-[10px] font-bold leading-none flex items-center justify-center" aria-hidden="true"></span>
         </a>
       </nav>
 
@@ -623,6 +628,7 @@
           if (team) team.classList.remove('hidden');
         }
       } catch (e) {}
+      if (typeof hydrateQuoteRequestsBadge === 'function') await hydrateQuoteRequestsBadge();
     })();
     loadDashboard();
 

@@ -69,7 +69,7 @@
           <li><strong>Charts:</strong> cash flow trend, expense breakdown by category and top suppliers or payers.</li>
           <li><strong>Records:</strong> paginated list; you can delete a record or open it to edit it in Manual Entry.</li>
           <li><strong>Export:</strong> open <strong>Export Excel report</strong> to pick the time period and optional project; the same accountant workbook format is downloaded with the matching rows.</li>
-          <li><strong>Quote requests:</strong> managers and admins use the sidebar link <strong>Quote requests</strong> (<code class="bg-slate-100 px-1 rounded text-sm">/quote-requests.html</code>) for the full lead pipeline (filters, detail panel, internal notes). The public form stays on <strong>/quote.html</strong>.</li>
+          <li><strong>Quote requests:</strong> managers and admins use the sidebar link <strong>Quote requests</strong> (<code class="bg-slate-100 px-1 rounded text-sm">/quote-requests.html</code>) for the full lead pipeline (filters, detail panel, internal notes). An <strong>amber number</strong> next to the link shows how many leads the team has not opened yet in the detail panel; opening a request clears it from that count. The public form stays on <strong>/quote.html</strong>.</li>
           <li><strong>Lock:</strong> logs out and returns to the Access screen.</li>
         </ul>
         <p class="text-sm text-slate-500">Use the side menu for manual entry, AI scan, projects, quote requests (managers/admins), import, settings, and help.</p>
@@ -128,6 +128,7 @@
         <p class="text-slate-600 mb-4">For <strong>Managers</strong> and <strong>Admins</strong> only. Open <strong>/quote-requests.html</strong> from the sidebar after signing in.</p>
         <ul class="list-disc pl-5 text-slate-600 space-y-2 mb-4">
           <li><strong>Source:</strong> visitors submit the public form at <code class="bg-slate-100 px-1 rounded text-sm">/quote.html</code>; each submission appears in this module.</li>
+          <li><strong>Unseen indicator:</strong> in the sidebar, a small <strong>amber badge</strong> counts requests your team has not opened in the detail view yet. Click a row to open it — that marks the lead as seen and updates the count (the app also refreshes the count periodically).</li>
           <li><strong>Tabs / filters:</strong> narrow the list by pipeline status (New, Contacted, Scheduled, Won, Lost).</li>
           <li><strong>Detail:</strong> click a row to see the full message, contact details, and project fields; add <strong>internal notes</strong> visible only to your team.</li>
           <li><strong>Save:</strong> update status and notes together; use <strong>Refresh</strong> to reload the list.</li>

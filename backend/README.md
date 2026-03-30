@@ -34,8 +34,9 @@ These endpoints power `frontend/project-details.html`.
 - `QUOTE_NOTIFY_TO` — one or more team inboxes for new quote alerts (comma or semicolon separated); also used as `Reply-To` on the customer confirmation (multiple addresses when more than one).
 - `/api/quote-requests`:
   - `POST /api/quote-requests` — submit a free estimate request (public).
+  - `GET /api/quote-requests/unread-count` — managers/admins; count of rows with `team_first_viewed_at IS NULL` (detail not yet opened).
   - `GET /api/quote-requests` — list for managers/admins; optional query `status`, `page`, `limit`.
-  - `GET /api/quote-requests/:id` — single request (managers/admins).
+  - `GET /api/quote-requests/:id` — single request (managers/admins); first successful load sets `team_first_viewed_at` so the sidebar unread count drops.
   - `PATCH /api/quote-requests/:id` — update `status` and/or `internal_notes` (managers/admins).
 - `/api/settings` (GET/POST, **Admin only**) and `/api/settings/public` -> full settings vs public branding metadata.
 - `/api/auth` -> sign in (`pin` for company mode, or `user_id` + `pin` when team users exist); sets `auth_pin` or `gt_uid`/`gt_pin` cookies.

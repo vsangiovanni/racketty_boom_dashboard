@@ -9,6 +9,8 @@
 
 ## Newly Documented Behavior
 
+- Quote requests: `GET /api/quote-requests/unread-count` and `team_first_viewed_at` on `quote_requests` (set on first `GET /api/quote-requests/:id`).
+- Production env: `DATABASE_URL` / `MYSQL_*` fallbacks and layered `.env` loading (see root `README.md`).
 - Project analytics endpoints support the dedicated project details page.
 - Project AI insights endpoint (`/api/projects/:id/ai-insights`) returns summary, insights, and recommendations.
 - Transaction APIs include `project_id` read/write behavior.
