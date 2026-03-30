@@ -31,5 +31,3 @@ The frontend is a multi-page UI served by the Express backend from `frontend/`.
 `help.html?page=<section>`:
 
 - `login`, `dashboard`, `manual-entry`, `upload`, `projects`, `quote-requests`, `import`, `export-excel`, `settings`
-
-`help copy.html` — legacy redirect.
