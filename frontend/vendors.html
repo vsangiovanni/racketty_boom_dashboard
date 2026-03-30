@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="/js/brand-defaults.js"></script>
+  <title>Vendors / Clients - Greg Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  </style>
+</head>
+<body class="bg-[#f1f5f9] text-slate-800 h-screen flex overflow-hidden">
+  <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/60 z-40 hidden md:hidden backdrop-blur-sm" onclick="toggleSidebar()"></div>
+
+  <aside id="sidebar" class="bg-slate-900 text-slate-300 w-64 flex-shrink-0 fixed inset-y-0 left-0 z-50 transition-transform -translate-x-full md:relative md:translate-x-0 flex flex-col shadow-2xl md:shadow-none">
+    <div class="h-16 flex items-center px-6 bg-slate-950 border-b border-slate-800/50 justify-between">
+      <div class="flex items-center gap-3">
+        <div id="sidebar-logo-container" class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-sm overflow-hidden">RB</div>
+        <span class="shell-business-name text-white font-bold tracking-wide truncate max-w-[130px]">Greg Tracker</span>
+      </div>
+      <button type="button" class="md:hidden text-slate-400 hover:text-white" onclick="toggleSidebar()"><span class="material-icons-round">close</span></button>
+    </div>
+    <div class="p-4 flex-1 overflow-y-auto">
+      <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 mt-2 px-2">Overview</div>
+      <nav class="space-y-1">
+        <a href="/dashboard.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">insights</span> Dashboard
+        </a>
+      </nav>
+
+      <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 mt-8 px-2">Transactions</div>
+      <nav class="space-y-1">
+        <a href="/add-record.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">add_box</span> Manual Entry
+        </a>
+        <a href="/upload.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">document_scanner</span> AI Receipt Scan
+        </a>
+      </nav>
+
+      <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 mt-8 px-2">Projects &amp; leads</div>
+      <nav class="space-y-1">
+        <a href="/projects.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">construction</span> Projects
+        </a>
+        <a href="/quote-requests.html" id="nav-quote-requests" class="hidden w-full flex items-center justify-between gap-2 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="flex items-center gap-3 min-w-0">
+            <span class="material-icons-round text-[20px] shrink-0">request_quote</span>
+            <span class="truncate">Quote requests</span>
+          </span>
+          <span id="nav-quote-requests-badge" class="hidden shrink-0 min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-400 text-slate-900 text-[10px] font-bold leading-none flex items-center justify-center" aria-hidden="true"></span>
+        </a>
+        <a href="/vendors.html" id="nav-vendors" class="hidden flex items-center gap-3 px-3 py-2.5 bg-blue-600/10 text-blue-400 rounded-lg font-medium border border-blue-500/20">
+          <span class="material-icons-round text-[20px]">storefront</span> Vendors / Clients
+        </a>
+      </nav>
+
+      <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 mt-8 px-2">Import / export</div>
+      <nav class="space-y-1">
+        <a href="/export-report.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">file_download</span> Export Excel Report
+        </a>
+        <a href="/import.html" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">table_view</span> Bulk Import Excel
+        </a>
+      </nav>
+
+      <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 mt-8 px-2">Help &amp; account</div>
+      <nav class="space-y-1">
+        <a href="/help.html?page=settings" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">help_outline</span> Help
+        </a>
+        <a href="/settings.html" id="nav-settings" class="hidden flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">settings</span> Settings
+        </a>
+        <a href="/users.html" id="nav-team-users" class="hidden flex items-center gap-3 px-3 py-2.5 hover:bg-slate-800 rounded-lg font-medium transition-colors text-slate-400 hover:text-slate-200">
+          <span class="material-icons-round text-[20px]">group</span> Team users
+        </a>
+      </nav>
+    </div>
+  </aside>
+
+  <div class="flex-1 flex flex-col overflow-hidden min-w-0 relative">
+    <header class="h-16 bg-white/80 backdrop-blur-md shadow-sm flex items-center justify-between px-4 lg:px-8 z-10 flex-shrink-0 border-b border-slate-200/50">
+      <div class="flex items-center gap-3 min-w-0">
+        <button type="button" class="md:hidden text-slate-500 hover:bg-slate-100 p-2 rounded-lg shrink-0" onclick="toggleSidebar()"><span class="material-icons-round">menu</span></button>
+        <div class="min-w-0">
+          <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide truncate shell-business-name">Greg Tracker</p>
+          <h1 class="text-xl font-bold text-slate-800 tracking-tight">Vendors / Clients</h1>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <a href="/help.html?page=settings" class="inline-flex items-center justify-center p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg shrink-0" title="Help" aria-label="Help"><span class="material-icons-round">help_outline</span></a>
+        <button type="button" onclick="logout()" class="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg" title="Logout"><span class="material-icons-round">lock_outline</span></button>
+      </div>
+    </header>
+
+    <div class="flex-1 flex flex-col overflow-hidden min-w-0" data-shell-footer>
+      <main class="flex-1 overflow-y-auto p-4 lg:p-8">
+        <div class="max-w-6xl mx-auto w-full space-y-5">
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+              <p class="text-xs uppercase font-bold tracking-wide text-slate-500">Total directory</p>
+              <p id="kpi-total" class="text-2xl font-extrabold text-slate-800 mt-2">0</p>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+              <p class="text-xs uppercase font-bold tracking-wide text-slate-500">Active</p>
+              <p id="kpi-active" class="text-2xl font-extrabold text-emerald-600 mt-2">0</p>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+              <p class="text-xs uppercase font-bold tracking-wide text-slate-500">Inactive</p>
+              <p id="kpi-inactive" class="text-2xl font-extrabold text-rose-600 mt-2">0</p>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+              <p class="text-xs uppercase font-bold tracking-wide text-slate-500">Complete contact profiles</p>
+              <p id="kpi-complete-contact" class="text-2xl font-extrabold text-violet-600 mt-2">0%</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <div class="xl:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+              <h3 class="text-sm font-bold text-slate-800">By type</h3>
+              <p class="text-xs text-slate-500 mb-3">Distribution of vendors and clients.</p>
+              <div class="h-[220px]"><canvas id="vendors-type-chart"></canvas></div>
+            </div>
+            <div class="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+              <h3 class="text-sm font-bold text-slate-800">Top contact quality</h3>
+              <p class="text-xs text-slate-500 mb-3">Records with email and phone available.</p>
+              <div class="h-[220px]"><canvas id="vendors-contact-chart"></canvas></div>
+            </div>
+          </div>
+
+          <div id="vendors-readonly" class="hidden bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-4 text-sm">
+            Modo solo lectura: puedes ver vendors/clientes, pero solo Manager/Admin puede crear o editar.
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 lg:p-5">
+            <form id="vendor-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <input type="hidden" id="vendor-id">
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Name *</label>
+                <input id="vendor-name" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Type</label>
+                <select id="vendor-type" class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm bg-white">
+                  <option value="Vendor">Vendor</option>
+                  <option value="Customer">Customer</option>
+                  <option value="Both">Both</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Phone</label>
+                <input id="vendor-phone" class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Address</label>
+                <input id="vendor-address" class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Email</label>
+                <input id="vendor-email" type="email" class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" />
+              </div>
+              <div class="md:col-span-2 lg:col-span-3">
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Notes</label>
+                <textarea id="vendor-notes" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"></textarea>
+              </div>
+              <div class="md:col-span-2 lg:col-span-3 flex items-center gap-2">
+                <button type="submit" id="vendor-save-btn" class="px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">Save vendor/client</button>
+                <button type="button" id="vendor-cancel-btn" class="px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 text-sm font-bold hover:bg-slate-100">Cancel edit</button>
+                <p id="vendor-msg" class="text-xs font-semibold text-slate-500"></p>
+              </div>
+            </form>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-4 border-b border-slate-100 bg-slate-50/30 flex flex-col md:flex-row md:items-center gap-2">
+              <div class="flex-1">
+                <h2 class="text-sm font-bold text-slate-800">Directory</h2>
+                <p class="text-xs text-slate-500 mt-0.5">Search, edit, and activate/deactivate vendors and clients.</p>
+              </div>
+              <input id="vendor-search" placeholder="Search by name, email, phone..." class="w-full md:w-80 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
+                  <tr>
+                    <th class="py-3 px-4">Name</th>
+                    <th class="py-3 px-4">Type</th>
+                    <th class="py-3 px-4">Phone</th>
+                    <th class="py-3 px-4">Email</th>
+                    <th class="py-3 px-4">Address</th>
+                    <th class="py-3 px-4">Active</th>
+                    <th class="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="vendors-body" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+            <p id="vendors-empty" class="hidden p-6 text-center text-slate-400 text-sm">No vendors/clients found.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/js/quote-requests-badge.js"></script>
+  <script src="/js/app-nav.js"></script>
+  <script>
+    hydrateSidebarNav();
+    hydrateSidebarLogo();
+  </script>
+  <script src="/js/app-shell.js"></script>
+  <script>
+    let canEditVendors = false;
+    let vendorRows = [];
+    let typeChart = null;
+    let contactChart = null;
+
+    function normalizeText(v) {
+      return String(v || '').trim();
+    }
+
+    function fillForm(v) {
+      document.getElementById('vendor-id').value = v && v.id ? String(v.id) : '';
+      document.getElementById('vendor-name').value = v ? (v.name || '') : '';
+      document.getElementById('vendor-type').value = v ? (v.type || 'Vendor') : 'Vendor';
+      document.getElementById('vendor-phone').value = v ? (v.phone || '') : '';
+      document.getElementById('vendor-email').value = v ? (v.email || '') : '';
+      document.getElementById('vendor-address').value = v ? (v.address || '') : '';
+      document.getElementById('vendor-notes').value = v ? (v.notes || '') : '';
+    }
+
+    function setMessage(msg, ok) {
+      var el = document.getElementById('vendor-msg');
+      el.textContent = msg || '';
+      el.className = ok ? 'text-xs font-semibold text-emerald-600' : 'text-xs font-semibold text-rose-600';
+    }
+
+    function matchesSearch(v, q) {
+      if (!q) return true;
+      var all = [
+        v.name, v.type, v.phone, v.email, v.address, v.notes
+      ].join(' ').toLowerCase();
+      return all.indexOf(q) >= 0;
+    }
+
+    function renderRows() {
+      var q = normalizeText(document.getElementById('vendor-search').value).toLowerCase();
+      var rows = vendorRows.filter(function (v) { return matchesSearch(v, q); });
+      var body = document.getElementById('vendors-body');
+      var empty = document.getElementById('vendors-empty');
+
+      if (!rows.length) {
+        body.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+      body.innerHTML = rows.map(function (v) {
+        var active = v.active === 1 || v.active === true;
+        return '<tr class="hover:bg-slate-50">' +
+          '<td class="py-3 px-4 font-semibold text-slate-800">' + escapeHtml(v.name || '') + '</td>' +
+          '<td class="py-3 px-4 text-slate-600">' + escapeHtml(v.type || 'Vendor') + '</td>' +
+          '<td class="py-3 px-4 text-slate-600">' + escapeHtml(v.phone || '—') + '</td>' +
+          '<td class="py-3 px-4 text-slate-600">' + escapeHtml(v.email || '—') + '</td>' +
+          '<td class="py-3 px-4 text-slate-600 max-w-[220px] truncate" title="' + escapeHtml(v.address || '') + '">' + escapeHtml(v.address || '—') + '</td>' +
+          '<td class="py-3 px-4">' + (active ? '<span class="text-emerald-600 font-semibold">Yes</span>' : '<span class="text-slate-400">No</span>') + '</td>' +
+          '<td class="py-3 px-4 text-right whitespace-nowrap space-x-2">' +
+          '<button type="button" data-act="edit" data-id="' + v.id + '" class="text-xs font-bold text-blue-600 hover:underline">Edit</button>' +
+          '<button type="button" data-act="toggle" data-id="' + v.id + '" data-active="' + (active ? '1' : '0') + '" class="text-xs font-bold ' + (active ? 'text-rose-600' : 'text-emerald-600') + ' hover:underline">' + (active ? 'Deactivate' : 'Activate') + '</button>' +
+          '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    function renderInsights() {
+      const total = vendorRows.length;
+      const active = vendorRows.filter(function (v) { return v.active === 1 || v.active === true; }).length;
+      const inactive = total - active;
+      const completeContact = vendorRows.filter(function (v) {
+        return normalizeText(v.email) !== '' && normalizeText(v.phone) !== '';
+      }).length;
+      const completeContactPct = total > 0 ? Math.round((completeContact / total) * 100) : 0;
+
+      document.getElementById('kpi-total').textContent = String(total);
+      document.getElementById('kpi-active').textContent = String(active);
+      document.getElementById('kpi-inactive').textContent = String(inactive);
+      document.getElementById('kpi-complete-contact').textContent = String(completeContactPct) + '%';
+
+      const typeCount = { Vendor: 0, Customer: 0, Both: 0 };
+      vendorRows.forEach(function (v) {
+        const t = String(v.type || 'Vendor');
+        if (typeCount[t] == null) typeCount[t] = 0;
+        typeCount[t] += 1;
+      });
+
+      if (typeChart) typeChart.destroy();
+      typeChart = new Chart(document.getElementById('vendors-type-chart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Vendor', 'Customer', 'Both'],
+          datasets: [{
+            data: [typeCount.Vendor || 0, typeCount.Customer || 0, typeCount.Both || 0],
+            backgroundColor: ['#3b82f6', '#22c55e', '#a855f7'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+
+      const top = vendorRows
+        .map(function (v) {
+          return {
+            name: String(v.name || ''),
+            score: (normalizeText(v.email) ? 1 : 0) + (normalizeText(v.phone) ? 1 : 0)
+          };
+        })
+        .sort(function (a, b) { return b.score - a.score || a.name.localeCompare(b.name); })
+        .slice(0, 8);
+      const labels = top.map(function (x) { return x.name || '(no name)'; });
+      const scores = top.map(function (x) { return x.score; });
+
+      if (contactChart) contactChart.destroy();
+      contactChart = new Chart(document.getElementById('vendors-contact-chart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Contact score',
+            data: scores,
+            backgroundColor: '#0ea5e9',
+            borderRadius: 8
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, max: 2, ticks: { stepSize: 1 } }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function (ctx) {
+                  if (ctx.raw >= 2) return 'Full contact';
+                  if (ctx.raw >= 1) return 'Partial contact';
+                  return 'No contact';
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    async function loadVendors() {
+      const res = await fetch('/api/vendors?active=1', { credentials: 'same-origin' });
+      if (!res.ok) throw new Error('Failed to load active vendors');
+      const active = await res.json();
+      const res2 = await fetch('/api/vendors?active=0', { credentials: 'same-origin' });
+      if (!res2.ok) throw new Error('Failed to load inactive vendors');
+      const inactive = await res2.json();
+      const arr1 = Array.isArray(active.data) ? active.data : [];
+      const arr2 = Array.isArray(inactive.data) ? inactive.data : [];
+      vendorRows = arr1.concat(arr2).sort(function (a, b) {
+        return String(a.name || '').localeCompare(String(b.name || ''));
+      });
+      renderRows();
+      renderInsights();
+    }
+
+    async function bootstrapPermissions() {
+      try {
+        const res = await fetch('/api/session/me', { credentials: 'same-origin' });
+        if (!res.ok) return;
+        const me = await res.json();
+        const role = String(me.role || '');
+        canEditVendors = role === 'Admin' || role === 'Manager';
+        if (!canEditVendors) {
+          document.getElementById('vendors-readonly').classList.remove('hidden');
+          document.getElementById('vendor-save-btn').disabled = true;
+          document.getElementById('vendor-save-btn').classList.add('opacity-50', 'cursor-not-allowed');
+        }
+      } catch (e) {}
+    }
+
+    document.getElementById('vendor-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (!canEditVendors) return;
+      const id = Number(document.getElementById('vendor-id').value || 0);
+      const payload = {
+        name: normalizeText(document.getElementById('vendor-name').value),
+        type: document.getElementById('vendor-type').value,
+        phone: normalizeText(document.getElementById('vendor-phone').value) || null,
+        email: normalizeText(document.getElementById('vendor-email').value) || null,
+        address: normalizeText(document.getElementById('vendor-address').value) || null,
+        notes: normalizeText(document.getElementById('vendor-notes').value) || null
+      };
+      if (!payload.name) {
+        setMessage('Name is required.', false);
+        return;
+      }
+      const url = id ? '/api/vendors/' + id : '/api/vendors';
+      const method = id ? 'PATCH' : 'POST';
+      try {
+        const res = await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(payload)
+        });
+        const out = await res.json().catch(function () { return {}; });
+        if (!res.ok) throw new Error(out.error || 'Save failed');
+        setMessage(id ? 'Vendor/client updated.' : 'Vendor/client created.', true);
+        fillForm(null);
+        await loadVendors();
+      } catch (err) {
+        setMessage(err.message || 'Save failed', false);
+      }
+    });
+
+    document.getElementById('vendor-cancel-btn').addEventListener('click', function () {
+      fillForm(null);
+      setMessage('', true);
+    });
+
+    document.getElementById('vendors-body').addEventListener('click', async function (e) {
+      const btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      const id = Number(btn.getAttribute('data-id'));
+      const act = btn.getAttribute('data-act');
+      const row = vendorRows.find(function (v) { return Number(v.id) === id; });
+      if (!row) return;
+      if (act === 'edit') {
+        fillForm(row);
+        return;
+      }
+      if (act === 'toggle' && canEditVendors) {
+        const wasActive = btn.getAttribute('data-active') === '1';
+        try {
+          if (wasActive) {
+            const delRes = await fetch('/api/vendors/' + id, { method: 'DELETE', credentials: 'same-origin' });
+            const out = await delRes.json().catch(function () { return {}; });
+            if (!delRes.ok) throw new Error(out.error || 'Failed to deactivate');
+          } else {
+            const patchRes = await fetch('/api/vendors/' + id, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+              body: JSON.stringify({ active: true })
+            });
+            const out2 = await patchRes.json().catch(function () { return {}; });
+            if (!patchRes.ok) throw new Error(out2.error || 'Failed to activate');
+          }
+          await loadVendors();
+        } catch (err) {
+          alert(err.message || 'Update failed');
+        }
+      }
+    });
+
+    document.getElementById('vendor-search').addEventListener('input', renderRows);
+
+    (async function init() {
+      await bootstrapPermissions();
+      await loadVendors();
+    })();
+  </script>
+</body>
+</html>

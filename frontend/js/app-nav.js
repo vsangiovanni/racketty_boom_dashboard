@@ -49,6 +49,8 @@
       if (role === 'Manager' || role === 'Admin') {
         var qr = document.getElementById('nav-quote-requests');
         if (qr) qr.classList.remove('hidden');
+        var vv = document.getElementById('nav-vendors');
+        if (vv) vv.classList.remove('hidden');
       }
       if (role === 'Admin') {
         var team = document.getElementById('nav-team-users');

@@ -1396,6 +1396,25 @@ async function ensureSchema() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS vendors (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      name VARCHAR(255) NOT NULL,
+      type ENUM('Vendor','Customer','Both') NOT NULL DEFAULT 'Vendor',
+      notes TEXT NULL,
+      address VARCHAR(255) NULL,
+      email VARCHAR(190) NULL,
+      phone VARCHAR(50) NULL,
+      active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_vendor_name (name),
+      KEY idx_vendor_active (active),
+      KEY idx_vendor_type_active (type, active)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS quote_requests (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
       customer_name VARCHAR(180) NOT NULL,
@@ -1581,6 +1600,35 @@ async function ensureSchema() {
 
     try {
       await pool.query(`
+        ALTER TABLE vendors
+        ADD COLUMN address VARCHAR(255) NULL AFTER notes,
+        ADD COLUMN email VARCHAR(190) NULL AFTER address,
+        ADD COLUMN phone VARCHAR(50) NULL AFTER email;
+      `);
+    } catch (e) {
+      if (e.code !== 'ER_DUP_FIELDNAME') throw e;
+    }
+
+    try {
+      await pool.query(`
+        ALTER TABLE transactions
+        ADD COLUMN vendor_id BIGINT UNSIGNED NULL AFTER vendor;
+      `);
+    } catch (e) {
+      if (e.code !== 'ER_DUP_FIELDNAME') throw e;
+    }
+
+    try {
+      await pool.query(`
+        ALTER TABLE transactions
+        ADD CONSTRAINT fk_transactions_vendor FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE SET NULL;
+      `);
+    } catch (e) {
+      // Ignorar si la foreign key ya existe o si la tabla vendors aun no esta disponible.
+    }
+
+    try {
+      await pool.query(`
         ALTER TABLE transactions
         ADD CONSTRAINT fk_transactions_batch FOREIGN KEY (import_batch_id) REFERENCES import_batches(id) ON DELETE SET NULL;
       `);
@@ -1658,6 +1706,211 @@ app.post('/api/categories', async (req, res) => {
     await pool.query('INSERT INTO categories (name) VALUES (:name) ON DUPLICATE KEY UPDATE name=name', { name });
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/vendors', async (req, res) => {
+  try {
+    const searchRaw = req.query.search;
+    const typeRaw = req.query.type;
+    const activeRaw = req.query.active;
+
+    const conditions = [];
+    const params = {};
+
+    if (searchRaw) {
+      conditions.push('name LIKE :search');
+      params.search = `%${String(searchRaw).trim()}%`;
+    }
+
+    if (typeRaw) {
+      const t = String(typeRaw).trim();
+      if (t === 'Vendor' || t === 'Customer' || t === 'Both') {
+        conditions.push('type = :type');
+        params.type = t;
+      }
+    }
+
+    if (activeRaw === '0' || activeRaw === 'false') {
+      conditions.push('active = 0');
+    } else if (activeRaw === '1' || activeRaw === 'true' || activeRaw == null) {
+      // Por defecto solo activos.
+      conditions.push('active = 1');
+    }
+
+    const whereSql = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const [rows] = await pool.query(
+      `SELECT id, name, type, notes, address, email, phone, active, created_at, updated_at
+       FROM vendors
+       ${whereSql}
+       ORDER BY name ASC`,
+      params
+    );
+    return res.json({ data: rows });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/vendors', async (req, res) => {
+  if (!ensureCanEdit(req, res)) return;
+  try {
+    const body = req.body || {};
+    const name = String(body.name || '').trim();
+    let type = String(body.type || 'Vendor').trim();
+    if (!name) {
+      return res.status(400).json({ error: 'name is required' });
+    }
+    if (type !== 'Vendor' && type !== 'Customer' && type !== 'Both') {
+      type = 'Vendor';
+    }
+    const notes = body.notes != null ? String(body.notes) : null;
+    const address = body.address != null ? String(body.address).trim() : null;
+    const email = body.email != null ? String(body.email).trim() : null;
+    const phone = body.phone != null ? String(body.phone).trim() : null;
+    const active = body.active === false || body.active === 0 ? 0 : 1;
+
+    try {
+      const [result] = await pool.query(
+        `INSERT INTO vendors (name, type, notes, address, email, phone, active)
+         VALUES (:name, :type, :notes, :address, :email, :phone, :active)`,
+        { name, type, notes, address, email, phone, active }
+      );
+      const [rows] = await pool.query(
+        'SELECT id, name, type, notes, address, email, phone, active, created_at, updated_at FROM vendors WHERE id = :id',
+        { id: result.insertId }
+      );
+      return res.status(201).json(rows[0]);
+    } catch (e) {
+      if (e.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ error: 'Vendor with that name already exists' });
+      }
+      throw e;
+    }
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/vendors/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id) || id <= 0) {
+      return res.status(400).json({ error: 'Invalid id' });
+    }
+    const [rows] = await pool.query(
+      'SELECT id, name, type, notes, address, email, phone, active, created_at, updated_at FROM vendors WHERE id = :id',
+      { id }
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Vendor not found' });
+    return res.json(rows[0]);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/vendors/:id', async (req, res) => {
+  if (!ensureCanEdit(req, res)) return;
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id) || id <= 0) {
+      return res.status(400).json({ error: 'Invalid id' });
+    }
+    const body = req.body || {};
+    const fields = [];
+    const params = { id };
+
+    if (body.name !== undefined) {
+      const name = String(body.name || '').trim();
+      if (!name) return res.status(400).json({ error: 'name cannot be empty' });
+      fields.push('name = :name');
+      params.name = name;
+    }
+
+    if (body.type !== undefined) {
+      let type = String(body.type || '').trim();
+      if (type !== 'Vendor' && type !== 'Customer' && type !== 'Both') {
+        return res.status(400).json({ error: 'Invalid type' });
+      }
+      fields.push('type = :type');
+      params.type = type;
+    }
+
+    if (body.notes !== undefined) {
+      const notes = body.notes == null ? null : String(body.notes);
+      fields.push('notes = :notes');
+      params.notes = notes;
+    }
+    if (body.address !== undefined) {
+      const address = body.address == null ? null : String(body.address).trim();
+      fields.push('address = :address');
+      params.address = address;
+    }
+    if (body.email !== undefined) {
+      const email = body.email == null ? null : String(body.email).trim();
+      fields.push('email = :email');
+      params.email = email;
+    }
+    if (body.phone !== undefined) {
+      const phone = body.phone == null ? null : String(body.phone).trim();
+      fields.push('phone = :phone');
+      params.phone = phone;
+    }
+
+    if (body.active !== undefined) {
+      const active = body.active === false || body.active === 0 ? 0 : 1;
+      fields.push('active = :active');
+      params.active = active;
+    }
+
+    if (!fields.length) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    try {
+      await pool.query(
+        `UPDATE vendors SET ${fields.join(', ')} WHERE id = :id`,
+        params
+      );
+    } catch (e) {
+      if (e.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ error: 'Vendor with that name already exists' });
+      }
+      throw e;
+    }
+
+    const [rows] = await pool.query(
+      'SELECT id, name, type, notes, address, email, phone, active, created_at, updated_at FROM vendors WHERE id = :id',
+      { id }
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Vendor not found' });
+    return res.json(rows[0]);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/vendors/:id', async (req, res) => {
+  if (!ensureCanEdit(req, res)) return;
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id) || id <= 0) {
+      return res.status(400).json({ error: 'Invalid id' });
+    }
+
+    // Soft delete: marcar como inactivo si existe.
+    const [rows] = await pool.query(
+      'SELECT id, name, type, notes, address, email, phone, active, created_at, updated_at FROM vendors WHERE id = :id',
+      { id }
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Vendor not found' });
+
+    await pool.query('UPDATE vendors SET active = 0 WHERE id = :id', { id });
+
+    const updated = { ...rows[0], active: 0 };
+    return res.json(updated);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 app.delete('/api/categories/:id', async (req, res) => {
