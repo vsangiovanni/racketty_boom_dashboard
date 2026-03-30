@@ -1344,6 +1344,38 @@ async function ensureQuoteRequestsTeamViewedColumn() {
   }
 }
 
+async function backfillVendorsFromTransactions() {
+  try {
+    const [distinctRows] = await pool.query(
+      "SELECT DISTINCT TRIM(vendor) AS name FROM transactions WHERE vendor IS NOT NULL AND TRIM(vendor) <> '' ORDER BY name ASC"
+    );
+    let inserted = 0;
+    for (const row of distinctRows || []) {
+      const name = String(row.name || '').trim();
+      if (!name) continue;
+      const [res] = await pool.query(
+        "INSERT IGNORE INTO vendors (name, type, active) VALUES (:name, 'Vendor', 1)",
+        { name }
+      );
+      inserted += Number(res && res.affectedRows ? res.affectedRows : 0);
+    }
+
+    const [linkRes] = await pool.query(
+      "UPDATE transactions t JOIN vendors v ON TRIM(t.vendor) = v.name SET t.vendor_id = v.id WHERE t.vendor_id IS NULL AND t.vendor IS NOT NULL AND TRIM(t.vendor) <> ''"
+    );
+    console.log(
+      '[schema] vendors backfill:',
+      JSON.stringify({
+        distinctFromLedger: Number((distinctRows || []).length || 0),
+        insertedVendors: inserted,
+        linkedTransactions: Number(linkRes && linkRes.affectedRows ? linkRes.affectedRows : 0)
+      })
+    );
+  } catch (e) {
+    console.warn('[schema] vendors backfill failed:', e && e.message);
+  }
+}
+
 async function ensureSchema() {
   const fs = require('fs');
   const path = require('path');
@@ -1685,6 +1717,8 @@ async function ensureSchema() {
     try {
       await pool.query(`INSERT INTO settings (id, business_name, app_pin) VALUES (1, 'Racketty Boom Enterprises', NULL) ON DUPLICATE KEY UPDATE id=id;`);
     } catch (e) {}
+
+    await backfillVendorsFromTransactions();
 
     console.log('✅ Migracion completada.');
   } catch (err) {
