@@ -1376,6 +1376,52 @@ async function backfillVendorsFromTransactions() {
   }
 }
 
+/**
+ * El ledger y los reportes muestran `transactions.vendor` (texto). Al renombrar en `vendors`,
+ * hay que propagar el nombre al ledger y borradores AI para que dashboard/import/proyectos coincidan.
+ */
+async function propagateVendorRenameToLedger(vendorId, oldName, newName) {
+  const o = String(oldName || '').trim();
+  const n = String(newName || '').trim();
+  if (!vendorId || !o || !n || o === n) {
+    return { transactionsByFk: 0, transactionsOrphans: 0, receiptDrafts: 0 };
+  }
+  const [r1] = await pool.query('UPDATE transactions SET vendor = :n WHERE vendor_id = :id', {
+    n,
+    id: vendorId
+  });
+  const [r2] = await pool.query(
+    'UPDATE transactions SET vendor = :n, vendor_id = :id WHERE vendor_id IS NULL AND TRIM(vendor) = :o',
+    { n, id: vendorId, o }
+  );
+  let drafts = 0;
+  try {
+    const [r3] = await pool.query('UPDATE receipt_extraction_drafts SET vendor = :n WHERE TRIM(vendor) = :o', {
+      n,
+      o
+    });
+    drafts = Number(r3.affectedRows || 0);
+  } catch (e) {
+    console.warn('[vendors] receipt_extraction_drafts rename skipped:', e && e.message);
+  }
+  console.log(
+    '[vendors] rename propagated:',
+    JSON.stringify({
+      vendorId,
+      from: o,
+      to: n,
+      transactionsByFk: Number(r1.affectedRows || 0),
+      transactionsOrphansLinked: Number(r2.affectedRows || 0),
+      receiptDrafts: drafts
+    })
+  );
+  return {
+    transactionsByFk: Number(r1.affectedRows || 0),
+    transactionsOrphans: Number(r2.affectedRows || 0),
+    receiptDrafts: drafts
+  };
+}
+
 async function ensureSchema() {
   const fs = require('fs');
   const path = require('path');
@@ -1849,6 +1895,13 @@ app.patch('/api/vendors/:id', async (req, res) => {
     if (!Number.isFinite(id) || id <= 0) {
       return res.status(400).json({ error: 'Invalid id' });
     }
+
+    const [existingVendor] = await pool.query('SELECT name FROM vendors WHERE id = :id LIMIT 1', { id });
+    if (!existingVendor || !existingVendor.length) {
+      return res.status(404).json({ error: 'Vendor not found' });
+    }
+    const previousName = String(existingVendor[0].name || '').trim();
+
     const body = req.body || {};
     const fields = [];
     const params = { id };
@@ -1910,6 +1963,13 @@ app.patch('/api/vendors/:id', async (req, res) => {
         return res.status(409).json({ error: 'Vendor with that name already exists' });
       }
       throw e;
+    }
+
+    if (body.name !== undefined) {
+      const newNameForLedger = String(params.name || '').trim();
+      if (newNameForLedger && newNameForLedger !== previousName) {
+        await propagateVendorRenameToLedger(id, previousName, newNameForLedger);
+      }
     }
 
     const [rows] = await pool.query(
