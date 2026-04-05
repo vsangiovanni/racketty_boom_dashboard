@@ -15,7 +15,8 @@
   "scripts": {
     "build": "node -e \"process.exit(0)\"",
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "deploy:hostinger-zip": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-for-hostinger.ps1"
   },
   "dependencies": {
     "cors": "^2.8.5",
