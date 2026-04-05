@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gregtracker-v37';
+const CACHE_NAME = 'gregtracker-v38';
 const ASSETS = [
   './',
   './index.html',
