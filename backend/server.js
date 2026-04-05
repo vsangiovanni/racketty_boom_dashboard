@@ -1422,6 +1422,58 @@ async function propagateVendorRenameToLedger(vendorId, oldName, newName) {
   };
 }
 
+const DEFAULT_LOCATION_SEEDS = [
+  ['Centralia', 10],
+  ['Chehalis', 20],
+  ['Pe Ell', 30],
+  ['Mossyrock', 40],
+  ['Onalaska', 50],
+  ['Tumwater', 60],
+  ['Olympia', 70],
+  ['Lacey', 80],
+  ['Bucoda', 90]
+];
+
+async function seedDefaultLocations() {
+  try {
+    let n = 0;
+    for (const [name, sort_order] of DEFAULT_LOCATION_SEEDS) {
+      const [r] = await pool.query(
+        'INSERT IGNORE INTO locations (name, sort_order) VALUES (:name, :sort_order)',
+        { name, sort_order }
+      );
+      n += Number(r && r.affectedRows ? r.affectedRows : 0);
+    }
+    if (n) console.log('[schema] locations seed inserted:', n);
+  } catch (e) {
+    console.warn('[schema] locations seed failed:', e && e.message);
+  }
+}
+
+async function backfillLocationsFromTransactions() {
+  try {
+    const [rows] = await pool.query(
+      `SELECT DISTINCT TRIM(location) AS loc FROM transactions
+       WHERE location IS NOT NULL AND TRIM(location) <> ''`
+    );
+    let inserted = 0;
+    for (const row of rows || []) {
+      const loc = String(row.loc || '').trim();
+      if (!loc) continue;
+      const [r] = await pool.query(
+        'INSERT IGNORE INTO locations (name, sort_order) VALUES (:name, 500)',
+        { name: loc }
+      );
+      inserted += Number(r && r.affectedRows ? r.affectedRows : 0);
+    }
+    if (inserted) {
+      console.log('[schema] locations from transactions:', inserted);
+    }
+  } catch (e) {
+    console.warn('[schema] locations backfill failed:', e && e.message);
+  }
+}
+
 async function ensureSchema() {
   const fs = require('fs');
   const path = require('path');
@@ -1489,6 +1541,17 @@ async function ensureSchema() {
       UNIQUE KEY uq_vendor_name (name),
       KEY idx_vendor_active (active),
       KEY idx_vendor_type_active (type, active)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS locations (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      name VARCHAR(100) NOT NULL,
+      sort_order INT NOT NULL DEFAULT 100,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_location_name (name)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
 
@@ -1764,6 +1827,8 @@ async function ensureSchema() {
       await pool.query(`INSERT INTO settings (id, business_name, app_pin) VALUES (1, 'Racketty Boom Enterprises', NULL) ON DUPLICATE KEY UPDATE id=id;`);
     } catch (e) {}
 
+    await seedDefaultLocations();
+    await backfillLocationsFromTransactions();
     await backfillVendorsFromTransactions();
 
     console.log('✅ Migracion completada.');
@@ -1786,6 +1851,76 @@ app.post('/api/categories', async (req, res) => {
     await pool.query('INSERT INTO categories (name) VALUES (:name) ON DUPLICATE KEY UPDATE name=name', { name });
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+/**
+ * Lista de ubicaciones: maestro `locations` (orden por sort_order) + valores unicos ya usados en transactions.
+ */
+app.get('/api/locations', async (req, res) => {
+  try {
+    const [tab] = await pool.query(
+      'SELECT name FROM locations ORDER BY sort_order ASC, name ASC'
+    );
+    const namesFromTable = (tab || [])
+      .map((r) => String(r.name || '').trim())
+      .filter(Boolean);
+    const seenLc = new Set(namesFromTable.map((n) => n.toLowerCase()));
+
+    const [txRows] = await pool.query(
+      `SELECT DISTINCT TRIM(location) AS loc FROM transactions
+       WHERE location IS NOT NULL AND TRIM(location) <> ''`
+    );
+    const extras = [];
+    for (const row of txRows || []) {
+      const n = String(row.loc || '').trim();
+      if (!n) continue;
+      const k = n.toLowerCase();
+      if (seenLc.has(k)) continue;
+      seenLc.add(k);
+      extras.push(n);
+    }
+    extras.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    return res.json([...namesFromTable, ...extras]);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/locations', async (req, res) => {
+  if (!ensureCanEdit(req, res)) return;
+  try {
+    const name = String((req.body && req.body.name) || '').trim();
+    if (!name) {
+      return res.status(400).json({ error: 'name is required' });
+    }
+    if (name.length > 100) {
+      return res.status(400).json({ error: 'name is too long' });
+    }
+    const [dup] = await pool.query(
+      'SELECT name FROM locations WHERE LOWER(TRIM(name)) = LOWER(:name) LIMIT 1',
+      { name }
+    );
+    if (dup && dup.length) {
+      return res.status(200).json({ name: dup[0].name, existing: true });
+    }
+    try {
+      await pool.query('INSERT INTO locations (name, sort_order) VALUES (:name, 500)', { name });
+    } catch (e) {
+      if (e.code === 'ER_DUP_ENTRY') {
+        const [again] = await pool.query(
+          'SELECT name FROM locations WHERE LOWER(TRIM(name)) = LOWER(:name) LIMIT 1',
+          { name }
+        );
+        if (again && again.length) {
+          return res.status(200).json({ name: again[0].name, existing: true });
+        }
+      }
+      throw e;
+    }
+    return res.status(201).json({ name, existing: false });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/vendors', async (req, res) => {

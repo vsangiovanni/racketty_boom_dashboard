@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <script src="/js/brand-defaults.js"></script>
   <script src="/js/vendors.js"></script>
+  <script src="/js/locations.js"></script>
   <title>Upload Receipt - Racketty Boom</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
@@ -248,7 +249,13 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">Location</label>
-              <input type="text" id="location" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600">
+              <div class="flex gap-2">
+                <input type="text" id="location" list="locations_datalist" autocomplete="off" maxlength="100" class="flex-1 min-w-0 w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600" placeholder="Type or pick a city">
+                <button type="button" onclick="openLocationModal()" class="shrink-0 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium border border-blue-200 flex items-center gap-1" title="Add new location">
+                  <span class="material-icons-round text-sm">add</span> New
+                </button>
+              </div>
+              <datalist id="locations_datalist"></datalist>
             </div>
           </div>
 
@@ -372,8 +379,12 @@
       } catch(err) { alert(err.message); }
     });
 
-    // Cargar proyectos al iniciar
+    // Cargar proyectos y ubicaciones al iniciar
     loadProjects();
+    (async function initLocationsUi() {
+      if (typeof initLocationField === 'function') initLocationField();
+      if (typeof refreshLocationsDatalist === 'function') await refreshLocationsDatalist('locations_datalist');
+    })();
 
     function toggleTaxes() {
       const isIncome = document.querySelector('input[name="type"]:checked').value === 'Income';
