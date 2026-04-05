@@ -14,7 +14,8 @@ Repository: [github.com/vsangiovanni/racketty_boom_dashboard](https://github.com
 - **Quote “unread” badge:** sidebar **Quote requests** shows an amber count for leads whose team detail was never opened (`team_first_viewed_at`); opening a row’s detail clears that lead from the count. Implemented via `GET /api/quote-requests/unread-count` and `frontend/js/quote-requests-badge.js` (periodic refresh ~90s).
 - **Projects:** tabs **Active / Completed / All**; KPIs and chart follow the selected view; quick **complete** / **reopen** actions; project details page has the same status actions.
 - **Deploy root:** repository root has `package.json` (all runtime deps), `server.js` (`require('./backend/server.js')`), and `npm start` for a single install — matches Hostinger Node detection (`server.js`, Express).
-- **Packaging:** `scripts/pack-hostinger.ps1` builds `hostinger-deploy.zip` (POSIX paths in the zip, validates JSON, excludes `node_modules`, duplicate `backend/package.json` in archive, local `.env`, etc.). Use **`-IncludeProductionEnv`** to embed `backend/.env.production` when you are not using hPanel env vars (keep the zip private).
+- **Locations:** `locations` table + `GET`/`POST` `/api/locations`; Manual Entry and Receipt Scan use a **dropdown** (`frontend/js/locations.js`) with **New** to save a city for reuse.
+- **Packaging (recommended for Node deploy):** `npm run deploy:hostinger-zip` runs `scripts/package-for-hostinger.ps1`: `git archive` plus copies **`backend/.env.production` → `backend/.env`** inside the zip (file is gitignored; do not commit it). Output: `%TEMP%\greg-tracker-hostinger-deploy.zip`. Alternative: `scripts/pack-hostinger.ps1` → `hostinger-deploy.zip` with optional **`-IncludeProductionEnv`**.
 - Dedicated project details: `frontend/project-details.html`.
 - **Export Excel report** (`frontend/export-report.html`): period + optional project (`GET /api/export`).
 - **Bulk Excel import** (`frontend/import.html`) with optional `project_id` on commit.
@@ -45,7 +46,7 @@ Repository: [github.com/vsangiovanni/racketty_boom_dashboard](https://github.com
 - `backend/` — API, auth, schema bootstrap, imports, receipts.
 - `frontend/` — screens, UI, in-app help.
 - `database/` — SQL references / migrations.
-- `scripts/` — `pack-hostinger.ps1` for production zip.
+- `scripts/` — `package-for-hostinger.ps1` (`npm run deploy:hostinger-zip`); `pack-hostinger.ps1` (alternate zip).
 - `docs/en/` — extra English technical notes.
 
 ## Quick start (local)
@@ -65,25 +66,23 @@ To run only from `backend/` (optional): `cd backend && npm install && npm start`
 
 ## Deployment (Hostinger)
 
-1. From the repo root, generate one archive (overwrites the same file; the zip is listed in `.gitignore`):
+1. From the repo root, build the archive **with** `backend/.env` populated from your local `backend/.env.production` (required if hPanel env vars are empty; never commit these files):
 
-   ```powershell
-   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\pack-hostinger.ps1
+   ```bash
+   npm run deploy:hostinger-zip
    ```
 
-   Si prefieres llevar credenciales en archivo en vez del panel, genera el zip con `backend/.env.production` incluido (no compartas ese archivo):
+   Creates **`%TEMP%\greg-tracker-hostinger-deploy.zip`** (Windows) with `git archive` + embedded `backend/.env`. Keep that zip private.
 
-   ```powershell
-   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\pack-hostinger.ps1 -IncludeProductionEnv
-   ```
+   **Alternative:** `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\pack-hostinger.ps1` → **`hostinger-deploy.zip`** in the repo folder. To embed production env: add **`-IncludeProductionEnv`**.
 
-2. Upload **`hostinger-deploy.zip`**. Zip root must include **`package.json`**, **`server.js`**, **`backend/`**, **`frontend/`**, etc. (no `node_modules`; do not commit secrets — the script skips `backend/.env` and production env files; configure variables in hPanel or place `backend/.env.production` on the server only there).
+2. Upload that zip (**`greg-tracker-hostinger-deploy.zip`** or **`hostinger-deploy.zip`**). Root must include **`package.json`**, **`server.js`**, **`backend/`**, **`frontend/`**, etc. (no `node_modules`).
 
-3. In hPanel (**Websites → your site → Node.js**): **Application startup file** `server.js`, install command `npm install`, start `npm start` (or Hostinger’s Express preset). Set **environment variables** to match `backend/.env.example` (especially `DB_*` or `DATABASE_URL`, `APP_BASE_URL`, `NODE_ENV=production`, and SMTP / quote mail). Production can also load `backend/.env.production` from the deploy zip if you use **`-IncludeProductionEnv`**. For **internal quote alerts**, `QUOTE_NOTIFY_TO` accepts **several addresses** separated by commas or semicolons (same notification to each).
+3. In hPanel (**Websites → your site → Node.js**): **Application startup file** `server.js`, install command `npm install`, start `npm start` (or Hostinger’s Express preset). Set **environment variables** in hPanel **or** rely on **`backend/.env`** inside the uploaded zip (from `deploy:hostinger-zip`). For **internal quote alerts**, `QUOTE_NOTIFY_TO` accepts **several addresses** separated by commas or semicolons (same notification to each).
 
-4. **Automated deploy (optional):** if you use the Hostinger API from Cursor (MCP `user-hostinger-mcp`), the tool **`hosting_deployJsApplication`** accepts the same zip path (`archivePath`) and your site **domain**. After upload, check deployment status with **`hosting_listJsDeployments`**. If the API is not configured, use hPanel **Upload** / **Deploy** for the archive.
+4. **Automated deploy (optional):** Hostinger MCP **`hosting_deployJsApplication`** with `archivePath` pointing at the zip from step 1 (e.g. `c:/Users/.../AppData/Local/Temp/greg-tracker-hostinger-deploy.zip`). Check status with **`hosting_listJsDeployments`**.
 
-5. **Windows path tip:** use forward slashes for tool paths, e.g. `c:/Users/.../hostinger-deploy.zip`.
+5. **Windows path tip:** use forward slashes for MCP paths, e.g. `c:/Users/.../greg-tracker-hostinger-deploy.zip`.
 
 6. After a deploy, do a hard refresh or wait for the service worker (`sw.js`) to update so the latest `logo.svg` and precached assets load.
 

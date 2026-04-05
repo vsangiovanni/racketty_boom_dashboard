@@ -17,6 +17,7 @@ The UI is implemented as static HTML pages with inline JavaScript and shared she
 
 ## Recent UX Updates
 
+- Location field: shared `js/locations.js` — native **select** + **New** (saved via `/api/locations`) on manual entry and receipt review.
 - Project details moved from modal to standalone page.
 - Project details include AI-generated insights and actionable recommendations.
 - Recent ledger includes project column.

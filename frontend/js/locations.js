@@ -29,17 +29,48 @@ async function fetchLocationNames() {
   }
 }
 
-async function refreshLocationsDatalist(datalistId) {
-  var id = datalistId || 'locations_datalist';
-  var dl = document.getElementById(id);
-  if (!dl) return;
+/** Si el valor del registro no esta en la lista API, anade una opcion para poder mostrarlo al editar. */
+function ensureLocationSelectHasValue(selectId, rawValue) {
+  var sel = document.getElementById(selectId || 'location');
+  if (!sel || sel.tagName !== 'SELECT') return;
+  if (rawValue == null || String(rawValue).trim() === '') {
+    sel.value = '';
+    return;
+  }
+  var v = String(rawValue).trim();
+  for (var i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].value === v) {
+      sel.value = v;
+      return;
+    }
+  }
+  var o = document.createElement('option');
+  o.value = v;
+  o.textContent = v + ' (saved)';
+  sel.appendChild(o);
+  sel.value = v;
+}
+
+/**
+ * Rellena el &lt;select&gt; de ubicaciones (mismo patron que Category / Project en movil).
+ * @param {string} [selectId]
+ */
+async function refreshLocationSelect(selectId) {
+  var sel = document.getElementById(selectId || 'location');
+  if (!sel || sel.tagName !== 'SELECT') return;
+  var current = sel.value;
   var names = await fetchLocationNames();
-  dl.innerHTML = '';
+  sel.innerHTML = '';
+  var ph = document.createElement('option');
+  ph.value = '';
+  ph.textContent = 'Select...';
+  sel.appendChild(ph);
   names.forEach(function (n) {
-    var opt = document.createElement('option');
-    opt.value = n;
-    dl.appendChild(opt);
+    sel.appendChild(new Option(n, n));
   });
+  if (current) {
+    ensureLocationSelectHasValue(selectId || 'location', current);
+  }
 }
 
 function openLocationModal() {
@@ -55,13 +86,11 @@ function closeLocationModal() {
 }
 
 /**
- * Enlaza el modal "Nueva ubicacion" al POST /api/locations y refresca el datalist.
- * @param {{ datalistId?: string, inputId?: string }} options
+ * @param {{ selectId?: string }} options
  */
 function initLocationField(options) {
   options = options || {};
-  var datalistId = options.datalistId || 'locations_datalist';
-  var inputId = options.inputId || 'location';
+  var selectId = options.selectId || 'location';
   ensureLocationModalExists();
   var form = document.getElementById('create-location-form');
   if (!form || form.dataset.locationBound === '1') return;
@@ -85,13 +114,13 @@ function initLocationField(options) {
       })
       .then(function (data) {
         var canonical = (data && data.name) ? data.name : name;
-        return refreshLocationsDatalist(datalistId).then(function () {
+        return refreshLocationSelect(selectId).then(function () {
           return canonical;
         });
       })
       .then(function (canonical) {
-        var locInput = document.getElementById(inputId);
-        if (locInput) locInput.value = canonical;
+        var locSel = document.getElementById(selectId);
+        if (locSel) locSel.value = canonical;
         closeLocationModal();
       })
       .catch(function (err) {

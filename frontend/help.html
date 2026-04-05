@@ -85,6 +85,7 @@
           <li><strong>Type:</strong> Expense or Income. Depending on the type you will see <em>Sales Tax Paid</em> (expense) or <em>Sales Tax Owed</em> (income).</li>
           <li><strong>Key fields:</strong> supplier or client, date, total amount, category, project, line item detail, notes.</li>
           <li><strong>Project:</strong> two groups — <em>Active projects</em> and <em>Completed projects</em> (suffix “(completed)”); you can still assign a closed job if you need a late correction. Create a new active project with <em>New</em>.</li>
+          <li><strong>Location:</strong> same pattern as <em>Category</em> and <em>Project</em> — a dropdown lists saved cities/places (seeded defaults plus values from your ledger). Choose one or leave empty. Use <em>New</em> to add a name to the list; it is stored for next time and appears in the select after saving.</li>
           <li><strong>Total:</strong> if you fill in subtotal and taxes, the total can be calculated automatically as you type.</li>
           <li><strong>Edit:</strong> if you open the page with <code class="bg-slate-100 px-1 rounded text-sm">?id=number</code>, the data for that record will load; when saved it will update.</li>
         </ul>
@@ -101,6 +102,7 @@
           <li><strong>Step 1:</strong> choose a file; it is sent to the server and an AI-extracted draft is shown.</li>
           <li><strong>Step 2:</strong> review and correct the fields before confirming.</li>
           <li><strong>Project and category:</strong> you can assign them before saving; projects use the same active/completed groups as Manual Entry. The category may match by name with what was detected.</li>
+          <li><strong>Location:</strong> pick from the dropdown (same as Manual Entry) or add a new place with <em>New</em> before confirming the receipt.</li>
           <li><strong>API keys:</strong> if extraction fails, check that OpenAI or Gemini credentials exist on the server in the configuration.</li>
         </ul>
       </article>

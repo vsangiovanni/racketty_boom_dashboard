@@ -15,6 +15,7 @@
 - Project AI insights endpoint (`/api/projects/:id/ai-insights`) returns summary, insights, and recommendations.
 - Transaction APIs include `project_id` read/write behavior.
 - Public help and shared JS routes are allowed for pre-login documentation.
+- Locations master list: `GET`/`POST` `/api/locations`; `locations` table + merge with distinct `transactions.location`.
 
 ## Operational Notes
 

@@ -20,6 +20,7 @@ The frontend is a multi-page UI served by the Express backend from `frontend/`.
 
 ## Recent behavior
 
+- **Location** (`js/locations.js`): on **Manual Entry** and **Receipt Scan**, location is a **`<select>`** (same UX as category/project on mobile), with **New** opening a modal to `POST /api/locations` and refresh the list. Editing a record with a location not in the list adds a temporary “(saved)” option.
 - Quote pipeline: dedicated **Quote requests** page (not a dashboard card).
 - Project dropdowns (manual entry, upload, import, export) use **optgroups**: Active vs Completed; completed options show `(completed)` and remain selectable for corrections.
 - Dashboard **Export** opens `export-report.html` with `?preset=...`.

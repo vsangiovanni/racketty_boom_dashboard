@@ -43,7 +43,12 @@ These endpoints power `frontend/project-details.html`.
 - `/api/auth/options` -> public; whether multi-user login is required and the list of active users for the login screen.
 - `/api/session/me` -> current session (legacy vs named user + role).
 - `/api/users` -> Admin-only CRUD for team users (GET list, POST create, PATCH update PIN/role/active, DELETE).
+- `/api/locations` -> `GET` lists location names for dropdowns (master `locations` table ordered by `sort_order`, plus distinct `transactions.location` values merged in). `POST` (edit-capable roles) adds a name; duplicates are ignored case-insensitively. Seeded defaults are applied in `ensureSchema()`.
 - `/health` -> DB health check endpoint.
+
+## Frontend pairing
+
+- Manual entry and receipt review use `frontend/js/locations.js`: a **`<select>`** for location (mobile-friendly), plus **New** to POST `/api/locations` and refresh the list.
 
 ## Scripts
 
