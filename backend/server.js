@@ -446,7 +446,8 @@ app.get('/api/auth/options', async (_req, res) => {
     );
     return res.json({ multiUser: true, users: rows });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error('[auth/options]', err && err.code, err && err.message);
+    return res.status(500).json({ error: err.message || 'Auth options failed' });
   }
 });
 
@@ -1586,6 +1587,21 @@ async function ensureSchema() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
 
+  // Fuera del try de Fase 1: login multi-usuario depende de esta tabla; si Fase 1 falla a medias, /api/auth/options no debe romper.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS app_users (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      display_name VARCHAR(120) NOT NULL,
+      role ENUM('Admin','Manager','Viewer') NOT NULL DEFAULT 'Manager',
+      pin_hash CHAR(64) NOT NULL,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_app_users_active (is_active)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS transactions (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -1685,20 +1701,6 @@ async function ensureSchema() {
     try {
       await pool.query('DROP TABLE IF EXISTS project_execution_updates');
     } catch (_e) {}
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS app_users (
-        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-        display_name VARCHAR(120) NOT NULL,
-        role ENUM('Admin','Manager','Viewer') NOT NULL DEFAULT 'Manager',
-        pin_hash CHAR(64) NOT NULL,
-        is_active TINYINT(1) NOT NULL DEFAULT 1,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        PRIMARY KEY (id),
-        KEY idx_app_users_active (is_active)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `);
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS audit_logs (
@@ -4292,9 +4294,6 @@ app.use((err, _req, res, _next) => {
 });
 
 const listenHost = process.env.HOST || '0.0.0.0';
-app.listen(PORT, listenHost, () => {
-  console.log(`Greg Tracker backend running on http://${listenHost}:${PORT}`);
-});
 
 (async () => {
   try {
@@ -4304,4 +4303,7 @@ app.listen(PORT, listenHost, () => {
   } catch (error) {
     console.error('Failed to initialize backend resources:', error);
   }
+  app.listen(PORT, listenHost, () => {
+    console.log(`Greg Tracker backend running on http://${listenHost}:${PORT}`);
+  });
 })();
