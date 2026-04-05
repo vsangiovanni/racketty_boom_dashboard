@@ -1,26 +1,25 @@
 # Database Notes
 
-This folder stores SQL references and migration helpers for Greg Tracker.
+## Fuente de verdad del esquema
 
-## Current Reality
+El modelo fisico MySQL que usa la aplicacion se define y actualiza en **`ensureSchema()`** dentro de **`backend/server.js`**. Ese bloque:
 
-- Runtime schema changes are applied by backend startup (`ensureSchema()` in `backend/server.js`).
-- SQL files in this folder are useful references but may not fully match runtime state.
+- Crea tablas en **orden de dependencias** (FK correctas en instalaciones nuevas).
+- Define **`transactions`** con **todas** las columnas del ledger (importes, impuestos, `vendor_id`, `import_batch_id`, `location`, etc.).
+- Incluye **`quote_requests.team_first_viewed_at`** en el `CREATE` actual.
+- Mantiene una **fase interna** de `ALTER` tolerantes a columnas/FK ya existentes para bases creadas con versiones anteriores.
 
-## Files
+Los `.sql` de esta carpeta son **documentacion / historial**, no el pipeline de migracion en runtime.
 
-- `schema.sql` -> historical/base schema reference.
-- `migration_phase1.sql` -> phased migration notes and additional structures.
+## Archivos
 
-## Recent Data Model Highlights
+| Archivo | Uso |
+|--------|-----|
+| `schema.sql` | Aviso: esquema historico; no refleja el modelo actual. |
+| `migration_phase1.sql` | Notas legacy; el codigo vivo esta en `server.js`. |
 
-- Transactions support optional `project_id` (manual entry, AI scan, bulk import, and export filters all respect it).
-- Settings include nullable access code field (`app_pin`) and branding fields.
-- Receipt extraction and review flow writes to dedicated upload/draft tables.
-- Import flow uses staging/metadata tables for batch operations.
+## Buenas practicas
 
-## Recommended Workflow
-
-1. Validate schema behavior against `backend/server.js` first.
-2. Keep SQL docs updated when backend schema logic changes.
-3. Use `utf8mb4` for compatibility and consistency.
+1. Cualquier nueva tabla o columna: implementarla primero en **`ensureSchema()`** y probar arranque contra MySQL vacio y contra una copia de produccion.
+2. Actualizar este README o comentarios en `migration_phase1.sql` si el modelo cambia de forma notable.
+3. Charset recomendado: **utf8mb4** (ya usado en los `CREATE` del servidor).

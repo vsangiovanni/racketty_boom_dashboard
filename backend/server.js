@@ -1471,11 +1471,21 @@ async function backfillLocationsFromTransactions() {
   }
 }
 
+/**
+ * Esquema MySQL real de la app: creacion idempotente (CREATE IF NOT EXISTS) y ALTER
+ * tolerantes a ER_DUP_FIELDNAME / FK ya existente para instalaciones previas.
+ *
+ * Orden de dependencias: receipt_uploads -> receipt_extraction_drafts; categories,
+ * vendors, locations; quote_requests (+ team_first_viewed_at); projects; app_users;
+ * import_batches; settings (con app_pin, logo, avatar, approval_threshold);
+ * project_budgets / project_budget_categories; audit_logs; transactions (todas las
+ * columnas del ledger + FK vendor_id, import_batch_id, project, category, receipt);
+ * review_flags -> transactions.
+ *
+ * La fase interna solo aplica ALTER legacy, FKs opcionales y seeds (locations, vendors).
+ */
 async function ensureSchema() {
-  const fs = require('fs');
-  const path = require('path');
-  
-  // Tablas existentes
+  // --- Tablas base (orden FK) ---
   await pool.query(`
     CREATE TABLE IF NOT EXISTS receipt_uploads (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -1565,6 +1575,7 @@ async function ensureSchema() {
       message TEXT NULL,
       status ENUM('new','contacted','scheduled','won','lost') NOT NULL DEFAULT 'new',
       internal_notes TEXT NULL,
+      team_first_viewed_at TIMESTAMP NULL DEFAULT NULL,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
@@ -1603,16 +1614,102 @@ async function ensureSchema() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS import_batches (
+      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      source_file_name VARCHAR(255) NOT NULL,
+      worksheet_name VARCHAR(100),
+      total_rows_scanned INT DEFAULT 0,
+      rows_ready INT DEFAULT 0,
+      rows_imported INT DEFAULT 0,
+      rows_skipped INT DEFAULT 0,
+      rows_flagged INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      business_name VARCHAR(255) DEFAULT 'Racketty Boom Enterprises',
+      default_currency VARCHAR(10) DEFAULT 'USD',
+      default_tax_rate DECIMAL(5,2) DEFAULT 0.00,
+      approval_threshold DECIMAL(12,2) DEFAULT 5000.00,
+      date_format VARCHAR(20) DEFAULT 'MM/DD/YYYY',
+      app_pin VARCHAR(20) NULL DEFAULT NULL,
+      logo_url VARCHAR(500) NULL,
+      avatar_url VARCHAR(500) NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS project_budgets (
+      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      project_id BIGINT UNSIGNED NOT NULL,
+      total_budget DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      committed_cost DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      warning_percent DECIMAL(5,2) NOT NULL DEFAULT 80.00,
+      overrun_percent DECIMAL(5,2) NOT NULL DEFAULT 100.00,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_project_budget_project (project_id),
+      CONSTRAINT fk_project_budgets_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS project_budget_categories (
+      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      project_id BIGINT UNSIGNED NOT NULL,
+      category_name VARCHAR(120) NOT NULL,
+      budget_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_project_category_budget (project_id, category_name),
+      CONSTRAINT fk_project_budget_categories_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      action VARCHAR(100) NOT NULL,
+      entity VARCHAR(100) NOT NULL,
+      entity_id VARCHAR(100) NULL,
+      actor_role VARCHAR(50) NOT NULL,
+      actor_ip VARCHAR(64) NULL,
+      details_json JSON NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS transactions (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
       receipt_id BIGINT UNSIGNED NULL,
       category_id BIGINT UNSIGNED NULL,
       project_id BIGINT UNSIGNED NULL,
       vendor VARCHAR(255) NOT NULL,
+      vendor_id BIGINT UNSIGNED NULL,
+      customer_name VARCHAR(255) NULL,
       transaction_date DATE NOT NULL,
+      invoice_number VARCHAR(100) NULL,
+      items TEXT NULL,
       amount DECIMAL(12,2) NOT NULL,
+      subtotal DECIMAL(12,2) DEFAULT 0.00,
+      sales_tax_paid DECIMAL(12,2) DEFAULT 0.00,
+      sales_tax_owed DECIMAL(12,2) DEFAULT 0.00,
+      tax DECIMAL(12,2) DEFAULT 0.00,
       type ENUM('Income','Expense') NOT NULL,
+      payment_method VARCHAR(50) NULL,
+      location VARCHAR(100) NULL,
       notes TEXT NULL,
+      source_file_name VARCHAR(255) NULL,
+      extraction_status VARCHAR(50) DEFAULT 'manual',
+      review_status VARCHAR(50) DEFAULT 'pending',
+      import_batch_id BIGINT UNSIGNED NULL,
+      source_row_number INT NULL,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
@@ -1621,78 +1718,26 @@ async function ensureSchema() {
       KEY idx_transactions_project_id (project_id),
       CONSTRAINT fk_transactions_receipt FOREIGN KEY (receipt_id) REFERENCES receipt_uploads(id) ON DELETE SET NULL,
       CONSTRAINT fk_transactions_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
-      CONSTRAINT fk_transactions_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
+      CONSTRAINT fk_transactions_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
+      CONSTRAINT fk_transactions_vendor FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE SET NULL,
+      CONSTRAINT fk_transactions_batch FOREIGN KEY (import_batch_id) REFERENCES import_batches(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS review_flags (
+      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      transaction_id BIGINT UNSIGNED NOT NULL,
+      flag_type VARCHAR(100) NOT NULL,
+      message TEXT NOT NULL,
+      severity ENUM('Low', 'Medium', 'High') DEFAULT 'Medium',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_review_flags_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
 
   try {
     console.log('Aplicando migracion Fase 1 a la base de datos...');
-    
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS import_batches (
-        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-        source_file_name VARCHAR(255) NOT NULL,
-        worksheet_name VARCHAR(100),
-        total_rows_scanned INT DEFAULT 0,
-        rows_ready INT DEFAULT 0,
-        rows_imported INT DEFAULT 0,
-        rows_skipped INT DEFAULT 0,
-        rows_flagged INT DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS review_flags (
-        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-        transaction_id BIGINT UNSIGNED NOT NULL,
-        flag_type VARCHAR(100) NOT NULL,
-        message TEXT NOT NULL,
-        severity ENUM('Low', 'Medium', 'High') DEFAULT 'Medium',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS settings (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        business_name VARCHAR(255) DEFAULT 'Racketty Boom Enterprises',
-        default_currency VARCHAR(10) DEFAULT 'USD',
-        default_tax_rate DECIMAL(5,2) DEFAULT 0.00,
-        approval_threshold DECIMAL(12,2) DEFAULT 5000.00,
-        date_format VARCHAR(20) DEFAULT 'MM/DD/YYYY',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS project_budgets (
-        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-        project_id BIGINT UNSIGNED NOT NULL,
-        total_budget DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-        committed_cost DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-        warning_percent DECIMAL(5,2) NOT NULL DEFAULT 80.00,
-        overrun_percent DECIMAL(5,2) NOT NULL DEFAULT 100.00,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        UNIQUE KEY uq_project_budget_project (project_id),
-        CONSTRAINT fk_project_budgets_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS project_budget_categories (
-        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-        project_id BIGINT UNSIGNED NOT NULL,
-        category_name VARCHAR(120) NOT NULL,
-        budget_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        UNIQUE KEY uq_project_category_budget (project_id, category_name),
-        CONSTRAINT fk_project_budget_categories_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `);
 
     try {
       await pool.query('DROP TABLE IF EXISTS project_invoices');
@@ -1702,18 +1747,14 @@ async function ensureSchema() {
       await pool.query('DROP TABLE IF EXISTS project_execution_updates');
     } catch (_e) {}
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS audit_logs (
-        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-        action VARCHAR(100) NOT NULL,
-        entity VARCHAR(100) NOT NULL,
-        entity_id VARCHAR(100) NULL,
-        actor_role VARCHAR(50) NOT NULL,
-        actor_ip VARCHAR(64) NULL,
-        details_json JSON NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `);
+    try {
+      await pool.query(`
+        ALTER TABLE review_flags
+        ADD CONSTRAINT fk_review_flags_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
+      `);
+    } catch (_e) {
+      // Ya existe o tabla legacy distinta
+    }
 
     try {
       await pool.query(`
