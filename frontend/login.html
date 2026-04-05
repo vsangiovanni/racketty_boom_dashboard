@@ -34,6 +34,8 @@
       <div id="login-logo-container" class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-black text-2xl shadow-lg mx-auto mb-4 overflow-hidden">RB</div>
       <p id="login-headline" class="text-sm font-semibold text-slate-500 uppercase tracking-widest">Enter your access code</p>
       <p id="login-subline" class="text-xs text-slate-400 mt-1">Use your company secure code to continue</p>
+      <p id="login-loading" class="text-xs text-slate-500 mt-3 font-medium">Loading sign-in options…</p>
+      <p id="login-options-error" class="text-xs text-rose-400 mt-3 font-medium hidden"></p>
     </div>
 
     <form id="login-form" class="space-y-6" onsubmit="event.preventDefault(); submitLogin();">
@@ -54,7 +56,7 @@
         <p id="error-msg" class="text-rose-500 text-xs font-bold mt-2 hidden text-center">Invalid access code. Please try again.</p>
       </div>
       
-      <button type="submit" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-md">
+      <button type="submit" id="btn-login" disabled class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-md">
         <span>Enter Workspace</span>
         <span class="material-icons-round text-[18px]">arrow_forward</span>
       </button>
@@ -76,7 +78,7 @@
 
     async function loadSettings() {
       try {
-        const res = await fetch('/api/settings/public');
+        const res = await fetch('/api/settings/public', { credentials: 'same-origin' });
         const data = res.ok ? await res.json() : {};
         if (data.business_name) {
           document.title = 'Secure Access - ' + data.business_name;
@@ -95,18 +97,29 @@
         }
       }
     }
-    loadSettings();
-
     var loginMultiUser = false;
+    var loginOptionsReady = false;
 
     async function loadAuthOptions() {
+      var teamEl = document.getElementById('login-team-fields');
+      var sel = document.getElementById('login-user-id');
+      var loadingEl = document.getElementById('login-loading');
+      var errEl = document.getElementById('login-options-error');
+      var btn = document.getElementById('btn-login');
+      var optionsOk = false;
       try {
-        const res = await fetch('/api/auth/options');
-        if (!res.ok) return;
-        const data = await res.json();
+        const res = await fetch('/api/auth/options', { credentials: 'same-origin' });
+        const data = res.ok ? await res.json() : {};
+        if (!res.ok) {
+          errEl.textContent = (data && data.error) ? data.error : 'Could not load sign-in options. Refresh the page.';
+          errEl.classList.remove('hidden');
+          loginMultiUser = false;
+          teamEl.classList.add('hidden');
+          return;
+        }
+        optionsOk = true;
+        errEl.classList.add('hidden');
         loginMultiUser = !!data.multiUser;
-        var teamEl = document.getElementById('login-team-fields');
-        var sel = document.getElementById('login-user-id');
         if (loginMultiUser && data.users && data.users.length) {
           teamEl.classList.remove('hidden');
           document.getElementById('login-headline').textContent = 'Sign in as team member';
@@ -118,12 +131,30 @@
             }).join('');
         } else {
           teamEl.classList.add('hidden');
+          document.getElementById('login-headline').textContent = 'Enter your access code';
+          document.getElementById('login-subline').textContent = 'Use your company secure code to continue';
+          document.getElementById('pin-label').textContent = 'Access Code';
         }
-      } catch (e) {}
+      } catch (e) {
+        errEl.textContent = 'Connection error loading sign-in options. Refresh the page.';
+        errEl.classList.remove('hidden');
+        teamEl.classList.add('hidden');
+        loginMultiUser = false;
+      } finally {
+        if (loadingEl) loadingEl.classList.add('hidden');
+        loginOptionsReady = optionsOk;
+        if (btn) btn.disabled = !optionsOk;
+      }
     }
-    loadAuthOptions();
+
+    async function bootLogin() {
+      await loadSettings();
+      await loadAuthOptions();
+    }
+    bootLogin();
 
     async function submitLogin() {
+      if (!loginOptionsReady) return;
       var pin = document.getElementById('pin').value;
       var btn = document.getElementById('btn-login');
       var err = document.getElementById('error-msg');
@@ -147,6 +178,7 @@
         var res = await fetch('/api/auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
           body: JSON.stringify(body)
         });
 

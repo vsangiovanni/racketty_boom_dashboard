@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gregtracker-v36';
+const CACHE_NAME = 'gregtracker-v37';
 const ASSETS = [
   './',
   './index.html',
@@ -42,6 +42,12 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   // Nunca cachear la API: evita 404/500 antiguos pegados y respuestas stale.
   if (url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Login must always be fresh so team vs single-PIN UI matches /api/auth/options.
+  if (url.pathname === '/login.html' || url.pathname.endsWith('/login.html')) {
     event.respondWith(fetch(event.request));
     return;
   }

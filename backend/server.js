@@ -163,12 +163,8 @@ function hashUserPin(pin) {
 }
 
 async function countActiveAppUsers() {
-  try {
-    const [rows] = await pool.query('SELECT COUNT(*) AS n FROM app_users WHERE is_active = 1');
-    return Number(rows[0]?.n || 0);
-  } catch (_e) {
-    return 0;
-  }
+  const [rows] = await pool.query('SELECT COUNT(*) AS n FROM app_users WHERE is_active = 1');
+  return Number(rows[0]?.n || 0);
 }
 
 function escapeHtmlEmail(s) {
